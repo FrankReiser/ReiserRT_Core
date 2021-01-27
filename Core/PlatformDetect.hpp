@@ -5,8 +5,8 @@
 * @date Created on Jan 23, 2021
 */
 
-#ifndef PLATFORMDETECT_H_
-#define PLATFORMDETECT_H_
+#ifndef PLATFORMDETECT_HPP_
+#define PLATFORMDETECT_HPP_
 
 // We are primarily targeting a modern (>4.8.5) GNU C++. Windows under VS2019 for C++ ports exist
 #ifdef __GNUC__
@@ -42,4 +42,4 @@
 #endif
 
 
-#endif /* PLATFORMDETECT_H_ */
+#endif /* PLATFORMDETECT_HPP_ */

@@ -5,13 +5,12 @@
 * @date Created on May 29, 2015
 */
 
-#ifndef SEMAPHORE_H_
-#define SEMAPHORE_H_
-
-#include "PlatformDetect.h"
+#ifndef SEMAPHORE_HPP_
+#define SEMAPHORE_HPP_
 
 #include <stdexcept>
 #include <functional>
+#include "PlatformDetect.hpp"
 
 namespace ReiserRT
 {
@@ -193,4 +192,4 @@ namespace ReiserRT
 }
 
 
-#endif /* SEMAPHORE_H_ */
+#endif /* SEMAPHORE_HPP_ */

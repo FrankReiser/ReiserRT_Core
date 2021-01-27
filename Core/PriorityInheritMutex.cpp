@@ -5,7 +5,7 @@
 * @date Created on Jul 17, 2017
 */
 
-#include "PriorityInheritMutex.h"
+#include "PriorityInheritMutex.hpp"
 
 #ifdef REISER_RT_GCC
 

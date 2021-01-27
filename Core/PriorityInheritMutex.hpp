@@ -5,10 +5,10 @@
 * @date Created on Jul 17, 2017
 */
 
-#ifndef PRIORITYINHERITMUTEX_H_
-#define PRIORITYINHERITMUTEX_H_
+#ifndef PRIORITYINHERITMUTEX_HPP_
+#define PRIORITYINHERITMUTEX_HPP_
 
-#include "PlatformDetect.h"
+#include "PlatformDetect.hpp"
 
 #ifdef REISER_RT_GCC
 #include <pthread.h>
@@ -179,4 +179,4 @@ namespace ReiserRT
 
 #endif // REISER_RT_GCC
 
-#endif /* PRIORITYINHERITMUTEX_H_ */
+#endif /* PRIORITYINHERITMUTEX_HPP_ */

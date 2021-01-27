@@ -7,10 +7,10 @@
 
 #define SEMAPHORE_USES_PRIORITY_INHERIT_MUTEX 1
 
-#include "Semaphore.h"
+#include "Semaphore.hpp"
 
 #if defined( SEMAPHORE_USES_PRIORITY_INHERIT_MUTEX ) && ( SEMAPHORE_USES_PRIORITY_INHERIT_MUTEX != 0 )
-#include "PriorityInheritMutex.h"
+#include "PriorityInheritMutex.hpp"
 #endif
 
 #include <limits>
