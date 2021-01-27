@@ -5,7 +5,14 @@ set(CMAKE_CXX_STANDARD 14)
 
 include_directories(ReiserRT)
 
-add_executable(ReiserRT
+#add_executable(ReiserRT
+#        ReiserRT/PlatformDetect.hpp
+#        ReiserRT/PriorityInheritMutex.cpp
+#        ReiserRT/PriorityInheritMutex.hpp
+#        ReiserRT/Semaphore.cpp
+#        ReiserRT/Semaphore.hpp)
+
+add_library( ReiserRT STATIC
         ReiserRT/PlatformDetect.hpp
         ReiserRT/PriorityInheritMutex.cpp
         ReiserRT/PriorityInheritMutex.hpp
