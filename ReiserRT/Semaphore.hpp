@@ -128,6 +128,7 @@ namespace ReiserRT
             * @warning Should the user operation throw an exception, an availableCount may be wasted, as it has already been decremented.
             * It is the responsibility of the implementor of such an operation to decide if this is recoverable and a notify call can be utilized
             * to restore the availableCount.
+            * @todo We can do better than this. We already have in several places using RAII techniques.
             * @warning It is expected that the function object remain valid throughout the duration of the wait invocation. Failure
             * to provide this assurance will lead to undefined behavior.
             * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
@@ -177,7 +178,6 @@ namespace ReiserRT
             * current available count.
             *
             * @return Returns a snapshot of the availableCount at time of invocation.
-            * @todo Provide implementation.
             */
             size_t getAvailableCount();
 

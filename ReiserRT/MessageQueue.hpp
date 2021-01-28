@@ -130,7 +130,7 @@ namespace ReiserRT
         * dispatched by the getAndDispatch operation.
         *
         * @tparam requestedMaxMessageSize The requested size (in bytes) for message allocation blocks for the internal pool.
-        * @note This needs to a miniminum of the size of MessageBase and should be the size of the largest derived message.
+        * @note This needs to a minimum of the size of MessageBase and should be the size of the largest derived message.
         * This requested size will be rounded up to next architecture size multiple for alignment purposes.
         */
         template < size_t requestedMaxMessageSize = 0 >
