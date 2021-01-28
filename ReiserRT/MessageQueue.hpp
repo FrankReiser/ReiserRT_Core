@@ -1,5 +1,5 @@
 /**
-* @file MessageQueue.h
+* @file MessageQueue.hpp
 * @brief The Specification for a Pendable MessageQueue
 * @authors Frank Reiser
 * @date Created on May 23, 2017
@@ -12,9 +12,9 @@
 #include "ObjectQueue.h"
 #include <memory>
 
-namespace NAWCAD_IDS
+namespace ReiserRT
 {
-    namespace Utility
+    namespace Core
     {
         /**
         * @brief The Message Queue Abstract Message Base Class
@@ -145,7 +145,7 @@ namespace NAWCAD_IDS
             * The object pool type is that of our MessageBase. Object Pools support derived message types, which may be larger
             * than MessageBase so we employ the requestedMaxMessageSize template argument here.
             */
-            using ObjectPoolType = NAWCAD_IDS::Utility::ObjectPool< MessageBase, requestedMaxMessageSize >;
+            using ObjectPoolType = ReiserRT::Core::ObjectPool< MessageBase, requestedMaxMessageSize >;
 
             /**
             * @brief The Message Smart Pointer Type
@@ -159,7 +159,7 @@ namespace NAWCAD_IDS
             *
             * The object queue type is that of our MessagePtrType.
             */
-            using ObjectQueueType = NAWCAD_IDS::Utility::ObjectQueue< MessagePtrType >;
+            using ObjectQueueType = ReiserRT::Core::ObjectQueue< MessagePtrType >;
 
             /**
             * @brief The Padded Message Allocation Size
@@ -267,7 +267,7 @@ public:
                 static_assert( std::is_move_constructible<T>::value, "Type T must be move constructible!!!");
 
                 // Type T must be nothrow destructable
-                static_assert( std::is_nothrow_destructible<T>::value, "Type T must be no throw destructable!!!" );
+                static_assert( std::is_nothrow_destructible<T>::value, "Type T must be no throw destructible!!!" );
 
                 // The sizeof type T must be less than or equal to the paddedMessageAllocSize
                 static_assert( sizeof( T ) <= paddedMessageAllocSize,

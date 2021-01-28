@@ -1,5 +1,5 @@
 /**
-* @file ObjectPool.h
+* @file ObjectPool.hpp
 * @brief The Specification for a Generic Object Pool.
 * @authors Frank Reiser
 * @date Created on Apr 9, 2015
@@ -10,10 +10,13 @@
 
 #include <memory>
 #include <type_traits>
+#include <functional>
+#include <string>
+#include <stdexcept>
 
-namespace NAWCAD_IDS
+namespace ReiserRT
 {
-    namespace Utility
+    namespace Core
     {
         /**
         * @brief The ObjectPoolBase Class
@@ -34,10 +37,10 @@ namespace NAWCAD_IDS
             /**
             * @brief Performance Tracking Feature Counter Type
             *
-            * The ObjectPoolBase can keep track of certain performance characteristics. These would primarily be a "Low Watermark"
-            * and the current "Running Count". Since this is a pool, the "Running Count" starts out full (high) and so would
-            * the "Low Watermark". We use a 32 bit value for these, which should be adequate. On 20200707, the internal ring buffer
-            * is maximum is limited to 1 Mega blocks.
+            * The ObjectPoolBase can keep track of certain performance characteristics. These would primarily be a
+            * "Low Watermark" and the current "Running Count". Since this is a pool, the "Running Count" starts
+            * out full (high) and so would the "Low Watermark". We use a 32 bit value for these, which should be
+            * adequate. On 20200707, the internal ring buffer is maximum is limited to 1 Mega blocks.
             */
             using CounterType = uint32_t;
 
@@ -55,11 +58,12 @@ namespace NAWCAD_IDS
                 /**
                 * @brief Default Constructor for RunningStateStats
                 *
-                * This operation uses the compiler generated default, which in our case is to default the data members to zero.
+                * This operation uses the compiler generated default, which in our case is to default the data
+                * members to zero.
                 */
                 RunningStateStats() noexcept = default;
 
-                size_t size{ 0 };               //!< The Size of the Pool, Requested at Construction, Rounded Up to Next Power Of Two.
+                size_t size{ 0 };               //!< The Size of the Pool Requested Rounded Up to Next power of Two.
                 CounterType runningCount{ 0 };  //!< The Current Running Count Captured Atomically (snapshot)
                 CounterType lowWatermark{ 0 };  //!< The Current Low Watermark Captured Atomically (snapshot)
             };
@@ -73,10 +77,10 @@ namespace NAWCAD_IDS
             ObjectPoolBase() = delete;
 
             /**
-            * @brief Qualified Construtor for ObjectPool
+            * @brief Qualified Constructor for ObjectPool
             *
-            * This qualified constructor builds an ObjectPool using the requestedNumElements and element size argument values.
-            * It delegates to the hidden implementation to fill the construction requirements.
+            * This qualified constructor builds an ObjectPool using the requestedNumElements and element size argument
+            * values. It delegates to the hidden implementation to fill the construction requirements.
             *
             * @param requestedNumElements The requested ObjectPool size. This will be rounded up to the next whole
             * power of two and clamped within RingBuffer design limits.
@@ -178,8 +182,8 @@ namespace NAWCAD_IDS
         /**
         * @brief A Generic Object Pool Implementation with ObjectFactory Functionality
         *
-        * This template class provides a compile-time, high performance, generic object factory from a preallocated memory pool.
-        * The implementation relies heavily on C++11 meta-programming capabilities to accomplish its goal
+        * This template class provides a compile-time, high performance, generic object factory from a preallocated
+        * memory pool. The implementation relies heavily on C++11 meta-programming capabilities to accomplish its goal
         * of compile-time polymorphism over dynamic dispatch. The RingBufferSimple class of the same namespace
         * is utilized extensively. Types created and delivered from this implementation are encapsulated
         * inside of a C++11 unique_ptr with a custom "Deleter" which automatically returns memory to this pool when the
@@ -204,7 +208,8 @@ namespace NAWCAD_IDS
         class ObjectPool : public ObjectPoolBase
         {
             // You cannot specify a minTypeAllocSize less than the size of type T.
-            static_assert( minTypeAllocSize >= sizeof( T ), "Template parameter minTypeAllocSize must be >= sizeof( T )!!!" );
+            static_assert( minTypeAllocSize >= sizeof( T ),
+                    "Template parameter minTypeAllocSize must be >= sizeof( T )!!!" );
 
         public:
             /**
@@ -222,15 +227,16 @@ namespace NAWCAD_IDS
             * This compile-time constant value is what we will allocate to each object created from the pool.
             * This ensures that all objects created, ultimately from the arena, are architecture aligned.
             */
-            constexpr static size_t paddedTypeAllocSize = ( alignmentOverspill != 0 ) ? minTypeAllocSize + sizeof( void * ) - alignmentOverspill : minTypeAllocSize;
+            constexpr static size_t paddedTypeAllocSize = ( alignmentOverspill != 0 ) ?
+                    minTypeAllocSize + sizeof( void * ) - alignmentOverspill : minTypeAllocSize;
 
         private:
 
             /**
             * @brief Deleter Functor
             *
-            * This class provides a functor interface to be invoked when an object created by ObjectPool encapsulated within
-            * a unique_ptr, is to be destroyed and subsequently returned to the memory pool.
+            * This class provides a functor interface to be invoked when an object created by ObjectPool encapsulated
+            * within a unique_ptr, is to be destroyed and subsequently returned to the memory pool.
             */
             class Deleter
             {
@@ -238,8 +244,8 @@ namespace NAWCAD_IDS
                 /**
                 * @brief Friend Declaration
                 *
-                * Our specialized parent ObjectPool is a friend and only it can invoke our "Qualified Constructor" which specifies
-                * an instance of the specialization.
+                * Our specialized parent ObjectPool is a friend and only it can invoke our "Qualified Constructor"
+                * which specifies an instance of the specialization.
                 */
                 friend class ObjectPool;
 
@@ -333,7 +339,10 @@ namespace NAWCAD_IDS
             * @param requestedNumElements The requested ObjectPool size. This will be rounded up to the next whole
             * power of two and clamped within RingBuffer design limits.
             */
-            explicit ObjectPool( size_t requestedNumElements );
+            explicit ObjectPool( size_t requestedNumElements )
+              : ObjectPoolBase( requestedNumElements, paddedTypeAllocSize )
+            {
+            }
 
             /**
             * @brief Copy Constructor for ObjectPool
@@ -380,23 +389,23 @@ namespace NAWCAD_IDS
              "loaned", would be a terrible thing to do. It will almost certainly lead to an exception
               being thrown.
             */
-            ~ObjectPool();
+            ~ObjectPool() {}
 
             /**
             * @brief The createObj Variadic Template Operation
             *
-            * This templat operation provides for any derived type D of base type T to be generically constructed
-            * using whatever parameters statisfy a particular constructor overload assuming it will fit into our pre-sized
-            * arena blocks. This includes type T itself.
+            * This template operation provides for any derived type D of base type T to be generically constructed
+            * using whatever parameters satisfy a particular constructor overload assuming it will fit into our
+            * pre-sized arena blocks. This includes type T itself.
             *
             * The operation makes use of C++11 meta-programming capabilities and a variadic template specification
-            * to inline the construction using "perfect forwarding" of the arguments. Objects created are constructed using
-            * an "in-place" new operation, into a memory block retrieved from the base class implementation.
+            * to inline the construction using "perfect forwarding" of the arguments. Objects created are constructed
+            * using an "in-place" new operation, into a memory block retrieved from the base class implementation.
             *
             * @tparam D An argument type derived from type T or type T itself, guaranteed to fit within a memory block
             * from the arena. It must also be nothrow destructible and if type D is derived from type T,
             * then type T must specify a virtual destructor. Usage violations will be detected at compile time.
-            * @tparam Args Zero or more arguments necessary to statisfy a particular type D constructor overload.
+            * @tparam Args Zero or more arguments necessary to satisfy a particular type D constructor overload.
             *
             * @param args The actual arguments to be forwarded by the compiler to the deduced constructor for type D.
             *
@@ -407,7 +416,79 @@ namespace NAWCAD_IDS
             * @note May throw other exceptions if the constructor of type D throws an exception.
             */
             template< typename D, typename... Args >
-            ObjectPtrType createObj( Args&&... args );
+            ObjectPtrType createObj( Args&&... args )
+            {
+                // Type D must be derived from type T or the same as type T.
+                static_assert( std::is_base_of< T, D >::value,
+                        "Type D must be same the same type as T or derived from type T!!!" );
+
+                // Type D must be the same type as type T or type T must specify virtual destruction.
+                static_assert( std::is_same< D, T >::value || std::has_virtual_destructor< T >::value,
+                         "Type D must be the same type as type T or type T must have a virtual destructor!!!" );
+
+                // Type D must be the same type as type T or have a size less than that of the paddedTypeAllocSize.
+                static_assert( std::is_same< D, T >::value || sizeof( D ) <= paddedTypeAllocSize,
+                         "Type D must be the same type as type T or sizeof(D) must be <= padded allocation size!!!" );
+
+                // Type D must be nothrow_destructible.
+                static_assert( std::is_nothrow_destructible< D >::value, "Type D must be nothrow destructible!!!" );
+
+                // Get raw buffer from ring. This could throw underflow if pool is exhausted.
+                void * pRaw;
+                try
+                {
+                    pRaw =  getRawBlock();
+                }
+                catch ( const std::underflow_error & )
+                {
+                    // Throw more informative underflow_error exception.
+                    ///@todo This is Windows specific! I need what I did for GCC here and platform specific.
+                    ///Also, figure out what is common between the two and maybe put this in a cpp file to invoke.
+#if 0
+                    int status;
+                    char * pTypeName = abi::__cxa_demangle( typeid( T ).name(), 0, 0, &status );
+                    char * pDerivedName = abi::__cxa_demangle( typeid( D ).name(), 0, 0, &status );
+                    std::string typeName{ pTypeName };
+                    std::string derivedName{ pDerivedName };
+                    free( pTypeName );
+                    free( pDerivedName );
+                    std::string exceptionText{ "ObjectPool< " };
+                    exceptionText += typeName;
+                    exceptionText += ", ";
+                    exceptionText += std::to_string( minTypeAllocSize );
+                    exceptionText += " >::createObj< ";
+                    exceptionText += derivedName;
+                    exceptionText += " >( Args&&... args ) - Pool Exhausted!";
+#else
+                    const char * pTypeName = typeid( T ).name();
+                    const char * pDerivedName = typeid( D ).name();
+                    std::string exceptionText{ "ObjectPool< " };
+                    exceptionText += pTypeName;
+                    exceptionText += ", ";
+                    exceptionText += std::to_string( minTypeAllocSize );
+                    exceptionText += " >::createObj< ";
+                    exceptionText += pDerivedName;
+                    exceptionText += " >( Args&&... args ) - Pool Exhausted!";
+#endif
+
+                    throw std::underflow_error( exceptionText );
+                }
+
+                // A deleter and managed cooked pointer type.
+                using DeleterType = std::function< void( void * ) noexcept >;
+                using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
+
+                // Wrap in a managed pointer
+                auto deleter = [ this ]( void * p ) noexcept { this->returnRawBlock( p ); };
+                ManagedRawPointerType managedRawPtr{ pRaw, std::ref( deleter ) };
+
+                // Cook directly on raw and if construction doesn't throw, release managed pointer's ownership.
+                T * pCooked = new ( pRaw )D{ std::forward<Args>(args)... };
+                managedRawPtr.release();
+
+                // Wrap cooked and deliver.
+                return ObjectPtrType{ pCooked, Deleter{ this } };
+            }
 
             /**
             * @brief Get the ObjectPool size
@@ -432,7 +513,10 @@ namespace NAWCAD_IDS
             *
             * @param p A pointer to raw memory, that originally came from the ObjectPool.
             */
-            void returnBlock( void * p ) noexcept;
+            void returnBlock( void * p ) noexcept
+            {
+                returnRawBlock( p );
+            }
         };
     }
 }

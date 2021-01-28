@@ -1,5 +1,5 @@
 /**
-* @file RingBufferSimple.h
+* @file RingBufferSimple.hpp
 * @brief The Specification file for RingBufferSimple
 * @authors Frank Reiser
 * @date Created on Apr 9, 2017
@@ -13,9 +13,9 @@
 #include <stdexcept>
 #include <cstddef>
 
-namespace NAWCAD_IDS
+namespace ReiserRT
 {
-    namespace Utility
+    namespace Core
     {
         /**
         * @brief Base implementation class for all RingBufferSimple specializations
@@ -149,7 +149,7 @@ namespace NAWCAD_IDS
             * @brief Get an Element From The RingBufferSimpleImple
             *
             * This operation attempts to get an element from the RingBufferImple and advance the getState.
-            * @throw Throws std::underflow exception if there is no element available to fulfill the request (empty).
+            * @throw Throws std::underflow exception if there is no element available to fulfill the request.
             *
             * @return Returns an element from the RingBufferSimpleImple.
             */
@@ -159,7 +159,7 @@ namespace NAWCAD_IDS
                 // we are empty and will throw underflow.
                 if ( ( getCount - putCount + numElements ) > numElementsMask )
                 {
-                    throw std::underflow_error{ "RingBufferSimpleBase::get() would result in underflow!" };
+                    throw std::underflow_error{ "RingBufferSimpleImple::get() would result in underflow!" };
                 }
 
                 // If here, we were not empty. Incrementing the getCount,
@@ -171,7 +171,7 @@ namespace NAWCAD_IDS
             * @brief Put an Element Into The RingBufferSimpleImple
             *
             * This operation attempts to put an element into the RingBufferImple and advance the putState.
-            * @throw Throws std::overflow exception if there is no room left to forefill the request (full).
+            * @throw Throws std::overflow exception if there is no room left to fulfill the request.
             */
             void put( ScalarType val )
             {
@@ -180,7 +180,7 @@ namespace NAWCAD_IDS
                 // (number of elements less 1), then we are full and may throw overflow.
                 if ( ( putCount - getCount ) > numElementsMask )
                 {
-                    throw std::overflow_error{ "RingBufferSimpleBase::put() would result in overflow!" };
+                    throw std::overflow_error{ "RingBufferSimpleImple::put() would result in overflow!" };
                 }
 
                 // If here, we were not full. Load the value we are putting while incrementing the putCount.
@@ -190,7 +190,7 @@ namespace NAWCAD_IDS
             /**
             * @brief Get the Number Of Bits Operation
             *
-            * This operaton is primarily useful in validation of the implementation. It returns the
+            * This operation is primarily useful in validation of the implementation. It returns the
             * number of bits required to hold an index into an N element buffer.
             *
             * @return The number of bits required for a mask to determine an index into an N element buffer.

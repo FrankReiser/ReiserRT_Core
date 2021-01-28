@@ -1,5 +1,5 @@
 /**
-* @file Semaphore.h
+* @file Semaphore.hpp
 * @brief The Specification for Semaphore utility
 * @authors: Frank Reiser
 * @date Created on May 29, 2015
@@ -10,7 +10,7 @@
 
 #include <stdexcept>
 #include <functional>
-#include "PlatformDetect.hpp"
+//#include "PlatformDetect.hpp"
 
 namespace ReiserRT
 {
@@ -177,6 +177,7 @@ namespace ReiserRT
             * current available count.
             *
             * @return Returns a snapshot of the availableCount at time of invocation.
+            * @todo Provide implementation.
             */
             size_t getAvailableCount();
 
@@ -185,6 +186,7 @@ namespace ReiserRT
             * @brief Pointer Member to Hidden Implementation
             *
             * This is our pointer to our hidden implementation.
+            * @todo Make this a unique_ptr and make the class 'movable'.
             */
             Imple * pImple;
         };

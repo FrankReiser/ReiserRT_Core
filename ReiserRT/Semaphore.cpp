@@ -5,6 +5,8 @@
 * @date Created on Jul 8, 2015
 */
 
+///@todo Didn't I want to use my PlatformDetect here.
+
 #define SEMAPHORE_USES_PRIORITY_INHERIT_MUTEX 1
 
 #include "Semaphore.hpp"
@@ -43,7 +45,6 @@ public:
     */
     ~Imple();
 
-private:
     /**
     * @brief Copy Constructor for Implementation
     *

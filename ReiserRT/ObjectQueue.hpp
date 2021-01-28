@@ -620,4 +620,191 @@ namespace ReiserRT
     } // end namespace Utility
 }
 
+#include "Semaphore.hpp"
+#include <thread>
+
+template < typename T >
+ReiserRT::Core::ObjectQueue< T >::ObjectQueue( size_t requestedNumElements )
+        : ObjectQueueBase( requestedNumElements, paddedTypeAllocSize )
+{
+}
+
+template < typename T >
+ReiserRT::Core::ObjectQueue< T >::~ObjectQueue()
+{
+    // Invoke abort functionality
+    abort();
+
+    // We will wait for 100 milliseconds to help ensure everyone is out of the way of the cooked queue.
+    // before we start destroying the left over objects.
+    std::this_thread::sleep_for( std::chrono::milliseconds(100) );
+
+    // Setup a lambda function for invoking type T's destructor and invoke the flush operation passing reference to function.
+    auto funk = []( void * pV ) noexcept { T * pCooked = reinterpret_cast< T * >( pV ); pCooked->~T(); };
+    flush( std::ref( funk ) );
+}
+
+template < typename T >
+void ReiserRT::Core::ObjectQueue< T >::put( T & obj )
+{
+    // A Deleter and Managed raw pointer type.
+    using DeleterType = std::function< void( void * ) noexcept >;
+    using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
+
+    // Obtain Raw Memory (may block if Raw Queue is empty -> Cooked Queue is full)
+    void * pRaw = rawWaitAndGet();
+
+    // Wrap in a managed pointer in case cook move construction throws an exception. We must succeed in putting pointer
+    // into cooked queue or returning it to the raw queue or it is leaked forever.
+    auto deleter = [ this ]( void * p ) noexcept { this->rawPutAndNotify( p ); };
+    ManagedRawPointerType managedRawPtr{ pRaw, std::ref( deleter ) };
+
+    // Cook directly on raw and if construction doesn't throw, release managed pointer's ownership.
+    new ( pRaw )T{ std::move( obj ) };
+    managedRawPtr.release();
+
+    // Load Cooked Memory (pRaw is cooked now)
+    cookedPutAndNotify( pRaw );
+}
+
+template < typename T >
+template < typename... Args >
+void ReiserRT::Core::ObjectQueue< T >::emplace( Args&&... args )
+{
+    // A Deleter and Managed raw pointer type.
+    using DeleterType = std::function< void( void * ) noexcept >;
+    using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
+
+    // Obtain Raw Memory (may block if Raw Queue is empty -> Cooked Queue is full)
+    void * pRaw = rawWaitAndGet();
+
+    // Wrap in a managed pointer in case cook move construction throws an exception. We must succeed in putting pointer
+    // into cooked queue or returning it to the raw queue or it is leaked forever.
+    auto deleter = [ this ]( void * p ) noexcept { this->rawPutAndNotify( p ); };
+    ManagedRawPointerType managedRawPtr{ pRaw, std::ref( deleter ) };
+
+    // Cook directly on raw and if construction doesn't throw, release managed pointer's ownership.
+    new ( pRaw )T{ std::forward<Args>(args)... };
+    managedRawPtr.release();
+
+    // Load Cooked Memory (pRaw is cooked now)
+    cookedPutAndNotify( pRaw );
+}
+
+template < typename T >
+T ReiserRT::Core::ObjectQueue< T >::get()
+{
+    // A deleter and managed cooked pointer type.
+    using DeleterType = std::function< void( T * ) noexcept >;
+    using ManagedCookedPointerType = std::unique_ptr< T, DeleterType >;
+
+    // Obtain Cooked Memory (may block if the Cooked Queue is empty)
+    T * pCooked = reinterpret_cast< T * >( cookedWaitAndGet() );
+
+    // Wrap in a managed pointer in case exception is thrown when T moved out to return location. We must succeed
+    // in replenishing the raw queue or it is leaked forever.
+    auto deleter = [ this ]( T * pT ) noexcept { pT->~T(); this->rawPutAndNotify( pT ); };
+    ManagedCookedPointerType managedCookedPtr{ pCooked, std::ref( deleter ) };
+
+    // This dereference, dereferences the internal pointer of the managed pointer making it of type "T" (not "T *") which
+    // is then "moved out" during the assignment of the return value. However, the managed cooked pointer still owns the pointer
+    // and its deleter will be called even though the contents of the encapsulated pointer have been "moved out".
+    return std::move( *managedCookedPtr );
+}
+
+
+template < typename T >
+void ReiserRT::Core::ObjectQueue< T >::getAndInvoke( GetAndInvokeFunctionType operation )
+{
+    // A deleter and managed cooked pointer type.
+    using DeleterType = std::function< void( T * ) noexcept >;
+    using ManagedCookedPointerType = std::unique_ptr< T, DeleterType >;
+
+    // Obtain Cooked Memory (may block if the Cooked Queue is empty)
+    T * pCooked = reinterpret_cast< T * >( cookedWaitAndGet() );
+
+    // Wrap in a managed pointer in case an exception is thrown when invoking the user provided operation. We must succeed
+    // in replenishing the raw queue or it is leaked forever.
+    auto deleter = [ this ]( T * pT ) noexcept { pT->~T(); this->rawPutAndNotify( pT ); };
+    ManagedCookedPointerType managedCookedPtr{ pCooked, std::ref( deleter ) };
+
+    // Invoke user provided operation
+    operation( *managedCookedPtr );
+}
+
+template < typename T >
+typename ReiserRT::Core::ObjectQueue< T >::ReservedPutHandle ReiserRT::Core::ObjectQueue< T >::reservePutHandle()
+{
+    // Obtain Raw Memory (may block if the Raw Queue is empty)
+    void * pRaw = rawWaitAndGet();
+
+    // Construct ReservedPutSlot and return
+    return ReservedPutHandle{ this, pRaw };
+}
+
+template < typename T >
+void ReiserRT::Core::ObjectQueue< T >::putOnReserved( ReservedPutHandle & handle, T & obj )
+{
+    // If the handle is nullptr, throw invalid_argument.
+    if ( !handle.pRaw ) throw std::invalid_argument( "ObjectQueue< T >::putOnReserved invoked with invalid handle!!!" );
+
+    // A Deleter and Managed raw pointer type.
+    using DeleterType = std::function< void( void *& ) noexcept >;
+    using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
+
+    // Wrap in a managed pointer incase cook move construction throws an exception. We must succeed in putting pointer
+    // into cooked queue or returning it to the raw queue or it is leaked forever.
+    auto deleter = [ this ]( void *& p ) noexcept { this->rawPutAndNotify( p ); p = nullptr; };
+    ManagedRawPointerType managedRawPtr{ handle.pRaw, std::ref( deleter ) };
+
+    // Cook directly on raw and if construction doesn't throw, release managed pointer's ownership.
+    new ( handle.pRaw )T{ std::move( obj ) };
+    managedRawPtr.release();
+
+    // Store off handle's pointer to raw memory and set handle pRaw member to nullptr;
+    void * pRaw = handle.pRaw;
+    handle.pRaw = nullptr;
+
+    // Load Cooked Memory (pRaw is cooked now)
+    cookedPutAndNotify( pRaw );
+}
+
+template < typename T >
+template < typename... Args >
+void ReiserRT::Core::ObjectQueue< T >::emplaceOnReserved( ReservedPutHandle & handle, Args&&... args )
+{
+    // If the handle is null pointer, throw invalid_argument.
+    if ( !handle.pRaw ) throw std::invalid_argument( "ObjectQueue< T >::putOnReserved invoked with invalid handle!!!" );
+
+    // A Deleter and Managed raw pointer type.
+    using DeleterType = std::function< void( void *& ) noexcept >;
+    using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
+
+    // Wrap in a managed pointer in case cook move construction throws an exception. We must succeed in putting pointer
+    // into cooked queue or returning it to the raw queue or it is leaked forever.
+    auto deleter = [ this ]( void *& p ) noexcept { this->rawPutAndNotify( p ); p = nullptr; };
+    ManagedRawPointerType managedRawPtr{ handle.pRaw, std::ref( deleter ) };
+
+    // Cook directly on raw and if construction doesn't throw, release managed pointer's ownership.
+    new ( handle.pRaw )T{ std::forward<Args>(args)... };
+    managedRawPtr.release();
+
+    // Store off handle raw memory pointer and set handle pRaw member to nullptr;
+    void * pRaw = handle.pRaw;
+    handle.pRaw = nullptr;
+
+    // Load Cooked Memory (pRaw is cooked now)
+    cookedPutAndNotify( pRaw );
+}
+
+template < typename T >
+void ReiserRT::Core::ObjectQueue< T >::abortReservedPut( void * pRaw )
+{
+    // If we are not aborted.
+    if ( !isAborted() )
+    {
+        // Return the raw memory to the raw pool
+        rawPutAndNotify( pRaw );
+    }
+}
 #endif /* OBJECTQUEUE_H_ */

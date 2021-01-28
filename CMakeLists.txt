@@ -17,4 +17,10 @@ add_library( ReiserRT STATIC
         ReiserRT/PriorityInheritMutex.cpp
         ReiserRT/PriorityInheritMutex.hpp
         ReiserRT/Semaphore.cpp
-        ReiserRT/Semaphore.hpp)
+        ReiserRT/Semaphore.hpp
+        ReiserRT/RingBufferSimple.hpp
+        ReiserRT/RingBufferGuarded.hpp
+        ReiserRT/ObjectPool.hpp
+        ReiserRT/ObjectQueue.cpp
+        ReiserRT/ObjectQueue.hpp
+        ReiserRT/MessageQueue.hpp)
