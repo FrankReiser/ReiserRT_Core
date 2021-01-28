@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.17)
+#Google this: linux shared library cmake example
+
 project(
         ReiserRT
         VERSION 1.0.1
@@ -6,7 +8,16 @@ project(
 
 set(CMAKE_CXX_STANDARD 14)
 
-#Google this: linux shared library cmake example
+set(DEFAULT_BUILD_TYPE "Release")
+
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "Setting build type to '${DEFAULT_BUILD_TYPE}' as none was specified.")
+    set(CMAKE_BUILD_TYPE "${DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
+    # Set the possible values of build type for cmake-gui
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
+
+include(GNUInstallDirs)
 
 include_directories(
         ReiserRT)
