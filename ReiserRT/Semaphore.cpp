@@ -5,13 +5,13 @@
 * @date Created on Jul 8, 2015
 */
 
-///@todo Didn't I want to use my PlatformDetect here.
+#include "PlatformDetect.hpp"
 
-#define SEMAPHORE_USES_PRIORITY_INHERIT_MUTEX 1
+//#define SEMAPHORE_USES_PRIORITY_INHERIT_MUTEX 1 ///@todo This should be obtained from platform detection.
 
 #include "Semaphore.hpp"
 
-#if defined( SEMAPHORE_USES_PRIORITY_INHERIT_MUTEX ) && ( SEMAPHORE_USES_PRIORITY_INHERIT_MUTEX != 0 )
+#ifdef REISER_RT_GCC
 #include "PriorityInheritMutex.hpp"
 #endif
 
@@ -127,7 +127,7 @@ public:
     * This operation takes the mutex and invokes the _wait operation to perform the rest of the work.
     * The mutex is released upon return.
     *
-    * @throw Throws AbortedException if the abortFlag has been set via the abort operation.
+    * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
     */
     inline void wait() { std::unique_lock< MutexType > lock{ mutex }; _wait( lock ); }
 
@@ -139,7 +139,7 @@ public:
     * The mutex is released upon return.
     *
     * @param operation This is a reference to a user provided function object to invoke during the context of the internal lock.
-    * @throw Throws AbortedException if the abortFlag has been set via the abort operation.
+    * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
     */
     inline void wait( FunctionType & operation ) { std::unique_lock< MutexType > lock{ mutex }; _wait( lock ); operation(); }
 
@@ -149,7 +149,7 @@ public:
     * This operation takes the mutex and invokes the _notify operation to perform the rest of the work.
     * The mutex is released upon return.
     *
-    * @throw Throws AbortedException if the abortFlag has been set via the abort operation.
+    * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
     */
     inline void notify() { std::lock_guard< MutexType > lock{ mutex }; _notify(); }
 
@@ -161,7 +161,7 @@ public:
     * The mutex is released upon return.
     *
     * @param operation This is a reference to a user provided function object to invoke during the context of the internal lock.
-    * @throw Throws AbortedException if the abortFlag has been set via the abort operation.
+    * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
     */
     inline void notify( FunctionType & operation ) { std::lock_guard< MutexType > lock{ mutex }; operation(); _notify(); }
 

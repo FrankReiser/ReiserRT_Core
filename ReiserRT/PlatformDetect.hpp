@@ -29,7 +29,7 @@
 #ifdef UNSUPPORTED_GCC_VERSION
 #error "This file requires GCC Version 4.8.5 or higher in order to compile."
 #else
-#define REISER_RT_GCC
+#define REISER_RT_GCC 1
 #endif
 
 // Put other platform detections here using #elif's such as Windows.
