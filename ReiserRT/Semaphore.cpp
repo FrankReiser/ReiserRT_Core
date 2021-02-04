@@ -5,13 +5,13 @@
 * @date Created on Jul 8, 2015
 */
 
-#include "PlatformDetect.hpp"
+#include "ProjectConfigure.h"
 
 //#define SEMAPHORE_USES_PRIORITY_INHERIT_MUTEX 1 ///@todo This should be obtained from platform detection.
 
 #include "Semaphore.hpp"
 
-#ifdef REISER_RT_GCC
+#ifdef REISER_RT_HAS_PTHREADS
 #include "PriorityInheritMutex.hpp"
 #endif
 
@@ -103,7 +103,7 @@ public:
     *
     * This type provides a little "syntactic sugar" for the class.
     */
-#ifdef REISER_RT_GCC
+#ifdef REISER_RT_HAS_PTHREADS
     using ConditionVarType = std::condition_variable_any;
 #else
     using ConditionVarType = std::condition_variable;
@@ -114,7 +114,7 @@ public:
     *
     * This type provides a little "syntactic sugar" for the class.
     */
-#ifdef REISER_RT_GCC
+#ifdef REISER_RT_HAS_PTHREADS
     using MutexType = PriorityInheritMutex;
 #else
     using MutexType = std::mutex;

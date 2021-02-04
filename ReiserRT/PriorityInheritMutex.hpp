@@ -8,9 +8,9 @@
 #ifndef PRIORITYINHERITMUTEX_HPP_
 #define PRIORITYINHERITMUTEX_HPP_
 
-#include "PlatformDetect.hpp"
+#include "ProjectConfigure.h"
+#ifdef REISER_RT_HAS_PTHREADS
 
-#ifdef REISER_RT_GCC
 #include <pthread.h>
 #include <system_error>
 
