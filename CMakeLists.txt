@@ -71,6 +71,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${PROJECT_VERSION_PAT
 set_target_properties(${PROJECT_NAME} PROPERTIES PRIVATE_HEADER ${PROJECT_BINARY_DIR}/ProjectConfigure.h)
 
 # Public Header files
+#@todo This only gets the last one, "MessageQueue.hpp. Trying to concatenate them all into one
+#set property call gets just the first one.
 set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER ${PROJECT_NAME}/PriorityInheritMutex.hpp)
 set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER ${PROJECT_NAME}/Semaphore.hpp)
 set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER ${PROJECT_NAME}/RingBufferSimple.hpp)
@@ -94,6 +96,15 @@ install(
         ARCHIVE DESTINATION lib/${PROJECT_NAME}     #???
         )
 
-
+install( FILES
+        ${PROJECT_NAME}/PriorityInheritMutex.hpp
+        ${PROJECT_NAME}/Semaphore.hpp
+        ${PROJECT_NAME}/RingBufferSimple.hpp
+        ${PROJECT_NAME}/RingBufferGuarded.hpp
+        ${PROJECT_NAME}/ObjectPool.hpp
+        ${PROJECT_NAME}/ObjectQueue.hpp
+        ${PROJECT_NAME}/MessageQueue.hpp
+        DESTINATION include/${PROJECT_NAME} )
 
 # If Windows, I want 64bit compiler, not 32bit. That could be an option perhaps. This requires research.
+
