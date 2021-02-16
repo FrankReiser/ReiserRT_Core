@@ -1,16 +1,16 @@
 /**
-* @file PriorityInheritMutex.h
+* @file PriorityInheritMutex.hpp
 * @brief The Specification for PriorityInheritMutex Utility
 * @authors: Frank Reiser
 * @date Created on Jul 17, 2017
 */
 
-#ifndef PRIORITYINHERITMUTEX_H_
-#define PRIORITYINHERITMUTEX_H_
+#ifndef PRIORITYINHERITMUTEX_HPP_
+#define PRIORITYINHERITMUTEX_HPP_
 
-#include "PlatformDetect.h"
+#include "ProjectConfigure.h"
+#ifdef REISER_RT_HAS_PTHREADS
 
-#ifdef REISER_RT_GCC
 #include <pthread.h>
 #include <system_error>
 
@@ -119,7 +119,7 @@ namespace ReiserRT
                 int e = pthread_mutex_lock( &nativeType );
 
                 // EINVAL, EAGAIN, EBUSY, EINVAL and EDEADLK(maybe)
-                if ( e ) throw std::system_error( e, std::system_category() );
+                if ( e ) throw std::system_error{ e, std::system_category() };
             }
 
             /**
@@ -136,7 +136,7 @@ namespace ReiserRT
                 int e = pthread_mutex_trylock( &nativeType );
 
                 // EBUSY means it's already locked and we cannot acquire it. Anything else is an error.
-                if ( e != 0 && e != EBUSY ) throw std::system_error( e, std::system_category() );
+                if ( e != 0 && e != EBUSY ) throw std::system_error{ e, std::system_category() };
 
                 return e == 0;
             }
@@ -154,7 +154,7 @@ namespace ReiserRT
                 int e = pthread_mutex_unlock( &nativeType );
 
                 // EINVAL, EAGAIN and  EPERM potentially.
-                if ( e ) throw std::system_error( e, std::system_category() );
+                if ( e ) throw std::system_error{ e, std::system_category() };
             }
 
             /**
@@ -179,4 +179,4 @@ namespace ReiserRT
 
 #endif // REISER_RT_GCC
 
-#endif /* PRIORITYINHERITMUTEX_H_ */
+#endif /* PRIORITYINHERITMUTEX_HPP_ */

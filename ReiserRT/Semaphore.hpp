@@ -1,14 +1,12 @@
 /**
-* @file Semaphore.h
+* @file Semaphore.hpp
 * @brief The Specification for Semaphore utility
 * @authors: Frank Reiser
 * @date Created on May 29, 2015
 */
 
-#ifndef SEMAPHORE_H_
-#define SEMAPHORE_H_
-
-#include "PlatformDetect.h"
+#ifndef SEMAPHORE_HPP_
+#define SEMAPHORE_HPP_
 
 #include <stdexcept>
 #include <functional>
@@ -129,6 +127,10 @@ namespace ReiserRT
             * @warning Should the user operation throw an exception, an availableCount may be wasted, as it has already been decremented.
             * It is the responsibility of the implementor of such an operation to decide if this is recoverable and a notify call can be utilized
             * to restore the availableCount.
+            * @todo We can do better than this. We already have in several places using RAII techniques. Actually, it's more complicated
+            * than that. You don't want the throw an exception. I am not preventing it because it's certainly possible in my own
+            * code. However, I feel that it is a design problem on the outside. If the design "managed" things it shouldn't happen.
+            * These hooks are intended to be used for tight code in a aggregating class. I.e., bookkeeping chores. Document better.
             * @warning It is expected that the function object remain valid throughout the duration of the wait invocation. Failure
             * to provide this assurance will lead to undefined behavior.
             * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
@@ -186,6 +188,7 @@ namespace ReiserRT
             * @brief Pointer Member to Hidden Implementation
             *
             * This is our pointer to our hidden implementation.
+            * @todo Make this a unique_ptr and make the class 'movable'.
             */
             Imple * pImple;
         };
@@ -193,4 +196,4 @@ namespace ReiserRT
 }
 
 
-#endif /* SEMAPHORE_H_ */
+#endif /* SEMAPHORE_HPP_ */

@@ -5,12 +5,14 @@
 * @date Created on Jul 8, 2015
 */
 
-#define SEMAPHORE_USES_PRIORITY_INHERIT_MUTEX 1
+#include "ProjectConfigure.h"
 
-#include "Semaphore.h"
+//#define SEMAPHORE_USES_PRIORITY_INHERIT_MUTEX 1 ///@todo This should be obtained from platform detection.
 
-#if defined( SEMAPHORE_USES_PRIORITY_INHERIT_MUTEX ) && ( SEMAPHORE_USES_PRIORITY_INHERIT_MUTEX != 0 )
-#include "PriorityInheritMutex.h"
+#include "Semaphore.hpp"
+
+#ifdef REISER_RT_HAS_PTHREADS
+#include "PriorityInheritMutex.hpp"
 #endif
 
 #include <limits>
@@ -43,7 +45,6 @@ public:
     */
     ~Imple();
 
-private:
     /**
     * @brief Copy Constructor for Implementation
     *
@@ -102,7 +103,7 @@ private:
     *
     * This type provides a little "syntactic sugar" for the class.
     */
-#ifdef REISER_RT_GCC
+#ifdef REISER_RT_HAS_PTHREADS
     using ConditionVarType = std::condition_variable_any;
 #else
     using ConditionVarType = std::condition_variable;
@@ -113,7 +114,7 @@ private:
     *
     * This type provides a little "syntactic sugar" for the class.
     */
-#ifdef REISER_RT_GCC
+#ifdef REISER_RT_HAS_PTHREADS
     using MutexType = PriorityInheritMutex;
 #else
     using MutexType = std::mutex;
@@ -126,7 +127,7 @@ public:
     * This operation takes the mutex and invokes the _wait operation to perform the rest of the work.
     * The mutex is released upon return.
     *
-    * @throw Throws AbortedException if the abortFlag has been set via the abort operation.
+    * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
     */
     inline void wait() { std::unique_lock< MutexType > lock{ mutex }; _wait( lock ); }
 
@@ -138,7 +139,7 @@ public:
     * The mutex is released upon return.
     *
     * @param operation This is a reference to a user provided function object to invoke during the context of the internal lock.
-    * @throw Throws AbortedException if the abortFlag has been set via the abort operation.
+    * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
     */
     inline void wait( FunctionType & operation ) { std::unique_lock< MutexType > lock{ mutex }; _wait( lock ); operation(); }
 
@@ -148,7 +149,7 @@ public:
     * This operation takes the mutex and invokes the _notify operation to perform the rest of the work.
     * The mutex is released upon return.
     *
-    * @throw Throws AbortedException if the abortFlag has been set via the abort operation.
+    * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
     */
     inline void notify() { std::lock_guard< MutexType > lock{ mutex }; _notify(); }
 
@@ -160,7 +161,7 @@ public:
     * The mutex is released upon return.
     *
     * @param operation This is a reference to a user provided function object to invoke during the context of the internal lock.
-    * @throw Throws AbortedException if the abortFlag has been set via the abort operation.
+    * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
     */
     inline void notify( FunctionType & operation ) { std::lock_guard< MutexType > lock{ mutex }; operation(); _notify(); }
 
