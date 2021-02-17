@@ -1,5 +1,5 @@
 /**
-* @file PriorityInheritMutex.h
+* @file PriorityInheritMutex.cpp
 * @brief The Specification for PriorityInheritMutex Utility
 * @authors: Frank Reiser
 * @date Created on Jul 17, 2017

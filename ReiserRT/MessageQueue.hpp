@@ -8,8 +8,9 @@
 #ifndef MESSAGEQUEUE_H_
 #define MESSAGEQUEUE_H_
 
-#include "ObjectPool.h"
-#include "ObjectQueue.h"
+#include "ObjectPool.hpp"
+#include "ObjectQueue.hpp"
+
 #include <memory>
 
 namespace ReiserRT

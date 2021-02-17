@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.17)
-#Google this: linux shared library cmake example
 
 project(
         ReiserRT
@@ -51,28 +50,29 @@ if(UNIX)
     set(REISER_RT_HAS_PTHREADS ON)
 endif(UNIX)
 
+#@todo I believe I can get away with a simple compiler define. See CMake cookbook. This may be best though.
 configure_file(
         ${PROJECT_SOURCE_DIR}/ProjectConfigure.h.in
         ${PROJECT_BINARY_DIR}/ProjectConfigure.h )
 
 # We are building a "Shared" library
 add_library(
-        ${PROJECT_NAME} SHARED
+#        ${PROJECT_NAME} SHARED
+        ${PROJECT_NAME} # Allow default behaviour for SHARED vs STATIC as specified in cache variables.
         ${PROJECT_NAME}/PriorityInheritMutex.cpp
         ${PROJECT_NAME}/Semaphore.cpp
         ${PROJECT_NAME}/ObjectQueue.cpp
-)
+        ReiserRT/RingBufferSimple.cpp ReiserRT/RingBufferGuarded.cpp ReiserRT/ObjectPool.cpp ReiserRT/MessageQueue.cpp)
 
 # Library Version and SOVERSION
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${PROJECT_VERSION_PATCH})
 
 # Private Header Files
+#@todo I believe I can get away with a simple compiler define. See CMake cookbook. This may be best though.
 set_target_properties(${PROJECT_NAME} PROPERTIES PRIVATE_HEADER ${PROJECT_BINARY_DIR}/ProjectConfigure.h)
 
 # Public Header files
-#@todo This only gets the last one, "MessageQueue.hpp. Trying to concatenate them all into one
-#set property call gets just the first one.
 set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER ${PROJECT_NAME}/PriorityInheritMutex.hpp)
 set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER ${PROJECT_NAME}/Semaphore.hpp)
 set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER ${PROJECT_NAME}/RingBufferSimple.hpp)
