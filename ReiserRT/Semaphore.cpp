@@ -181,7 +181,7 @@ public:
     * current available count. The mutex is briefly taken and a copy of availableCount is returned
     * as the mutex is released.
     *
-    * @throw Throws AbortedException if the abortFlag has been set via the abort operation.
+    * @throw Throws std::runtime_error if the abortFlag has been set via the abort operation.
     *
     * @return Returns a snapshot of the availableCount at time of invocation.
     */
@@ -198,7 +198,7 @@ private:
     * Once notified, the mutex is re-taken, the pendingCount is decremented and we re-loop attempting to
     * decrement the availableCount towards zero once more.
     *
-    * @throw Throws AbortedException if the abortFlag has been set via the abort operation.
+    * @throw Throws std::runtime_error if the abortFlag has been set via the abort operation.
     */
     void _wait( std::unique_lock< MutexType > & lock );
 
@@ -209,7 +209,7 @@ private:
     * The operation increments the availableCount and if pendingCount is
     * greater than zero, invokes the conditionVar, notify_one operation to wake one waiting thread.
     *
-    * @throw Throws AbortedException if the abortFlag has been set via the abort operation.
+    * @throw Throws std::runtime_error if the abortFlag has been set via the abort operation.
     */
     void _notify();
 

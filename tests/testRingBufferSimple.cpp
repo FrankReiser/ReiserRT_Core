@@ -76,7 +76,7 @@ int main()
                 break;
             }
         }
-        if (retVal && i != 4)
+        if (0 != retVal && i != 4)
         {
             cout << "RingBuffer should have thrown an exception on the 5th \"get\" attempt.  Iterator got to a value of " << i << endl;
             retVal = 5;

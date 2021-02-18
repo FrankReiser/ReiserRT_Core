@@ -179,6 +179,8 @@ namespace ReiserRT
             * This is primarily an implementation validation operation. It returns a snapshot of the
             * current available count.
             *
+            * @throw Throws std::runtime_error if the abortFlag has been set via the abort operation.
+            *
             * @return Returns a snapshot of the availableCount at time of invocation.
             */
             size_t getAvailableCount();
