@@ -5,7 +5,7 @@
 * @date Created on Jul 8, 2015
 */
 
-#include "ProjectConfigure.h"
+//#include "ProjectConfigure.h"
 
 //#define SEMAPHORE_USES_PRIORITY_INHERIT_MUTEX 1 ///@todo This should be obtained from platform detection.
 

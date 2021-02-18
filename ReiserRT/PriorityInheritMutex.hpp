@@ -8,7 +8,7 @@
 #ifndef PRIORITYINHERITMUTEX_HPP_
 #define PRIORITYINHERITMUTEX_HPP_
 
-#include "ProjectConfigure.h"
+//#include "ProjectConfigure.h"
 #ifdef REISER_RT_HAS_PTHREADS
 
 #include <pthread.h>

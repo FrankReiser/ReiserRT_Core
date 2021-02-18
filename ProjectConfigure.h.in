@@ -1,8 +1,0 @@
-/**
-*
-*/
-
-#cmakedefine REISER_RT_HAS_PTHREADS
-
-
-
