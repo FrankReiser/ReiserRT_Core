@@ -9,6 +9,10 @@ set(CMAKE_CXX_STANDARD 11)
 
 add_subdirectory( ReiserRT )
 
+enable_testing()
+add_subdirectory( tests )
+
+
 #[[
 
 #@todo Right off the bat. I want two CMakeLists.txt. One inside ReiserRT and one outside that adds the sub_directories.
