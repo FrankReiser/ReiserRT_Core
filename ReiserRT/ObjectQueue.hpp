@@ -8,11 +8,14 @@
 #ifndef OBJECTQUEUE_H_
 #define OBJECTQUEUE_H_
 
+///@todo I thought I got rid of this stuff with CMake start
+#if 0
 #if !defined( __cplusplus ) || ( __cplusplus < 201103L )
 #error "This file requires a C++11 compilation!"
 #endif
 #if defined( GCC_VERSION ) && ( GCC_VERSION < 40805 )
 #error "GCC compiler version of 4.8.5 minimum required to compile"
+#endif
 #endif
 
 

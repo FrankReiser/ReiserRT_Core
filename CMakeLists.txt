@@ -7,6 +7,10 @@ project(
 
 set(CMAKE_CXX_STANDARD 11)
 
+add_subdirectory( ReiserRT )
+
+#[[
+
 #@todo Right off the bat. I want two CMakeLists.txt. One inside ReiserRT and one outside that adds the sub_directories.
 
 # This will show its output only in ccmake. However, you have to do a "configure" (c) before
@@ -114,3 +118,4 @@ install( FILES
 
 # If Windows, I want 64bit compiler, not 32bit. That could be an option perhaps. This requires research.
 
+]]
