@@ -20,30 +20,33 @@ target_sources( ringBufferSimpleObj
         PUBLIC
             ${CMAKE_CURRENT_LIST_DIR}/RingBufferSimple.hpp
         )
+list( APPEND _objLibs $<TARGET_OBJECTS:ringBufferSimpleObj> )
 
 # The PriorityInheritMutex Object Library.
-add_library( priorityInheritMutexObj OBJECT "" )
-target_sources( priorityInheritMutexObj
-        PRIVATE
-            PriorityInheritMutex.cpp
-        PUBLIC
-            ${CMAKE_CURRENT_LIST_DIR}/PriorityInheritMutex.hpp
-        )
 if(_REISER_RT_HAS_PTHREADS)
-target_compile_definitions( priorityInheritMutexObj PRIVATE REISER_RT_HAS_PTHREADS )
+    add_library( priorityInheritMutexObj OBJECT "" )
+    target_sources( priorityInheritMutexObj
+            PRIVATE
+                PriorityInheritMutex.cpp
+            PUBLIC
+                ${CMAKE_CURRENT_LIST_DIR}/PriorityInheritMutex.hpp
+            )
+    target_compile_definitions( priorityInheritMutexObj PRIVATE REISER_RT_HAS_PTHREADS )
+    list( APPEND _objLibs $<TARGET_OBJECTS:priorityInheritMutexObj> )
 endif()
 
 # The Semaphore Object Library.
-add_library( semaphoreObj OBJECT "" )
-target_sources( semaphoreObj
+add_library( semaphoreObjLib OBJECT "" )
+target_sources( semaphoreObjLib
         PRIVATE
             Semaphore.cpp
         PUBLIC
             ${CMAKE_CURRENT_LIST_DIR}/Semaphore.hpp
         )
 if(_REISER_RT_HAS_PTHREADS)
-    target_compile_definitions( semaphoreObj PRIVATE REISER_RT_HAS_PTHREADS )
+    target_compile_definitions( semaphoreObjLib PRIVATE REISER_RT_HAS_PTHREADS )
 endif()
+list( APPEND _objLibs $<TARGET_OBJECTS:semaphoreObjLib> )
 
 # The RingBufferGuarded Object Library
 add_library( ringBufferGuardedObj OBJECT "" )
@@ -53,42 +56,40 @@ target_sources( ringBufferGuardedObj
         PUBLIC
             ${CMAKE_CURRENT_LIST_DIR}/RingBufferGuarded.hpp
         )
+list( APPEND _objLibs $<TARGET_OBJECTS:ringBufferGuardedObj> )
 
 # The Object Object Library
-add_library( ObjectPoolObj OBJECT "" )
-target_sources( ObjectPoolObj
+add_library( objectPoolObjLib OBJECT "" )
+target_sources( objectPoolObjLib
         PRIVATE
             ObjectPool.cpp
         PUBLIC
             ${CMAKE_CURRENT_LIST_DIR}/ObjectPool.hpp
         )
+list( APPEND _objLibs $<TARGET_OBJECTS:objectPoolObjLib> )
 
 # The Object Queue Library
-add_library( ObjectQueueObj OBJECT "" )
-target_sources( ObjectQueueObj
+add_library( objectQueueObjLib OBJECT "" )
+target_sources( objectQueueObjLib
         PRIVATE
             ObjectQueue.cpp
         PUBLIC
             ${CMAKE_CURRENT_LIST_DIR}/ObjectQueue.hpp
         )
+list( APPEND _objLibs $<TARGET_OBJECTS:objectQueueObjLib> )
 
 # The Message Queue Library
-add_library( MessageQueueObj OBJECT "" )
-target_sources( MessageQueueObj
+add_library( messageQueueObjLib OBJECT "" )
+target_sources( messageQueueObjLib
         PRIVATE
             MessageQueue.cpp
         PUBLIC
             ${CMAKE_CURRENT_LIST_DIR}/MessageQueue.hpp
         )
+list( APPEND _objLibs $<TARGET_OBJECTS:messageQueueObjLib> )
 
 # Now the entire Library, currently default type for STATIC/SHARED.
-add_library( ReiserRT
-        $<TARGET_OBJECTS:ringBufferSimpleObj>
-        $<TARGET_OBJECTS:priorityInheritMutexObj>
-        $<TARGET_OBJECTS:semaphoreObj>
-        $<TARGET_OBJECTS:ringBufferGuardedObj>
-        $<TARGET_OBJECTS:ObjectPoolObj>
-        )
+add_library( ReiserRT ${_objLibs} )
 
 # Specify our targets interface for external clients
 target_include_directories( ReiserRT
@@ -96,6 +97,6 @@ target_include_directories( ReiserRT
             ${CMAKE_CURRENT_LIST_DIR}
         )
 
-# We do not actually link this at this time, but it creates a requirement that will eventually have to be satisfied.
+# We do not actually link Threads::Threads at this time but, it creates a requirement that will eventually have to be satisfied.
 # Anything that links to 'Us', needs Threads::Threads also.
 target_link_libraries(ReiserRT Threads::Threads)
