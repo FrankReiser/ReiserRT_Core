@@ -256,7 +256,7 @@ namespace ReiserRT
                 *
                 * @param thePool A pointer to the object pool instance which invoke the operation.
                 */
-                Deleter( ObjectPool * thePool ) noexcept : pool{ thePool } {}
+                explicit Deleter( ObjectPool * thePool ) noexcept : pool{ thePool } {}
 
             public:
                 /**
@@ -331,10 +331,10 @@ namespace ReiserRT
             ObjectPool() = delete;
 
             /**
-            * @brief Qualified Construtor for ObjectPool
+            * @brief Qualified Constructor for ObjectPool
             *
             * This qualified constructor builds an ObjectPool using the requestedNumElements argument value.
-            * It delegates to its base class to satify construction requirements.
+            * It delegates to its base class to satisfy construction requirements.
             *
             * @param requestedNumElements The requested ObjectPool size. This will be rounded up to the next whole
             * power of two and clamped within RingBuffer design limits.
