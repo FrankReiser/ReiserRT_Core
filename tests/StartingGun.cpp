@@ -6,6 +6,7 @@
 
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 
 using namespace std;
 
@@ -34,12 +35,16 @@ class StartingGun::Imple
     void reload()
     {
         goShot = false;
+        abortFlagRB.store(false);
     }
 
     mutex goCondMutex;
     condition_variable goCond;
+    atomic<bool> abortFlagRB{false};
     bool goShot{ false };
 };
+
+atomic<bool> abortFlagRB{ false };
 
 
 StartingGun::StartingGun() : pImple{ new Imple }
@@ -64,4 +69,14 @@ void StartingGun::waitForStartingShot()
 void StartingGun::reload()
 {
     pImple->reload();
+}
+
+void StartingGun::abort()
+{
+    abortFlagRB.store( true );
+}
+
+bool StartingGun::isAborted()
+{
+    return abortFlagRB.load();
 }

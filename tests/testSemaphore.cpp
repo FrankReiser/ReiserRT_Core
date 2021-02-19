@@ -83,7 +83,7 @@ int main() {
                 retVal = 4;
             }
 
-            // Let her rip, she should block (unless it failed above).
+            // Let her rip!
             startingGun.pullTrigger();
 
             // If we haven't failed.

@@ -14,6 +14,8 @@ public:
     void pullTrigger();
     void waitForStartingShot();
     void reload();
+    void abort();
+    bool isAborted();
 
 private:
     class Imple;
