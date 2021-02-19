@@ -30,7 +30,7 @@ target_link_libraries( testObjectQueue ReiserRT )
 add_test( NAME runObjectQueueTest COMMAND $<TARGET_FILE:testObjectQueue> )
 
 add_executable( testMessageQueue "" )
-target_sources( testMessageQueue PRIVATE testObjectQueue.cpp )
+target_sources( testMessageQueue PRIVATE testMessageQueue.cpp )
 target_link_libraries( testMessageQueue ReiserRT )
 add_test( NAME runMessageQueueTest COMMAND $<TARGET_FILE:testMessageQueue> )
 
