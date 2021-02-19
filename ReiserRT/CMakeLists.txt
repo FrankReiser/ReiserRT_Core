@@ -49,14 +49,14 @@ endif()
 list( APPEND _objLibs $<TARGET_OBJECTS:semaphoreObjLib> )
 
 # The RingBufferGuarded Object Library
-add_library( ringBufferGuardedObj OBJECT "" )
-target_sources( ringBufferGuardedObj
+add_library( ringBufferGuardedObjLib OBJECT "" )
+target_sources( ringBufferGuardedObjLib
         PRIVATE
             RingBufferGuarded.cpp
         PUBLIC
             ${CMAKE_CURRENT_LIST_DIR}/RingBufferGuarded.hpp
         )
-list( APPEND _objLibs $<TARGET_OBJECTS:ringBufferGuardedObj> )
+list( APPEND _objLibs $<TARGET_OBJECTS:ringBufferGuardedObjLib> )
 
 # The Object Object Library
 add_library( objectPoolObjLib OBJECT "" )

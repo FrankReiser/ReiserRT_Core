@@ -2,165 +2,25 @@
 // Created by frank on 2/18/21.
 //
 
-
+// What we are testing
 #include "Semaphore.hpp"
 
+// Test task class specifications for give and taking the semaphore.
+#include "SemTestTasks.h"
+#include "StartingGun.h"
+
+// Standard stuff
 #include <iostream>
-#include <mutex>
-#include <condition_variable>
-#include <atomic>
 #include <memory>
 #include <thread>
 
-using namespace std;
 using namespace ReiserRT::Core;
+using namespace std;
 
-mutex goConditionMutexS;
-condition_variable goConditionS;
-atomic<bool> goFlagS{ false };
-
-struct SemTakeTask
-{
-    enum class State { constructed, waitingForGo, going, unknownExceptionDetected, aborted, completed };
-
-    SemTakeTask() = default;
-    ~SemTakeTask() = default;
-
-    void operator()(Semaphore* theSem, unsigned int nTakes)
-    {
-        // Wait on go condition.
-        state = State::waitingForGo;
-        {
-            unique_lock<mutex> lock(goConditionMutexS);
-            goConditionS.wait(lock, [] { return goFlagS.load(); });
-        }
-        state = State::going;
-        for (unsigned int i = 0; i != nTakes; ++i)
-        {
-            try
-            {
-                theSem->wait();
-                ++takeCount;
-            }
-            catch (runtime_error&)
-            {
-                state = State::aborted;
-                return;
-            }
-            catch (...)
-            {
-                state = State::unknownExceptionDetected;
-                theSem->abort();
-                return;
-            }
-        }
-        state = State::completed;
-    }
-
-private:
-    const char* stateStr() const
-    {
-        switch (state)
-        {
-            case State::constructed: return "constructed";
-            case State::waitingForGo: return "waitingForGo";
-            case State::going: return "going";
-            case State::unknownExceptionDetected: return "unknownExceptionDetected";
-            case State::aborted: return "aborted";
-            case State::completed: return "completed";
-            default: return "unknown";
-        }
-    }
-public:
-
-    void outputResults(unsigned int i)
-    {
-        cout << "SemTakeTask(" << i << ") takeCount=" << takeCount
-             << ", state=" << stateStr()
-             << "\n";
-    }
-
-    State state = State::constructed;
-    unsigned int takeCount = 0;
-};
-
-struct SemGiveTask
-{
-    enum class State { constructed, waitingForGo, going, unknownExceptionDetected, aborted, overflowDetected, completed };
-
-    SemGiveTask() = default;
-    ~SemGiveTask() = default;
-
-    void operator()(Semaphore* theSem, unsigned int nGives)
-    {
-        // Wait on go condition.
-        state = State::waitingForGo;
-        {
-            unique_lock<mutex> lock(goConditionMutexS);
-            goConditionS.wait(lock, [] { return goFlagS.load(); });
-        }
-        state = State::going;
-        for (unsigned int i = 0; i != nGives; ++i)
-        {
-            for (;;)
-            {
-                try
-                {
-                    theSem->notify();
-                    ++giveCount;
-                    break;
-                }
-                catch (overflow_error&)   // Should never happen in this test.
-                {
-                    state = State::overflowDetected;
-                    theSem->abort();
-                    return;
-                }
-                catch (runtime_error&)
-                {
-                    state = State::aborted;
-                    return;
-                }
-                catch (...)
-                {
-                    state = State::unknownExceptionDetected;
-                    theSem->abort();
-                    return;
-                }
-            }
-        }
-        state = State::completed;
-    }
-
-private:
-    const char* stateStr() const
-    {
-        switch (state)
-        {
-            case State::constructed: return "constructed";
-            case State::waitingForGo: return "waitingForGo";
-            case State::going: return "going";
-            case State::unknownExceptionDetected: return "unknownExceptionDetected";
-            case State::aborted: return "aborted";
-            case State::overflowDetected: return "overflowDetected";
-            case State::completed: return "completed";
-            default: return "unknown";
-        }
-    }
-public:
-
-    void outputResults(unsigned int i)
-    {
-        cout << "SemGiveTask(" << i << ") giveCount=" << giveCount
-             << ", state=" << stateStr()
-             << "\n";
-    }
-
-    State state = State::constructed;
-    unsigned int giveCount = 0;
-};
-
-
+// Evidently, this function is too complex for "context-sensitive data flow analysis".
+// Perhaps it is the high multi-threaded nature of it. However, I am not certain about that. I turned it off.
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCDFAInspection"
 int main() {
     cout << "Hello world" << endl;
     int retVal = 0;
@@ -201,19 +61,21 @@ int main() {
 
         // Simple pending and abort testing with one take thread running alongside this thread.
         {
+            StartingGun startingGun;
             Semaphore sem{0};  // Initially empty
 
             // Instantiate one take task for the semaphore.
-            SemTakeTask takeTask;
+            SemTakeTask2 takeTask;
+
             unique_ptr< thread > takeThread;
-            takeThread.reset(new thread{ ref(takeTask), &sem, 1 });
+            takeThread.reset(new thread{ ref(takeTask), &startingGun, &sem, 1 });
 
             // Wait for it to get to the waitingForGo state.  This should be relatively quick.
             int n = 0;
             for (; n != 10; ++n)
             {
                 this_thread::sleep_for(chrono::milliseconds(10));
-                if (takeTask.state == SemTakeTask::State::waitingForGo) break;
+                if (takeTask.state == SemTakeTask2::State::waitingForGo) break;
             }
             if (n == 10)
             {
@@ -221,13 +83,9 @@ int main() {
                 retVal = 4;
             }
 
-            // Let her rip, she should block (unless it failed above).
-            // We have to tell it to go regardless, or it will hang and cause an serious runtime library exception.
-            {
-                lock_guard<mutex> lock(goConditionMutexS);
-                goFlagS.store(true);
-                goConditionS.notify_all();
-            }
+            // Let her rip!
+            startingGun.pullTrigger();
+
             // If we haven't failed.
             if (0 != retVal)
             {
@@ -235,7 +93,7 @@ int main() {
                 for (n = 0; n != 10; ++n)
                 {
                     this_thread::sleep_for(chrono::milliseconds(10));
-                    if (takeTask.state == SemTakeTask::State::going) break;
+                    if (takeTask.state == SemTakeTask2::State::going) break;
                 }
                 if (n == 10)
                 {
@@ -255,7 +113,7 @@ int main() {
                 for (n = 0; n != 10; ++n)
                 {
                     this_thread::sleep_for(chrono::milliseconds(10));
-                    if (takeTask.state == SemTakeTask::State::aborted) break;
+                    if (takeTask.state == SemTakeTask2::State::aborted) break;
                 }
                 if (n == 10)
                 {
@@ -265,7 +123,7 @@ int main() {
             }
             // Join the thread and clear the go flag.
             takeThread->join();
-            goFlagS.store(false);
+            startingGun.reload();
 
             if (0 != retVal)
             {
@@ -283,11 +141,12 @@ int main() {
 
             // Our Semaphore Initial Count
             constexpr unsigned int count = 524288;
+            StartingGun startingGun;
             Semaphore sem{ 0 };  // Initially empty
 
             // Put and Get Task Functors, which can return state information when the runs are complete.
-            SemTakeTask takeTasks[numCores];
-            SemGiveTask giveTasks[numCores];
+            SemTakeTask2 takeTasks[numCores];
+            SemGiveTask2 giveTasks[numCores];
 
             // Give and Take Threads
             unique_ptr< thread > takeThreads[numCores];
@@ -296,21 +155,17 @@ int main() {
             // Instantiate the take tasks
             for (unsigned int i = 0; i != numCores; ++i)
             {
-                takeThreads[i].reset(new thread{ ref(takeTasks[i]), &sem, count });
+                takeThreads[i].reset(new thread{ ref(takeTasks[i]), &startingGun, &sem, count });
             }
 
             // Instantiate the give tasks
             for (unsigned int i = 0; i != numCores; ++i)
             {
-                giveThreads[i].reset(new thread{ ref(giveTasks[i]), &sem, count });
+                giveThreads[i].reset(new thread{ ref(giveTasks[i]), &startingGun, &sem, count });
             }
 
             // Let her rip
-            {
-                lock_guard<mutex> lock(goConditionMutexS);
-                goFlagS.store(true);
-                goConditionS.notify_all();
-            }
+            startingGun.pullTrigger();
 
             // Threads should be giving and taking the semaphore.
             // Poll takers for completion.
@@ -322,12 +177,12 @@ int main() {
                 unsigned int numCompleted = 0;
                 for (unsigned int j = 0; j != numCores; ++j)
                 {
-                    if (takeTasks[j].state == SemTakeTask::State::completed)
+                    if (takeTasks[j].state == SemTakeTask2::State::completed)
                         ++numCompleted;
                 }
                 if (numCompleted == numCores)
                 {
-                    goFlagS.store(false);
+                    startingGun.reload();
                     break;
                 }
             }
@@ -341,7 +196,7 @@ int main() {
             // Abort the semaphore for good measure and join all threads.
             // The abort is inconsequential if all threads (take and give) completed.
             sem.abort();
-            goFlagS.store(false);
+            startingGun.reload();
             for (unsigned int i = 0; i != numCores; ++i)
             {
                 takeThreads[i]->join();
@@ -371,3 +226,4 @@ int main() {
 
     return retVal;
 }
+#pragma clang diagnostic pop
