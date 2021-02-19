@@ -7,7 +7,6 @@
 #include "RingBufferGuardedTestTasks.h"
 #include "StartingGun.h"
 
-#include <random>
 #include <memory>
 #include <vector>
 #include <thread>
@@ -32,9 +31,6 @@ int main()
 
             // Our Ring Buffer Size
             constexpr unsigned int queueSize = 262144;
-
-            uniform_int_distribution< unsigned int > uniformDistributionRB;
-            default_random_engine randEngineRB;
 
             // Allocate our test data. We will use the queueSize here as that, multiplied by numerous put threads,
             // will exceed the ringBuffer capacity, but get threads will also be running getting data out of

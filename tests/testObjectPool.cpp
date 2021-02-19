@@ -205,9 +205,7 @@ int main()
                 break;
             }
 
-            ///@todo Should really verify the types returned, but I already know it works. Probably tested higher up.
-            ///Do, it with a virtual function. Aye!
-
+            ///@todo Verify types, Looks like I tried to do that in the last "throw" test but, I don't really do it.
         }
 
         // Shared pointer testing. Here we want to ensure that a shared pointer obtains and correctly utilizes the Deleter
