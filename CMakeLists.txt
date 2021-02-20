@@ -15,8 +15,6 @@ add_subdirectory( tests )
 
 #[[
 
-#@todo Right off the bat. I want two CMakeLists.txt. One inside ReiserRT and one outside that adds the sub_directories.
-
 # This will show its output only in ccmake. However, you have to do a "configure" (c) before
 # you can view the log (l). PROJECT_NAME is ReiserRT
 #message( STATUS "ProjectName: ${PROJECT_NAME} ***********************************" )
@@ -60,8 +58,7 @@ if(UNIX)
     set(REISER_RT_HAS_PTHREADS ON)
 endif(UNIX)
 
-#@todo I believe I can get away with a simple compiler define. See CMake cookbook. This may be best though.
-#Well it may be best for some projects, but I think for this one we are better off with the single define.
+#Well this may be best for some projects, but I think for this one we are better off with the single define.
 #In addition, we only want this under UNIX environment. Perhaps we even have to be careful about the host OS
 #because Windows with minGW may still not support the attribute. I should verify Linux doesn't default to priority
 #inheritance.
@@ -83,7 +80,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${PROJECT_VERSION_PATCH})
 
 # Private Header Files
-#@todo I believe I can get away with a simple compiler define. See CMake cookbook. This may be best though.
 set_target_properties(${PROJECT_NAME} PROPERTIES PRIVATE_HEADER ${PROJECT_BINARY_DIR}/ProjectConfigure.h)
 
 # Public Header files
