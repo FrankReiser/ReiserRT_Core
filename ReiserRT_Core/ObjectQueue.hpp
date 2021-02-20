@@ -8,17 +8,6 @@
 #ifndef OBJECTQUEUE_H_
 #define OBJECTQUEUE_H_
 
-///@todo I thought I got rid of this stuff with CMake start
-#if 0
-#if !defined( __cplusplus ) || ( __cplusplus < 201103L )
-#error "This file requires a C++11 compilation!"
-#endif
-#if defined( GCC_VERSION ) && ( GCC_VERSION < 40805 )
-#error "GCC compiler version of 4.8.5 minimum required to compile"
-#endif
-#endif
-
-
 #include <cstdint>
 #include <type_traits>
 #include <functional>
@@ -160,7 +149,7 @@ namespace ReiserRT
             * This operation is invoked to abort the ObjectQueueBase. It delegates to its implementation
             * to perform the operation.
             *
-            * @note Once aborted, there is no recovery. Further put, emplace or get operations will receive a Semaphore::AbortException.
+            * @note Once aborted, there is no recovery. Further put, emplace or get operations will receive a std::runtime_error.
             */
             void abort();
 
@@ -169,7 +158,7 @@ namespace ReiserRT
             *
             * This operation is invoked to obtain raw memory from the raw implementation.
             *
-            * @throw Throws Semaphore::AbortedException if the "raw" ring buffer becomes aborted.
+            * @throw Throws std::runtime_error if the "raw" ring buffer becomes aborted.
             *
             * @return Returns a void pointer to raw memory from the raw ring buffer.
             */
@@ -182,7 +171,7 @@ namespace ReiserRT
             *
             * @param pCooked A pointer to an object of unknown type.
             *
-            * @throw Throws Semaphore::AbortedException if the "cooked" ring buffer becomes aborted.
+            * @throw Throws std::runtime_error if the "cooked" ring buffer becomes aborted.
             */
             void cookedPutAndNotify( void * pCooked );
 
@@ -191,7 +180,7 @@ namespace ReiserRT
             *
             * This operation is invoked to obtain cooked memory from the implementation..
             *
-            * @throw Throws Semaphore::AbortedException if the "cooked" ring buffer becomes aborted.
+            * @throw Throws std::runtime_error if the "cooked" ring buffer becomes aborted.
             *
             * @return Returns memory for an object of unknown type from the cooked ring buffer.
             */
@@ -204,7 +193,7 @@ namespace ReiserRT
             *
             * @param pRaw A pointer to memory that is available for cooking.
             *
-            * @throw Throws Semaphore::AbortedException if the "raw" ring buffer becomes aborted.
+            * @throw Throws std::runtime_error if the "raw" ring buffer becomes aborted.
             */
             void rawPutAndNotify( void * pRaw );
 
@@ -308,7 +297,7 @@ namespace ReiserRT
             * use this handle. Once utilized in putOnReserved or emplaceOnReserved, it may not be used again.
             * Subsequent reuse will be silently ignored.
             *
-            * @note If this object goes out of scope and is detroyed before it is used, the reservation is silently aborted.
+            * @note If this object goes out of scope and is destroyed before it is used, the reservation is silently aborted.
             */
             class ReservedPutHandle
             {
@@ -489,7 +478,7 @@ namespace ReiserRT
             *
             * @param obj A reference to the object to be enqueued.
             *
-            * @throw Throws Semaphore::AbortedException if the ObjectQueue abort operation has been invoked.
+            * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.
             */
             void put( T & obj );
 
@@ -506,7 +495,7 @@ namespace ReiserRT
             * @param args Whatever arguments satisfy a particular constructor overload for type T, possibly including
             * zero arguments.
             *
-            * @throw Throws Semaphore::AbortedException if the ObjectQueue abort operation has been invoked.
+            * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.
             */
             template < typename... Args >
             void emplace( Args&&... args );
@@ -519,7 +508,7 @@ namespace ReiserRT
             * @note This operation will block if the ObjectQueue is empty which is the general expectation
             * of a well service queue.
             *
-            * @throw Throws Semaphore::AbortedException if the ObjectQueue abort operation has been invoked.
+            * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.
             *
             * @return Returns the type, moved out of "cooked" memory and into client storage.
             */
@@ -544,7 +533,7 @@ namespace ReiserRT
             *
             * @param operation A value (copy) of the client provided operation.
             *
-            * @throw Throws Semaphore::AbortedException if the ObjectQueue abort operation has been invoked.
+            * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.
             */
             void getAndInvoke( GetAndInvokeFunctionType operation );
 
@@ -556,7 +545,7 @@ namespace ReiserRT
             *
             * @note This operation will block if the ObjectQueue is full.
             *
-            * @throw Throws Semaphore::AbortedException if the ObjectQueue abort operation has been invoked.
+            * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.
             *
             * @return Returns a ReservedPutHandle object for a subsequent putOnReserved or an emplaceOnReserved operation.
             * @note This "handle" may be used once and once only. Using it more than once will be silently ignored.
@@ -572,7 +561,7 @@ namespace ReiserRT
             * @param handle A reference to the ReservedPutHandle previously acquired with a reservePutHandle invocation.
             * @param obj A reference to the object to be enqueued.
             *
-            * @throw Throws Semaphore::AbortedException if the ObjectQueue abort operation has been invoked.
+            * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.
             */
             void putOnReserved( ReservedPutHandle & handle, T & obj );
 
@@ -587,7 +576,7 @@ namespace ReiserRT
             * @param args Whatever arguments satisfy a particular constructor overload for type T, possibly including
             * zero arguments.
             *
-            * @throw Throws Semaphore::AbortedException if the ObjectQueue abort operation has been invoked.
+            * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.
             */
             template < typename... Args >
             void emplaceOnReserved( ReservedPutHandle & handle, Args&&... args );
@@ -743,7 +732,7 @@ typename ReiserRT::Core::ObjectQueue< T >::ReservedPutHandle ReiserRT::Core::Obj
     // Obtain Raw Memory (may block if the Raw Queue is empty)
     void * pRaw = rawWaitAndGet();
 
-    // Construct ReservedPutSlot and return
+    // Construct ReservedPutHandle and return
     return ReservedPutHandle{ this, pRaw };
 }
 
@@ -757,7 +746,7 @@ void ReiserRT::Core::ObjectQueue< T >::putOnReserved( ReservedPutHandle & handle
     using DeleterType = std::function< void( void *& ) noexcept >;
     using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
 
-    // Wrap in a managed pointer incase cook move construction throws an exception. We must succeed in putting pointer
+    // Wrap in a managed pointer in case cook move construction throws an exception. We must succeed in putting pointer
     // into cooked queue or returning it to the raw queue or it is leaked forever.
     auto deleter = [ this ]( void *& p ) noexcept { this->rawPutAndNotify( p ); p = nullptr; };
     ManagedRawPointerType managedRawPtr{ handle.pRaw, std::ref( deleter ) };

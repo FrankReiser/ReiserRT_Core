@@ -177,7 +177,7 @@ private:
     * is updated.
     *
     * @throw Throws std::logic_error if the "raw" ring buffer is not in the "Ready" state.
-    * @throw Throws Semaphore::AbortedException if the "raw" ring buffer becomes aborted.
+    * @throw Throws std::runtime_error if the "raw" ring buffer becomes aborted.
     * @throw Throws std::underflow exception if there is no element available to forefill the request (empty).
     * Being that this is a "guarded" ring buffer. This would be indicative an implementation error within the
     * guarded ring buffer implementation.
@@ -198,7 +198,7 @@ private:
     * @throw Throws std::overflow exception if there is no room left to forefill the request (full).
     * We manage this by not putting anything in the "cooked" ring buffer that we couldn't forefill from the
     * "raw" ring buffer. Therefore, this exception would be indicative of an implementation problem within this class.
-    * @throw Throws Semaphore::AbortedException if the "cooked" ring buffer becomes aborted.
+    * @throw Throws std::runtime_error if the "cooked" ring buffer becomes aborted.
     */
     inline void cookedPutAndNotify( void * pCooked )
     {
@@ -212,7 +212,7 @@ private:
     * This operation gets "cooked" memory from the "cooked" ring buffer.  It may block
     * waiting on the "cooked" ring buffer. When data is available, it is retrieved.
     *
-    * @throw Throws Semaphore::AbortedException if the "cooked" ring buffer becomes aborted.
+    * @throw Throws std::runtime_error if the "cooked" ring buffer becomes aborted.
     * @throw Throws std::logic_error if the "cooked" ring buffer is not in the "Ready" state.
     * @throw Throws std::underflow exception if there is no element available to fulfill the request (empty).
     * Being that this is a "guarded" ring buffer. This would be indicative an implementation error within the
@@ -235,7 +235,7 @@ private:
     * @param pRaw A pointer to memory that is available for cooking.
     *
     * @throw Throws std::logic_error if the "raw" ring buffer is not in the "Ready" state.
-    * @throw Throws Semaphore::AbortedException if the "raw" ring buffer becomes aborted.
+    * @throw Throws std::runtime_error if the "raw" ring buffer becomes aborted.
     * @throw Throws std::overflow exception if there is no room left to fulfill the request (full).
     * We manage this by not putting anything in the "raw" ring buffer that we couldn't fulfill from the
     * "cooked" ring buffer. Therefore, this exception would be indicative of an implementation problem within this class.
@@ -272,7 +272,7 @@ private:
     * is an atomically captured snapshot of the RunningStateStats. The "high watermark",
     * compared to the size can provide an indication of the queue maximum usage level.
     *
-    * @throw Throws Semaphore::AbortedException if the ObjectQueue abort operation has been invoked.
+    * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.
     *
     * @return Returns a snapshot of InternalRunningStateStats.
     */
@@ -331,7 +331,7 @@ private:
     /**
     * @brief The Aborted Indicator
     *
-    * This attribute provides a quick means of detected whether we've been aborted.
+    * This attribute provides a quick means of detecting whether we have been aborted.
     */
     std::atomic_bool aborted;
 

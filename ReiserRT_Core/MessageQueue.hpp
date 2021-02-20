@@ -280,7 +280,7 @@ public:
 
                 // Now, we should be able to safely get memory from the pool without it throwing an exception.
                 // By design, it has, at a minimum, the required number of blocks to meet the internal counted semaphore guard.
-                // After the message is moved the pool memory, we'll imediately enqueue it onto the reserved put handle.
+                // After the message is moved the pool memory, we'll immediately enqueue it onto the reserved put handle.
                 objectQueue.emplaceOnReserved( reservedPutHandle, objectPool.template createObj< T >( std::move( msg ) ) );
             }
 

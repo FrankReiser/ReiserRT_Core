@@ -172,8 +172,41 @@ int main()
                 retVal = 10;
                 break;
             }
+        }
+
+        ///@todo I have untested functionality.
+        // Test Put on Reserved
+        {
+            const int queueSize = 4;
+            using ObjectQueueType = ObjectQueue<TestMovableOQ>;
+            ObjectQueueType queue(queueSize);
+
+
+
+            TestMovableOQ m{};
+            auto reservedPutHandle = queue.reservePutHandle();
+            queue.putOnReserved( reservedPutHandle, m );
+
+            // Verify running state stats.
+            ObjectQueueType::RunningStateStats runningStateStats = queue.getRunningStateStatistics();
+            runningStateStats = queue.getRunningStateStatistics();
+            if (1 != runningStateStats.runningCount)
+            {
+                cout << "The Object Queue running count is " << runningStateStats.runningCount
+                     << ". Expected " << 1 << endl;
+                retVal = 11;
+                break;
+            }
+            if (1 != runningStateStats.highWatermark)
+            {
+                cout << "The Object Queue highWatermark is " << runningStateStats.highWatermark
+                     << ". Expected " << 1 << endl;
+                retVal = 12;
+                break;
+            }
 
         }
+
 
     } while ( false );
 
