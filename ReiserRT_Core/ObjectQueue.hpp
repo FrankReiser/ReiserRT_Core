@@ -743,14 +743,12 @@ void ReiserRT::Core::ObjectQueue< T >::putOnReserved( ReservedPutHandle & handle
     if ( !handle.pRaw ) throw std::invalid_argument( "ObjectQueue< T >::putOnReserved invoked with invalid handle!!!" );
 
     // A Deleter and Managed raw pointer type.
-//    using DeleterType = std::function< void( void *& ) noexcept >;
-    using DeleterType = std::function< void( void * ) noexcept >;
+    using DeleterType = std::function< void( void *& ) noexcept >;
     using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
 
     // Wrap in a managed pointer in case cook move construction throws an exception. We must succeed in putting pointer
     // into cooked queue or returning it to the raw queue or it is leaked forever.
-//    auto deleter = [ this ]( void *& p ) noexcept { this->rawPutAndNotify( p ); p = nullptr; };
-    auto deleter = [ this ]( void * p ) noexcept { this->rawPutAndNotify( p ); };
+    auto deleter = [ this ]( void *& p ) noexcept { this->rawPutAndNotify( p ); p = nullptr; };
     ManagedRawPointerType managedRawPtr{ handle.pRaw, std::ref( deleter ) };
 
     // Cook directly on raw and if construction doesn't throw, release managed pointer's ownership.
@@ -773,14 +771,12 @@ void ReiserRT::Core::ObjectQueue< T >::emplaceOnReserved( ReservedPutHandle & ha
     if ( !handle.pRaw ) throw std::invalid_argument( "ObjectQueue< T >::putOnReserved invoked with invalid handle!!!" );
 
     // A Deleter and Managed raw pointer type.
-//    using DeleterType = std::function< void( void *& ) noexcept >;
-    using DeleterType = std::function< void( void * ) noexcept >;
+    using DeleterType = std::function< void( void *& ) noexcept >;
     using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
 
     // Wrap in a managed pointer in case cook move construction throws an exception. We must succeed in putting pointer
     // into cooked queue or returning it to the raw queue or it is leaked forever.
-//    auto deleter = [ this ]( void *& p ) noexcept { this->rawPutAndNotify( p ); p = nullptr; };
-    auto deleter = [ this ]( void * p ) noexcept { this->rawPutAndNotify( p ); };
+    auto deleter = [ this ]( void *& p ) noexcept { this->rawPutAndNotify( p ); p = nullptr; };
     ManagedRawPointerType managedRawPtr{ handle.pRaw, std::ref( deleter ) };
 
     // Cook directly on raw and if construction doesn't throw, release managed pointer's ownership.
