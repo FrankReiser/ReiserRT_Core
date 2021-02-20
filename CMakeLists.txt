@@ -7,7 +7,7 @@ project(
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_subdirectory( ReiserRT )
+add_subdirectory( ReiserRT_Core )
 
 enable_testing()
 add_subdirectory( tests )
