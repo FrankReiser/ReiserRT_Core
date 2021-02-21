@@ -9,14 +9,15 @@ add_library( startingGunObjLib OBJECT StartingGun.h StartingGun.cpp )
 
 # We do not have a test for PriorityInheritMutex. It is tested extensively inside our Semaphore test
 # assuming that it was conditionally compiled into the library. It's only available under certain platforms.
-#add_executable( testSemaphore "" )
-#target_sources( testSemaphore PRIVATE testSemaphore.cpp SemTestTasks.cpp SemTestTasks.h )
-#target_link_libraries( testSemaphore ReiserRT $<TARGET_OBJECTS:startingGunObjLib> )
-#add_test( NAME runSemaphoreTest COMMAND $<TARGET_FILE:testSemaphore> )
+
+add_executable( testSemaphore "" )
+target_sources( testSemaphore PRIVATE testSemaphore.cpp SemTestTasks.cpp SemTestTasks.h )
+target_link_libraries( testSemaphore $<TARGET_OBJECTS:startingGunObjLib> ReiserRT )
+add_test( NAME runSemaphoreTest COMMAND $<TARGET_FILE:testSemaphore> )
 
 add_executable( testRingBufferGuarded "" )
 target_sources( testRingBufferGuarded PRIVATE testRingBufferGuarded.cpp RingBufferGuardedTestTasks.cpp RingBufferGuardedTestTasks.h)
-target_link_libraries( testRingBufferGuarded ReiserRT $<TARGET_OBJECTS:startingGunObjLib> )
+target_link_libraries( testRingBufferGuarded $<TARGET_OBJECTS:startingGunObjLib> ReiserRT )
 add_test( NAME runRingBufferGuardedTest COMMAND $<TARGET_FILE:testRingBufferGuarded> )
 
 #add_executable( testObjectPool "" )
