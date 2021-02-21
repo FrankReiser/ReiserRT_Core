@@ -14,10 +14,10 @@ target_sources( testSemaphore PRIVATE testSemaphore.cpp SemTestTasks.cpp SemTest
 target_link_libraries( testSemaphore ReiserRT $<TARGET_OBJECTS:startingGunObjLib> )
 add_test( NAME runSemaphoreTest COMMAND $<TARGET_FILE:testSemaphore> )
 
-#add_executable( testRingBufferGuarded "" )
-#target_sources( testRingBufferGuarded PRIVATE testRingBufferGuarded.cpp RingBufferGuardedTestTasks.cpp RingBufferGuardedTestTasks.h)
-#target_link_libraries( testRingBufferGuarded ReiserRT $<TARGET_OBJECTS:startingGunObjLib> )
-#add_test( NAME runRingBufferGuardedTest COMMAND $<TARGET_FILE:testRingBufferGuarded> )
+add_executable( testRingBufferGuarded "" )
+target_sources( testRingBufferGuarded PRIVATE testRingBufferGuarded.cpp RingBufferGuardedTestTasks.cpp RingBufferGuardedTestTasks.h)
+target_link_libraries( testRingBufferGuarded ReiserRT $<TARGET_OBJECTS:startingGunObjLib> )
+add_test( NAME runRingBufferGuardedTest COMMAND $<TARGET_FILE:testRingBufferGuarded> )
 
 #add_executable( testObjectPool "" )
 #target_sources( testObjectPool PRIVATE testObjectPool.cpp )
