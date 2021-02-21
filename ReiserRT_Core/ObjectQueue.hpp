@@ -286,24 +286,6 @@ namespace ReiserRT
             */
             constexpr static size_t paddedTypeAllocSize = ( alignmentOverspill != 0 ) ? typeSize + sizeof( void * ) - alignmentOverspill : typeSize;
 
-#if 0
-            ///@todo Document or revert to previous method. The problem was within put and emplace on reserved put handle.
-            class RawPointerGuard
-            {
-            public:
-                RawPointerGuard() = delete;
-                inline explicit RawPointerGuard( ObjectQueue * p ) : pObjQueue{ p } {}
-                inline ~RawPointerGuard() { if ( rawPtr ) pObjQueue->rawPutAndNotify(rawPtr ); }
-
-                inline void * rawWaitAndGet() {  return rawPtr = pObjQueue->rawWaitAndGet(); };
-                inline void release() { rawPtr = nullptr; }
-
-            private:
-                ObjectQueue * pObjQueue{ nullptr };
-                void * rawPtr{nullptr };
-            };
-#endif
-            
         public:
             /**
             * @brief A Reserved Put Handle
@@ -658,18 +640,10 @@ ReiserRT::Core::ObjectQueue< T >::~ObjectQueue()
 template < typename T >
 void ReiserRT::Core::ObjectQueue< T >::put( T & obj )
 {
-#if 1
     // A Deleter and Managed raw pointer type.
     using DeleterType = std::function< void( void * ) noexcept >;
     using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
-#endif
 
-#if 0
-    RawPointerGuard rawPointerGuard{ this };
-
-    // Obtain Raw Memory (may block if Raw Queue is empty -> Cooked Queue is full)
-    void * pRaw = rawPointerGuard.rawWaitAndGet();
-#else
     // Obtain Raw Memory (may block if Raw Queue is empty -> Cooked Queue is full)
     void * pRaw = rawWaitAndGet();
 
@@ -677,15 +651,10 @@ void ReiserRT::Core::ObjectQueue< T >::put( T & obj )
     // into cooked queue or returning it to the raw queue or it is leaked forever.
     auto deleter = [ this ]( void * p ) noexcept { this->rawPutAndNotify( p ); };
     ManagedRawPointerType managedRawPtr{ pRaw, std::ref( deleter ) };
-#endif
 
     // Cook directly on raw and if construction doesn't throw, release managed pointer's ownership.
     new ( pRaw )T{ std::move( obj ) };
-#if 0
-    rawPointerGuard.release();
-#else
     managedRawPtr.release();
-#endif
 
     // Load Cooked Memory (pRaw is cooked now)
     cookedPutAndNotify( pRaw );
@@ -695,18 +664,10 @@ template < typename T >
 template < typename... Args >
 void ReiserRT::Core::ObjectQueue< T >::emplace( Args&&... args )
 {
-#if 1
     // A Deleter and Managed raw pointer type.
     using DeleterType = std::function< void( void * ) noexcept >;
     using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
-#endif
 
-#if 0
-    RawPointerGuard rawPointerGuard{ this };
-
-    // Obtain Raw Memory (may block if Raw Queue is empty -> Cooked Queue is full)
-    void * pRaw = rawPointerGuard.rawWaitAndGet();
-#else
     // Obtain Raw Memory (may block if Raw Queue is empty -> Cooked Queue is full)
     void * pRaw = rawWaitAndGet();
 
@@ -714,15 +675,10 @@ void ReiserRT::Core::ObjectQueue< T >::emplace( Args&&... args )
     // into cooked queue or returning it to the raw queue or it is leaked forever.
     auto deleter = [ this ]( void * p ) noexcept { this->rawPutAndNotify( p ); };
     ManagedRawPointerType managedRawPtr{ pRaw, std::ref( deleter ) };
-#endif
 
     // Cook directly on raw and if construction doesn't throw, release managed pointer's ownership.
     new ( pRaw )T{ std::forward<Args>(args)... };
-#if 0
-    rawPointerGuard.release();
-#else
     managedRawPtr.release();
-#endif
 
     // Load Cooked Memory (pRaw is cooked now)
     cookedPutAndNotify( pRaw );
@@ -748,7 +704,6 @@ T ReiserRT::Core::ObjectQueue< T >::get()
     // and its deleter will be called even though the contents of the encapsulated pointer have been "moved out".
     return std::move( *managedCookedPtr );
 }
-
 
 template < typename T >
 void ReiserRT::Core::ObjectQueue< T >::getAndInvoke( GetAndInvokeFunctionType operation )
