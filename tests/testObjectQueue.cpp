@@ -174,14 +174,11 @@ int main()
             }
         }
 
-        ///@todo I have untested functionality.
         // Test Put on Reserved
         {
             const int queueSize = 4;
             using ObjectQueueType = ObjectQueue<TestMovableOQ>;
             ObjectQueueType queue(queueSize);
-
-
 
             TestMovableOQ m{};
             auto reservedPutHandle = queue.reservePutHandle();
@@ -207,6 +204,7 @@ int main()
 
         }
 
+        ///@todo I have untested functionality.
 
     } while ( false );
 

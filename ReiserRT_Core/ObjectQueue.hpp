@@ -286,6 +286,8 @@ namespace ReiserRT
             */
             constexpr static size_t paddedTypeAllocSize = ( alignmentOverspill != 0 ) ? typeSize + sizeof( void * ) - alignmentOverspill : typeSize;
 
+#if 0
+            ///@todo Document or revert to previous method. The problem was within put and emplace on reserved put handle.
             class RawPointerGuard
             {
             public:
@@ -300,7 +302,8 @@ namespace ReiserRT
                 ObjectQueue * pObjQueue{ nullptr };
                 void * rawPtr{nullptr };
             };
-
+#endif
+            
         public:
             /**
             * @brief A Reserved Put Handle
@@ -655,13 +658,13 @@ ReiserRT::Core::ObjectQueue< T >::~ObjectQueue()
 template < typename T >
 void ReiserRT::Core::ObjectQueue< T >::put( T & obj )
 {
-#if 0
+#if 1
     // A Deleter and Managed raw pointer type.
     using DeleterType = std::function< void( void * ) noexcept >;
     using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
 #endif
 
-#if 1
+#if 0
     RawPointerGuard rawPointerGuard{ this };
 
     // Obtain Raw Memory (may block if Raw Queue is empty -> Cooked Queue is full)
@@ -678,7 +681,7 @@ void ReiserRT::Core::ObjectQueue< T >::put( T & obj )
 
     // Cook directly on raw and if construction doesn't throw, release managed pointer's ownership.
     new ( pRaw )T{ std::move( obj ) };
-#if 1
+#if 0
     rawPointerGuard.release();
 #else
     managedRawPtr.release();
@@ -692,13 +695,13 @@ template < typename T >
 template < typename... Args >
 void ReiserRT::Core::ObjectQueue< T >::emplace( Args&&... args )
 {
-#if 0
+#if 1
     // A Deleter and Managed raw pointer type.
     using DeleterType = std::function< void( void * ) noexcept >;
     using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
 #endif
 
-#if 1
+#if 0
     RawPointerGuard rawPointerGuard{ this };
 
     // Obtain Raw Memory (may block if Raw Queue is empty -> Cooked Queue is full)
@@ -715,7 +718,7 @@ void ReiserRT::Core::ObjectQueue< T >::emplace( Args&&... args )
 
     // Cook directly on raw and if construction doesn't throw, release managed pointer's ownership.
     new ( pRaw )T{ std::forward<Args>(args)... };
-#if 1
+#if 0
     rawPointerGuard.release();
 #else
     managedRawPtr.release();
