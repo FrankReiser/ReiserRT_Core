@@ -26,10 +26,10 @@ target_sources( testRingBufferGuarded PRIVATE
 target_link_libraries( testRingBufferGuarded ReiserRT )
 add_test( NAME runRingBufferGuardedTest COMMAND $<TARGET_FILE:testRingBufferGuarded> )
 
-#add_executable( testObjectPool "" )
-#target_sources( testObjectPool PRIVATE testObjectPool.cpp )
-#target_link_libraries( testObjectPool ReiserRT )
-#add_test( NAME runObjectPoolTest COMMAND $<TARGET_FILE:testObjectPool> )
+add_executable( testObjectPool "" )
+target_sources( testObjectPool PRIVATE testObjectPool.cpp )
+target_link_libraries( testObjectPool ReiserRT )
+add_test( NAME runObjectPoolTest COMMAND $<TARGET_FILE:testObjectPool> )
 
 #add_executable( testObjectQueue "" )
 #target_sources( testObjectQueue PRIVATE testObjectQueue.cpp )
