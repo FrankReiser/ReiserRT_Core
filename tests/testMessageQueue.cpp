@@ -253,8 +253,6 @@ int main()
 
         }
 
-        cout << "Blah" << endl;
-
      } while ( false );
 
     return retVal;

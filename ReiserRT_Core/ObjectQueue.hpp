@@ -286,6 +286,21 @@ namespace ReiserRT
             */
             constexpr static size_t paddedTypeAllocSize = ( alignmentOverspill != 0 ) ? typeSize + sizeof( void * ) - alignmentOverspill : typeSize;
 
+            class RawPointerGuard
+            {
+            public:
+                RawPointerGuard() = delete;
+                inline explicit RawPointerGuard( ObjectQueue * p ) : pObjQueue{ p } {}
+                inline ~RawPointerGuard() { if ( rawPtr ) pObjQueue->rawPutAndNotify(rawPtr ); }
+
+                inline void * rawWaitAndGet() {  return rawPtr = pObjQueue->rawWaitAndGet(); };
+                inline void release() { rawPtr = nullptr; }
+
+            private:
+                ObjectQueue * pObjQueue{ nullptr };
+                void * rawPtr{nullptr };
+            };
+
         public:
             /**
             * @brief A Reserved Put Handle
@@ -565,7 +580,6 @@ namespace ReiserRT
             */
             void putOnReserved( ReservedPutHandle & handle, T & obj );
 
-
             /**
             * @brief The Emplace On Reserved Operation
             *
@@ -641,10 +655,18 @@ ReiserRT::Core::ObjectQueue< T >::~ObjectQueue()
 template < typename T >
 void ReiserRT::Core::ObjectQueue< T >::put( T & obj )
 {
+#if 0
     // A Deleter and Managed raw pointer type.
     using DeleterType = std::function< void( void * ) noexcept >;
     using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
+#endif
 
+#if 1
+    RawPointerGuard rawPointerGuard{ this };
+
+    // Obtain Raw Memory (may block if Raw Queue is empty -> Cooked Queue is full)
+    void * pRaw = rawPointerGuard.rawWaitAndGet();
+#else
     // Obtain Raw Memory (may block if Raw Queue is empty -> Cooked Queue is full)
     void * pRaw = rawWaitAndGet();
 
@@ -652,10 +674,15 @@ void ReiserRT::Core::ObjectQueue< T >::put( T & obj )
     // into cooked queue or returning it to the raw queue or it is leaked forever.
     auto deleter = [ this ]( void * p ) noexcept { this->rawPutAndNotify( p ); };
     ManagedRawPointerType managedRawPtr{ pRaw, std::ref( deleter ) };
+#endif
 
     // Cook directly on raw and if construction doesn't throw, release managed pointer's ownership.
     new ( pRaw )T{ std::move( obj ) };
+#if 1
+    rawPointerGuard.release();
+#else
     managedRawPtr.release();
+#endif
 
     // Load Cooked Memory (pRaw is cooked now)
     cookedPutAndNotify( pRaw );
@@ -665,10 +692,18 @@ template < typename T >
 template < typename... Args >
 void ReiserRT::Core::ObjectQueue< T >::emplace( Args&&... args )
 {
+#if 0
     // A Deleter and Managed raw pointer type.
     using DeleterType = std::function< void( void * ) noexcept >;
     using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
+#endif
 
+#if 1
+    RawPointerGuard rawPointerGuard{ this };
+
+    // Obtain Raw Memory (may block if Raw Queue is empty -> Cooked Queue is full)
+    void * pRaw = rawPointerGuard.rawWaitAndGet();
+#else
     // Obtain Raw Memory (may block if Raw Queue is empty -> Cooked Queue is full)
     void * pRaw = rawWaitAndGet();
 
@@ -676,10 +711,15 @@ void ReiserRT::Core::ObjectQueue< T >::emplace( Args&&... args )
     // into cooked queue or returning it to the raw queue or it is leaked forever.
     auto deleter = [ this ]( void * p ) noexcept { this->rawPutAndNotify( p ); };
     ManagedRawPointerType managedRawPtr{ pRaw, std::ref( deleter ) };
+#endif
 
     // Cook directly on raw and if construction doesn't throw, release managed pointer's ownership.
     new ( pRaw )T{ std::forward<Args>(args)... };
+#if 1
+    rawPointerGuard.release();
+#else
     managedRawPtr.release();
+#endif
 
     // Load Cooked Memory (pRaw is cooked now)
     cookedPutAndNotify( pRaw );
@@ -742,6 +782,19 @@ void ReiserRT::Core::ObjectQueue< T >::putOnReserved( ReservedPutHandle & handle
     // If the handle is nullptr, throw invalid_argument.
     if ( !handle.pRaw ) throw std::invalid_argument( "ObjectQueue< T >::putOnReserved invoked with invalid handle!!!" );
 
+#if 1
+    ///@note The ReservedPutHandle has all the logic required to return the its raw pointer to the raw pool should
+    ///we not release it.
+
+    // Cook directly on raw and if construction doesn't throw, we will cache the raw pointer and then release
+    // the ReservedPutHandle's pointer's ownership of it.
+    new ( handle.pRaw )T{ std::move( obj ) };
+    void * pRaw = handle.pRaw;
+    handle.pRaw = nullptr;
+
+    // The formerly raw is now cooked. Enqueue it for consumption.
+    cookedPutAndNotify( pRaw );
+#else
     // A Deleter and Managed raw pointer type.
     using DeleterType = std::function< void( void *& ) noexcept >;
     using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
@@ -761,6 +814,7 @@ void ReiserRT::Core::ObjectQueue< T >::putOnReserved( ReservedPutHandle & handle
 
     // Load Cooked Memory (pRaw is cooked now)
     cookedPutAndNotify( pRaw );
+#endif
 }
 
 template < typename T >
@@ -770,6 +824,19 @@ void ReiserRT::Core::ObjectQueue< T >::emplaceOnReserved( ReservedPutHandle & ha
     // If the handle is null pointer, throw invalid_argument.
     if ( !handle.pRaw ) throw std::invalid_argument( "ObjectQueue< T >::putOnReserved invoked with invalid handle!!!" );
 
+#if 1
+    ///@note The ReservedPutHandle has all the logic required to return the its raw pointer to the raw pool should
+    ///we not release it.
+
+    // Cook directly on raw and if construction doesn't throw, we will cache the raw pointer and then release
+    // the ReservedPutHandle's pointer's ownership of it.
+    new ( handle.pRaw )T{ std::forward<Args>(args)... };
+    void * pRaw = handle.pRaw;
+    handle.pRaw = nullptr;
+
+    // The formerly raw is now cooked. Enqueue it for consumption.
+    cookedPutAndNotify( pRaw );
+#else
     // A Deleter and Managed raw pointer type.
     using DeleterType = std::function< void( void *& ) noexcept >;
     using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
@@ -789,6 +856,7 @@ void ReiserRT::Core::ObjectQueue< T >::emplaceOnReserved( ReservedPutHandle & ha
 
     // Load Cooked Memory (pRaw is cooked now)
     cookedPutAndNotify( pRaw );
+#endif
 }
 
 template < typename T >
