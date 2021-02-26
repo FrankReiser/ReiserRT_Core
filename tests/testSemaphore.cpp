@@ -22,10 +22,13 @@ using namespace std;
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCDFAInspection"
 int main() {
-    int retVal = 0;
+    auto retVal = 0;
 
     do {
-        // Construction, no-wait wait testing
+        // Construction, no-wait wait testing.
+        // We will not wait or notify within this block as that could hang the test if
+        // semaphore is defective. We will put those potential issues off on to other tasks later
+        // on down.
         {
             Semaphore sem{ 4 };
             if (sem.getAvailableCount() != 4)
@@ -34,98 +37,89 @@ int main() {
                 retVal = 1;
                 break;
             }
-
-            // Take all. We should not block here. Hanging would be a problem.
-            ///@todo We should not allow hanging. We should have a sentinel ensuring this does not happen.
-            for (int i = 0; i != 4; ++i)
-                sem.wait();
-            if (sem.getAvailableCount() != 0)
-            {
-                cout << "Semaphore should have reported an available count of 0 after 4 takes and reported " << sem.getAvailableCount() << "!" << endl;
-                retVal = 2;
-                break;
-            }
-
-            // Signal four and verify count of 4
-            for (int i = 0; i != 4; ++i)
-            {
-                sem.notify();
-            }
-            if (sem.getAvailableCount() != 4)
-            {
-                cout << "Semaphore should have reported an available count of 4 after 4 gives and reported " << sem.getAvailableCount() << "!" << endl;
-                retVal = 3;
-                break;
-            }
         }
 
         // Simple pending and abort testing with one take thread running alongside this thread.
         {
-            StartingGun startingGun;
             Semaphore sem{0};  // Initially empty
 
             // Instantiate one take task for the semaphore.
             SemTakeTask2 takeTask;
 
+            // Instantiate one take thread functor object.
             unique_ptr< thread > takeThread;
+
+            // Instantiate the starting gun
+            StartingGun startingGun;
+
+            // Spawn take thread invoking take task functor.
             takeThread.reset(new thread{ ref(takeTask), &startingGun, &sem, 1 });
 
-            // Wait for it to get to the waitingForGo state.  This should be relatively quick.
-            int n = 0;
-            for (; n != 10; ++n)
-            {
-                this_thread::sleep_for(chrono::milliseconds(10));
-                if (takeTask.state == SemTakeTask2::State::waitingForGo) break;
-            }
-            if (n == 10)
-            {
-                cout << "SemTakeTask failed to reach the waitingForGo state!\n";
-                retVal = 4;
-                break;
-            }
+            // We have launched a thread. We should not short circuit our joining of it.
+            // This do once structure helps ensure that we do not fail to join each thread should we bail out.
+            do {
+                // Wait for it to get to the waitingForGo state.  This should be relatively quick.
+                unsigned int n = 0;
+                for (; n != 10; ++n)
+                {
+                    if (takeTask.getState() != SemTakeTask2::State::waitingForGo) {
+                        this_thread::sleep_for(chrono::milliseconds(10));
+                        break;
+                    }
+                }
+                if (n == 10)
+                {
+                    cout << "SemTakeTask failed to reach the waitingForGo state!\n";
+                    retVal = 2;
+                    break;
+                }
 
-            // Let her rip!
-            startingGun.pullTrigger();
+                // Let her rip!
+                startingGun.pullTrigger();
 
-            // If we haven't failed.
-            if (0 != retVal)
-            {
                 // SemTaskTask should get to the going state.
                 for (n = 0; n != 10; ++n)
                 {
-                    this_thread::sleep_for(chrono::milliseconds(10));
-                    if (takeTask.state == SemTakeTask2::State::going) break;
+                    if (takeTask.getState() != SemTakeTask2::State::going) {
+                        this_thread::sleep_for(chrono::milliseconds(10));
+                        break;
+                    }
                 }
                 if (n == 10)
                 {
                     cout << "SemTakeTask failed to reach the going state!\n";
                     takeTask.outputResults(0);
-                    retVal = 5;
+                    retVal = 3;
+                    break;
                 }
-            }
 
-            // Issue a sem abort regardless of the failures from above or it may never end and cannot be joined.
-            sem.abort();
+                // Issue a sem abort regardless of the failures from above or it may never end and cannot be joined.
+                sem.abort();
 
-            // If we haven't failed yet
-            if (0 == retVal)
-            {
+                // If we haven't failed yet
                 // SemTaskTask should get to the completed state.
                 for (n = 0; n != 10; ++n)
                 {
-                    this_thread::sleep_for(chrono::milliseconds(10));
-                    if (takeTask.state == SemTakeTask2::State::aborted) break;
+                    if (takeTask.getState() != SemTakeTask2::State::aborted) {
+                        this_thread::sleep_for(chrono::milliseconds(10));
+                        break;
+                    }
                 }
                 if (n == 10)
                 {
-                    cout << "SemTakeTask failed to reach the completed state!\n";
-                    retVal = 6;
+                    cout << "SemTakeTask failed to reach the aborted state!\n";
+                    retVal = 4;
+                    break;
                 }
-            }
-            // Join the thread and clear the go flag.
-            takeThread->join();
-            startingGun.reload();
 
+            } while (false);
+
+            // Join the thread and clear the go flag.
+            sem.abort();
+            startingGun.abort();
+            takeThread->join();
+
+            // If we have detected a failure, report state information from the take task.
             if (0 != retVal)
             {
                 takeTask.outputResults(0);
@@ -142,7 +136,6 @@ int main() {
 
             // Our Semaphore Initial Count
             constexpr unsigned int count = 524288;
-            StartingGun startingGun;
             Semaphore sem{ 0 };  // Initially empty
 
             // Put and Get Task Functors, which can return state information when the runs are complete.
@@ -153,46 +146,104 @@ int main() {
             unique_ptr< thread > takeThreads[numCores];
             unique_ptr< thread > giveThreads[numCores];
 
-            // Instantiate the take tasks
+            // Instantiate the starting gun
+            StartingGun startingGun;
+
+            // Spawn the take task threads
             for (unsigned int i = 0; i != numCores; ++i)
             {
                 takeThreads[i].reset(new thread{ ref(takeTasks[i]), &startingGun, &sem, count });
             }
 
-            // Instantiate the give tasks
+            // Spawn the give task threads
             for (unsigned int i = 0; i != numCores; ++i)
             {
                 giveThreads[i].reset(new thread{ ref(giveTasks[i]), &startingGun, &sem, count });
             }
 
-            // Let her rip
-            startingGun.pullTrigger();
-
-            // Threads should be giving and taking the semaphore.
-            // Poll takers for completion.
-            unsigned int n;
-            constexpr int maxLoops = 400;
-            for (n = 0; n != maxLoops; ++n)
-            {
-                this_thread::sleep_for(chrono::milliseconds(500));
-                unsigned int numCompleted = 0;
-                for (unsigned int j = 0; j != numCores; ++j)
+            // We have launched a bunch of threads. We should not short circuit our joining of them.
+            // This do once structure helps ensure that we do not fail to join each thread should we bail out.
+            do {
+                // Wait for the take tasks to achieve the waitingForGo state.  This should be be immediate.
+                unsigned int n = 0;
+                for (; n != 10; ++n)
                 {
-                    if (takeTasks[j].state == SemTakeTask2::State::completed)
-                        ++numCompleted;
+                    unsigned int i = 0;
+                    for (; i != numCores; ++i)
+                    {
+                        if (takeTasks[i].getState() != SemTakeTask2::State::waitingForGo) {
+                            this_thread::sleep_for(chrono::milliseconds(10));
+                            break;
+                        }
+                    }
+                    if (numCores==i)
+                    {
+                        break;
+                    }
                 }
-                if (numCompleted == numCores)
+                if (n == 10)
                 {
-                    startingGun.reload();
+                    cout << "SemTakeTask2 failed to reach the waitingForGo state!\n";
+                    retVal = 5;
                     break;
                 }
-            }
-            // If n got to N, then this is bad.
-            if (n == maxLoops)
-            {
-                cout << "Timed out waiting for taker tasks to get to the completed state!\n";
-                retVal = 7;
-            }
+
+                // Let her rip
+                startingGun.pullTrigger();
+
+                // Wait for the give tasks to achieve the waitingForGo state.  This should be be immediate.
+                for (n = 0; n != 10; ++n)
+                {
+                    unsigned int i = 0;
+                    for (; i != numCores; ++i)
+                    {
+                        if (giveTasks[i].getState() != SemGiveTask2::State::going) {
+                            this_thread::sleep_for(chrono::milliseconds(10));
+                            break;
+                        }
+                    }
+                    if (numCores==i)
+                    {
+                        break;
+                    }
+                }
+                if (n == 10)
+                {
+                    cout << "SemGiveTask2 failed to reach the going state!\n";
+                    retVal = 6;
+                    break;
+                }
+
+                // Threads should be giving and taking the semaphore.
+                // Poll takers for completion.
+                constexpr int maxLoops = 100;
+                bool failed = false;
+                for (n = 0; n != maxLoops; ++n) {
+                    this_thread::sleep_for(chrono::milliseconds(1000));
+                    unsigned int numCompleted = 0;
+                    for (unsigned int j = 0; j != numCores; ++j) {
+                        SemTakeTask2::State tState = takeTasks[j].getState();
+                        if (SemTakeTask2::State::going != tState && SemTakeTask2::State::completed != tState) {
+                            failed = true;
+                            break;
+                        }
+                        if ( tState == SemTakeTask2::State::completed ) ++numCompleted;
+                    }
+                    // If we failed or numCompleted is the number of get threads we've spun, then all is done
+                    if (failed || numCompleted == numCores)
+                        break;
+                }
+
+                // If failed set return value and break out.
+                if ( failed ) {
+                    cout << "FAILED" << endl;
+                    retVal = 7;
+                    break;
+                }
+
+                ///@todo Obviously, the GiveTasks should all be completed too. This would be a sanity check on the test itself.
+
+            } while(false);
 
             // Abort the semaphore for good measure and join all threads.
             // The abort is inconsequential if all threads (take and give) completed.

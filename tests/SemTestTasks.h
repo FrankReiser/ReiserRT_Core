@@ -5,6 +5,8 @@
 #ifndef REISERRT_SEMTESTTASKS_H
 #define REISERRT_SEMTESTTASKS_H
 
+#include <atomic>
+
 namespace ReiserRT
 {
     namespace Core
@@ -18,6 +20,7 @@ class SemTakeTask2
 {
 public:
     enum class State { constructed, waitingForGo, going, unknownExceptionDetected, aborted, completed };
+    using StateType = std::atomic<State>;
 
     SemTakeTask2() = default;
     ~SemTakeTask2() = default;
@@ -30,14 +33,17 @@ private:
 public:
 
     void outputResults(unsigned int i);
+    inline State getState() { return state.load(); }
 
-    State state{ State::constructed };
+private:
+    StateType state{ State::constructed };
     unsigned int takeCount{ 0 };
 };
 
 struct SemGiveTask2
 {
     enum class State { constructed, waitingForGo, going, unknownExceptionDetected, aborted, overflowDetected, completed };
+    using StateType = std::atomic<State>;
 
     SemGiveTask2() = default;
     ~SemGiveTask2() = default;
@@ -50,8 +56,10 @@ private:
 public:
 
     void outputResults(unsigned int i);
+    inline State getState() { return state.load(); }
 
-    State state{ State::constructed };
+private:
+    StateType state{ State::constructed };
     unsigned int giveCount{ 0 };
 };
 

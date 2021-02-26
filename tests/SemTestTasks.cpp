@@ -46,7 +46,7 @@ void SemTakeTask2::operator()(StartingGun* startingGun, ReiserRT::Core::Semaphor
 
 const char* SemTakeTask2::stateStr() const
 {
-    switch (state)
+    switch (state.load())
     {
         case State::constructed: return "constructed";
         case State::waitingForGo: return "waitingForGo";
@@ -105,7 +105,7 @@ void SemGiveTask2::operator()(StartingGun* startingGun, ReiserRT::Core::Semaphor
 
 const char* SemGiveTask2::stateStr() const
 {
-    switch (state)
+    switch (state.load())
     {
         case State::constructed: return "constructed";
         case State::waitingForGo: return "waitingForGo";

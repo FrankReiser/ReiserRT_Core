@@ -142,7 +142,7 @@ namespace ReiserRT
                     throw std::logic_error{ "RingBufferGuarded::get invoked while not in the Ready state!" };
                 }
 
-                // Instantiate return variable and setup a lamba to be invoked in the context of the sempahore's internal lock.
+                // Instantiate return variable and setup a lambda to be invoked in the context of the semaphore's internal lock.
                 // We are 100% confident that this will not throw an underflow exception because the ring buffer available elements to "get"
                 // are at least that of the semaphore's available count and it will block if this is not the case.
                 T retVal;
@@ -185,9 +185,14 @@ namespace ReiserRT
                     throw std::logic_error{ "RingBufferGuarded::put invoked while not in the Ready state!" };
                 }
 
-                // Setup a lamba to be invoked in the context of the sempahore's internal lock.
+                // Setup a lambda to be invoked in the context of the semaphore's internal lock.
                 // There is no guarding of overflow here. If it throws, the RingBuffer is not being serviced adequately.
                 // It is up to the client to manage and mitigate this possibility.
+                ///@todo Document the fact that this does not "Guard" against put overflows but rather, guards against
+                ///concurrent access and pends on the bottom. Or, Alternatively, consider the implications of making
+                ///notify wait? I like this better but I do not know if I can make it happen easily.
+                ///note also that my test code accommodates the throw because I've fixed it to do so. That should be
+                ///addressed in addition to this.
                 auto putFunk = [ this, val ]() { this->Base::put( val ); };
                 semaphore.notify( std::ref( putFunk ) );
             }

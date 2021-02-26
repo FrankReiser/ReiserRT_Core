@@ -17,7 +17,7 @@ using namespace ReiserRT::Core;
 
 int main()
 {
-    int retVal = 0;
+    auto retVal = 0;
 
     do {
         // Multi-threaded contention testing.
@@ -30,8 +30,8 @@ int main()
             constexpr unsigned int numCores = 8;
 
             // Our Ring Buffer Size
-//            constexpr unsigned int queueSize = 262144;
-            constexpr unsigned int queueSize = 262144 >> 2;
+            constexpr unsigned int queueSize = 262144;
+//            constexpr unsigned int queueSize = 262144 >> 2;
 
             // Allocate our test data. We will use the queueSize here as that, multiplied by numerous put threads,
             // will exceed the ringBuffer capacity, but get threads will also be running getting data out of
@@ -60,15 +60,15 @@ int main()
             // Instantiate the starting gun
             StartingGun startingGun;
 
-            // Instantiate the get task threads
-            cout << "Instantiating Get Tasks" << endl;
+            // Spawn the get task threads
+//            cout << "Instantiating Get Tasks" << endl;
             for (unsigned int i = 0; i != numCores; ++i)
             {
                 getThreads[i].reset(new thread{ ref(getTasks[i]), &startingGun, &ringBuffer, queueSize });
             }
 
-            // Instantiate the put task threads
-            cout << "Instantiating Put Tasks" << endl;
+            // Spawn the put task threads
+//            cout << "Instantiating Put Tasks" << endl;
             for (unsigned int i = 0; i != numCores; ++i)
             {
                 putThreads[i].reset(new thread{ ref(putTasks[i]), &startingGun, &ringBuffer, testDataVec[i].get(), queueSize });
@@ -123,7 +123,7 @@ int main()
                     retVal = 2;
                     break;
                 }
-                cout << "All tasks waiting for starting gun" << endl;
+//                cout << "All tasks waiting for starting gun" << endl;
 
                 // Let her rip
                 startingGun.pullTrigger();
@@ -179,37 +179,84 @@ int main()
                 // We will monitor the get tasks as they are the last in line.
                 // They should be in either the completed or going state. Any other state
                 // is a problem.
-                constexpr int maxLoops = 100;
-                unsigned int numCompleted = 0;
+                constexpr int maxLoops = 400;
                 bool failed = false;
                 for (n = 0; n != maxLoops; ++n) {
                     this_thread::sleep_for(chrono::milliseconds(1000));
-                    numCompleted = 0;
+                    unsigned int numCompleted = 0;
                     for (unsigned int j = 0; j != numCores; ++j) {
                         GetTaskRBG::State gState = getTasks[j].getState();
                         if (GetTaskRBG::State::going != gState && GetTaskRBG::State::completed != gState) {
+                            cout << "Ill state of \"" << getTasks[j].stateStr()
+                                << "\" detected for getTasks[" << j << "]" << endl;
                             failed = true;
                             break;
                         }
                         if ( gState == GetTaskRBG::State::completed ) ++numCompleted;
                     }
-                    // If numCompleted is the number of get threads we've spun, then all is done
-                    if ( numCores == numCompleted )
+                    // If we failed or numCompleted is the number of get threads we've spun, then all is done
+                    if ( failed || numCores == numCompleted )
                         break;
                 }
 
-                if ( failed )
-                    cout << "FAILED" << endl;
-                cout << "Number GetTasks Completed " << numCompleted << endl;
+                // If failed set return value and break out.
+                if ( failed ) {
+                    cout << "FAILED Multi-threaded contention testing" << endl;
+                    retVal = 5;
+                    break;
+                }
+
+                // Obviously, the PutTasks should all be completed too. That would be a sanity check of the test itself.
+
+                ///@todo I need the data validation check still!!!
 
             } while (false);
 
             // Join threads
-            startingGun.abort(); // For good measure in case a thread failed to get going and is stuck.
+            startingGun.abort(); // For good measure in case a thread failed to get going or is otherwise stuck.
+            ringBuffer.abort();  // Ditto.
             for (unsigned int i = 0; i != numCores; ++i)
             {
                 putThreads[i]->join();
                 getThreads[i]->join();
+            }
+
+            // If we failed, provide information on the state of things.
+            if ( 0 != retVal ) {
+                // Task States
+                for (unsigned int i = 0; i != numCores; ++i)
+                {
+                    putTasks[i].outputResults(i);
+                    getTasks[i].outputResults(i);
+                }
+                break;
+            }
+
+            // Check that each piece of data was accessed and validated, numCores times
+            bool invalid = false;
+            for (unsigned int i = 0; !invalid && i != numCores; ++i)
+            {
+                const ThreadTestDataRBG * pTestData = testDataVec[i].get();
+                for (unsigned int j = 0; !invalid && j != queueSize; ++j)
+                {
+                    unsigned int validatedInvocations = pTestData[j].getValidatedInvocations();
+                    if ( 1 != validatedInvocations )
+                    {
+                        cout << " testData[" << i << "][" << j << "] not accessed one time, got " << validatedInvocations << ".\n";
+                        invalid = true;
+
+                    }
+                }
+            }
+            if ( invalid ) {
+                // Task States
+                for (unsigned int i = 0; i != numCores; ++i)
+                {
+                    putTasks[i].outputResults(i);
+                    getTasks[i].outputResults(i);
+                }
+                retVal = 6;
+                break;
             }
 
 #if 0
