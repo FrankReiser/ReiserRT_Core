@@ -11,7 +11,6 @@ using namespace ReiserRT::Core;
 
 int main()
 {
-    cout << "Hello world" << endl;
     int retVal = 0;
     do {
         // Create a ring buffer and verify that it has the correct size.  Ask for 3, should get 4

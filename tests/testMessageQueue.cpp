@@ -233,7 +233,8 @@ int main()
             pUserProcess->activate();
 
             // Invoke its send function multiple times
-            constexpr size_t count = 1048576;
+//            constexpr size_t count = 1048576;
+            constexpr size_t count = 1048576 << 1;
             for (size_t i = 0; i != count; i++)
                 pUserProcess->sendImpleMessage();
 

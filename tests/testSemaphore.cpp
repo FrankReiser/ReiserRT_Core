@@ -22,7 +22,6 @@ using namespace std;
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCDFAInspection"
 int main() {
-    cout << "Hello world" << endl;
     int retVal = 0;
 
     do {
@@ -36,7 +35,8 @@ int main() {
                 break;
             }
 
-            // Take all.  We should not block here.  Hanging would be a problem.
+            // Take all. We should not block here. Hanging would be a problem.
+            ///@todo We should not allow hanging. We should have a sentinel ensuring this does not happen.
             for (int i = 0; i != 4; ++i)
                 sem.wait();
             if (sem.getAvailableCount() != 0)
@@ -81,6 +81,7 @@ int main() {
             {
                 cout << "SemTakeTask failed to reach the waitingForGo state!\n";
                 retVal = 4;
+                break;
             }
 
             // Let her rip!

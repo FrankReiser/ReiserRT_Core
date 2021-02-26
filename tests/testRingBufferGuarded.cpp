@@ -30,7 +30,8 @@ int main()
             constexpr unsigned int numCores = 8;
 
             // Our Ring Buffer Size
-            constexpr unsigned int queueSize = 262144;
+//            constexpr unsigned int queueSize = 262144;
+            constexpr unsigned int queueSize = 262144 >> 2;
 
             // Allocate our test data. We will use the queueSize here as that, multiplied by numerous put threads,
             // will exceed the ringBuffer capacity, but get threads will also be running getting data out of
@@ -56,69 +57,224 @@ int main()
             unique_ptr< thread >  putThreads[numCores];
             unique_ptr< thread > getThreads[numCores];
 
-            // Instantiate the put and get task threads
+            // Instantiate the starting gun
             StartingGun startingGun;
+
+            // Instantiate the get task threads
+            cout << "Instantiating Get Tasks" << endl;
             for (unsigned int i = 0; i != numCores; ++i)
             {
-                putThreads[i].reset(new thread{ ref(putTasks[i]), &startingGun, &ringBuffer, testDataVec[i].get(), queueSize });
                 getThreads[i].reset(new thread{ ref(getTasks[i]), &startingGun, &ringBuffer, queueSize });
             }
 
-            // Let her rip!
-            startingGun.pullTrigger();
+            // Instantiate the put task threads
+            cout << "Instantiating Put Tasks" << endl;
+            for (unsigned int i = 0; i != numCores; ++i)
+            {
+                putThreads[i].reset(new thread{ ref(putTasks[i]), &startingGun, &ringBuffer, testDataVec[i].get(), queueSize });
+            }
+
+            // We have launched a bunch of threads. We should not short circuit our joining of them.
+            // This do once structure helps ensure that we do not fail to join each thread should we bail out.
+            do {
+                // Wait for the get tasks to achieve the waitingForGo state.  This should be be immediate.
+                unsigned int n = 0;
+                for (; n != 10; ++n)
+                {
+                    unsigned int i = 0;
+                    for (; i != numCores; ++i)
+                    {
+                        if (getTasks[i].getState() != GetTaskRBG::State::waitingForGo) {
+                            this_thread::sleep_for(chrono::milliseconds(10));
+                            break;
+                        }
+                    }
+                    if (numCores==i)
+                    {
+                        break;
+                    }
+                }
+                if (n == 10)
+                {
+                    cout << "GetTaskRBG failed to reach the waitingForGo state!\n";
+                    retVal = 1;
+                    break;
+                }
+
+                // Wait for the put tasks to get to the waitingForGo state.  This should be relatively quick.
+                for (n = 0; n != 10; ++n)
+                {
+                    unsigned int i = 0;
+                    for (; i != numCores; ++i)
+                    {
+                        if (putTasks[i].getState() != PutTaskRBG::State::waitingForGo) {
+                            this_thread::sleep_for(chrono::milliseconds(10));
+                            break;
+                        }
+                    }
+                    if (numCores==i)
+                    {
+                        break;
+                    }
+                }
+                if (n == 10)
+                {
+                    cout << "PutTaskRBG failed to reach the waitingForGo state!!!!\n";
+                    retVal = 2;
+                    break;
+                }
+                cout << "All tasks waiting for starting gun" << endl;
+
+                // Let her rip
+                startingGun.pullTrigger();
+
+                // Wait for all the get tasks to get to the going state.  This should be relatively quick.
+                for (n = 0; n != 10; ++n)
+                {
+                    unsigned int i = 0;
+                    for (; i != numCores; ++i)
+                    {
+                        if (getTasks[i].getState() != GetTaskRBG::State::going) {
+                            this_thread::sleep_for(chrono::milliseconds(10));
+                            break;
+                        }
+                    }
+                    if (numCores==i)
+                    {
+                        break;
+                    }
+                }
+                if (n == 10)
+                {
+                    cout << "GetTaskRBG failed to reach the going state!\n";
+                    retVal = 3;
+                    break;
+                }
+
+                // Wait for all the put tasks to get to the going state.  This should be relatively quick.
+                for (n = 0; n != 10; ++n)
+                {
+                    unsigned int i = 0;
+                    for (; i != numCores; ++i)
+                    {
+                        if (putTasks[i].getState() != PutTaskRBG::State::going) {
+                            this_thread::sleep_for(chrono::milliseconds(10));
+                            break;
+                        }
+                    }
+                    if (numCores==i)
+                    {
+                        break;
+                    }
+                }
+                if (n == 10)
+                {
+                    cout << "PutTaskRBG failed to reach the going state!\n";
+                    retVal = 4;
+                    break;
+                }
+                cout << "All tasks GOING" << endl;
+
+                // Threads should be putting into and getting from the guarded ring buffer.
+                // We will monitor the get tasks as they are the last in line.
+                // They should be in either the completed or going state. Any other state
+                // is a problem.
+                constexpr int maxLoops = 100;
+                unsigned int numCompleted = 0;
+                bool failed = false;
+                for (n = 0; n != maxLoops; ++n) {
+                    this_thread::sleep_for(chrono::milliseconds(1000));
+                    numCompleted = 0;
+                    for (unsigned int j = 0; j != numCores; ++j) {
+                        GetTaskRBG::State gState = getTasks[j].getState();
+                        if (GetTaskRBG::State::going != gState && GetTaskRBG::State::completed != gState) {
+                            failed = true;
+                            break;
+                        }
+                        if ( gState == GetTaskRBG::State::completed ) ++numCompleted;
+                    }
+                    // If numCompleted is the number of get threads we've spun, then all is done
+                    if ( numCores == numCompleted )
+                        break;
+                }
+
+                if ( failed )
+                    cout << "FAILED" << endl;
+                cout << "Number GetTasks Completed " << numCompleted << endl;
+
+            } while (false);
 
             // Join threads
+            startingGun.abort(); // For good measure in case a thread failed to get going and is stuck.
             for (unsigned int i = 0; i != numCores; ++i)
             {
                 putThreads[i]->join();
                 getThreads[i]->join();
             }
 
+#if 0
+            // If the number completed is not equal to the number of cores
+            if ( numCompleted != numCores )
+            {
+                for (unsigned int i = 0; i != numCores; ++i)
+                {
+                    if (putTasks[i].getState() != PutTaskRBG::State::completed)
+                        cout << " Task putTask[" << i << "] did not complete!\n";
+                    if (getTasks[i].getState() != GetTaskRBG::State::completed)
+                        cout << " Task getTask[" << i << "] did not complete!\n";
+                }
+                retVal = 4;
+                break;
+            }
+#if 0
             // Check Stats
-            bool incomplete = false;
+            bool invalid = false;
             for (unsigned int i = 0; i != numCores; ++i)
             {
                 if (putTasks[i].getState() != PutTaskRBG::State::completed)
                 {
                     cout << " Task putTask[" << i << "] did not complete!\n";
-                    incomplete = true;
+                    invalid = true;
                 }
                 if (getTasks[i].getState() != GetTaskRBG::State::completed)
                 {
                     cout << " Task getTask[" << i << "] did not complete!\n";
-                    incomplete = true;
+                    invalid = true;
                 }
             }
-            if ( incomplete ) {
-                retVal = 1;
+            if ( invalid ) {
+                retVal = 4;
                 break;
             }
+#endif
 
-            // Check that each piece of data was accessed numCores times
-            for (unsigned int i = 0; !incomplete && i != numCores; ++i)
+            // Check that each piece of data was accessed and validated, numCores times
+            bool invalid = false;
+            for (unsigned int i = 0; !invalid && i != numCores; ++i)
             {
                 const ThreadTestDataRBG * pTestData = testDataVec[i].get();
-                for (unsigned int j = 0; !incomplete  && j != queueSize; ++j)
+                for (unsigned int j = 0; !invalid && j != queueSize; ++j)
                 {
                     unsigned int validatedInvocations = pTestData[j].getValidatedInvocations();
                     if ( 1 != validatedInvocations )
                     {
                         cout << " testData[" << i << "][" << j << "] not accessed one time, got " << validatedInvocations << ".\n";
-                        incomplete = true;
+                        invalid = true;
 
                     }
                 }
             }
-            if ( incomplete ) {
+            if ( invalid ) {
                 // Task States
                 for (unsigned int i = 0; i != numCores; ++i)
                 {
                     putTasks[i].outputResults(i);
                     getTasks[i].outputResults(i);
                 }
-                retVal = 2;
+                retVal = 4;
                 break;
             }
+#endif
         }
 
     } while ( false );
