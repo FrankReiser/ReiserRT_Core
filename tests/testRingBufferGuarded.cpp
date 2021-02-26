@@ -173,7 +173,7 @@ int main()
                     retVal = 4;
                     break;
                 }
-                cout << "All tasks GOING" << endl;
+//                cout << "All tasks GOING" << endl;
 
                 // Threads should be putting into and getting from the guarded ring buffer.
                 // We will monitor the get tasks as they are the last in line.
@@ -208,7 +208,34 @@ int main()
 
                 // Obviously, the PutTasks should all be completed too. That would be a sanity check of the test itself.
 
-                ///@todo I need the data validation check still!!!
+                // Check that each piece of data was accessed and validated, numCores times
+                bool invalid = false;
+                for (unsigned int i = 0; !invalid && i != numCores; ++i)
+                {
+                    const ThreadTestDataRBG * pTestData = testDataVec[i].get();
+                    for (unsigned int j = 0; !invalid && j != queueSize; ++j)
+                    {
+                        unsigned int validatedInvocations = pTestData[j].getValidatedInvocations();
+                        if ( 1 != validatedInvocations )
+                        {
+                            cout << " testData[" << i << "][" << j << "] not accessed one time, got " << validatedInvocations << ".\n";
+                            invalid = true;
+
+                        }
+                    }
+                }
+                if ( invalid ) {
+                    // Task States
+                    for (unsigned int i = 0; i != numCores; ++i)
+                    {
+                        cout << "Transmission Validation Check FAILED!" << endl;
+                        putTasks[i].outputResults(i);
+                        getTasks[i].outputResults(i);
+                    }
+                    retVal = 6;
+                    break;
+                }
+
 
             } while (false);
 
@@ -232,96 +259,6 @@ int main()
                 break;
             }
 
-            // Check that each piece of data was accessed and validated, numCores times
-            bool invalid = false;
-            for (unsigned int i = 0; !invalid && i != numCores; ++i)
-            {
-                const ThreadTestDataRBG * pTestData = testDataVec[i].get();
-                for (unsigned int j = 0; !invalid && j != queueSize; ++j)
-                {
-                    unsigned int validatedInvocations = pTestData[j].getValidatedInvocations();
-                    if ( 1 != validatedInvocations )
-                    {
-                        cout << " testData[" << i << "][" << j << "] not accessed one time, got " << validatedInvocations << ".\n";
-                        invalid = true;
-
-                    }
-                }
-            }
-            if ( invalid ) {
-                // Task States
-                for (unsigned int i = 0; i != numCores; ++i)
-                {
-                    putTasks[i].outputResults(i);
-                    getTasks[i].outputResults(i);
-                }
-                retVal = 6;
-                break;
-            }
-
-#if 0
-            // If the number completed is not equal to the number of cores
-            if ( numCompleted != numCores )
-            {
-                for (unsigned int i = 0; i != numCores; ++i)
-                {
-                    if (putTasks[i].getState() != PutTaskRBG::State::completed)
-                        cout << " Task putTask[" << i << "] did not complete!\n";
-                    if (getTasks[i].getState() != GetTaskRBG::State::completed)
-                        cout << " Task getTask[" << i << "] did not complete!\n";
-                }
-                retVal = 4;
-                break;
-            }
-#if 0
-            // Check Stats
-            bool invalid = false;
-            for (unsigned int i = 0; i != numCores; ++i)
-            {
-                if (putTasks[i].getState() != PutTaskRBG::State::completed)
-                {
-                    cout << " Task putTask[" << i << "] did not complete!\n";
-                    invalid = true;
-                }
-                if (getTasks[i].getState() != GetTaskRBG::State::completed)
-                {
-                    cout << " Task getTask[" << i << "] did not complete!\n";
-                    invalid = true;
-                }
-            }
-            if ( invalid ) {
-                retVal = 4;
-                break;
-            }
-#endif
-
-            // Check that each piece of data was accessed and validated, numCores times
-            bool invalid = false;
-            for (unsigned int i = 0; !invalid && i != numCores; ++i)
-            {
-                const ThreadTestDataRBG * pTestData = testDataVec[i].get();
-                for (unsigned int j = 0; !invalid && j != queueSize; ++j)
-                {
-                    unsigned int validatedInvocations = pTestData[j].getValidatedInvocations();
-                    if ( 1 != validatedInvocations )
-                    {
-                        cout << " testData[" << i << "][" << j << "] not accessed one time, got " << validatedInvocations << ".\n";
-                        invalid = true;
-
-                    }
-                }
-            }
-            if ( invalid ) {
-                // Task States
-                for (unsigned int i = 0; i != numCores; ++i)
-                {
-                    putTasks[i].outputResults(i);
-                    getTasks[i].outputResults(i);
-                }
-                retVal = 4;
-                break;
-            }
-#endif
         }
 
     } while ( false );
