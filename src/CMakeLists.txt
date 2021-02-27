@@ -15,12 +15,12 @@ set( _privateHeaders
 
 # Private Source files.
 set( _privateSources
-        RingBufferSimple.cpp
-        Semaphore.cpp
-        RingBufferGuarded.cpp
-        ObjectPool.cpp
-        ObjectQueue.cpp
-        MessageQueue.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/RingBufferSimple.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/Semaphore.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/RingBufferGuarded.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/ObjectPool.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/ObjectQueue.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/MessageQueue.cpp
         )
 
 
@@ -43,7 +43,7 @@ if(_REISER_RT_HAS_PTHREADS)
             ${CMAKE_CURRENT_LIST_DIR}/PriorityInheritMutex.hpp
             )
     list( APPEND _privateSources
-            PriorityInheritMutex.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/PriorityInheritMutex.cpp
             )
 endif()
 
@@ -62,15 +62,24 @@ target_sources( ReiserRT_Core
         )
 set_target_properties(ReiserRT_Core
         PROPERTIES
-        POSITION_INDEPENDENT_CODE 1
+            POSITION_INDEPENDENT_CODE 1
+            VERSION ${PROJECT_VERSION}
+            SOVERSION ${PROJECT_VERSION_MAJOR}
+            PUBLIC_HEADER ${CMAKE_CURRENT_LIST_DIR}/RingBufferSimple.hpp
+#            PUBLIC_HEADER ${CMAKE_CURRENT_LIST_DIR}/Semaphore.hpp
         )
 
+target_compile_definitions(ReiserRT_Core
+        PRIVATE
+        $<$<BOOL:${_REISER_RT_HAS_PTHREADS}>:REISER_RT_HAS_PTHREADS>
+        )
 
-if(UNIX)
+if(_REISER_RT_HAS_PTHREADS)
     target_link_libraries(ReiserRT_Core Threads::Threads)
-endif(UNIX)
+endif()
 
-# Specify our targets interface for external clients
+
+# Specify our target interfaces for external clients
 target_include_directories( ReiserRT_Core
         PUBLIC
             ${CMAKE_CURRENT_LIST_DIR}
@@ -79,3 +88,32 @@ target_include_directories( ReiserRT_Core
 # We do not actually link Threads::Threads at this time but, it creates a requirement that will eventually have to be satisfied.
 # Anything that links to 'Us', needs Threads::Threads also.
 target_link_libraries(ReiserRT_Core Threads::Threads)
+
+# Prepare RPATH
+#[[
+file(RELATIVE_PATH _rel ${CMAKE_INSTALL_PREFIX}/${INSTALL_BINDIR}
+        ${CMAKE_INSTALL_PREFIX})
+if(APPLE)
+    set(_rpath "@loader_path/${_rel}")
+else()
+    set(_rpath "\$ORIGIN/${_rel}")
+endif()
+file(TO_NATIVE_PATH "${_rpath}/${INSTALL_LIBDIR}" message_RPATH)
+]]
+
+install(
+    TARGETS
+        ReiserRT_Core
+    ARCHIVE
+        DESTINATION ${INSTALL_LIBDIR}
+        COMPONENT lib
+    RUNTIME
+        DESTINATION ${INSTALL_BINDIR}
+        COMPONENT bin
+    LIBRARY
+        DESTINATION ${INSTALL_LIBDIR}
+        COMPONENT lib
+    PUBLIC_HEADER
+        DESTINATION ${INSTALL_INCLUDEDIR}/ReiserRT_Core
+        COMPONENT dev
+)
