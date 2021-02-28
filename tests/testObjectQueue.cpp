@@ -2,7 +2,7 @@
 // Created by frank on 2/19/21.
 //
 
-#include "ObjectQueue.hpp"
+#include "ReiserRT_Core/ObjectQueue.hpp"
 
 #include <random>
 #include <iostream>

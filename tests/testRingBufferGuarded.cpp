@@ -2,7 +2,7 @@
 // Created by frank on 2/19/21.
 //
 
-#include "RingBufferGuarded.hpp"
+#include "ReiserRT_Core/RingBufferGuarded.hpp"
 
 #include "RingBufferGuardedTestTasks.h"
 #include "StartingGun.h"

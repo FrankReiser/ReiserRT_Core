@@ -5,9 +5,8 @@
 * @date Created on Apr 10, 2017
 */
 
-#include "ObjectQueue.hpp"
-#include "RingBufferGuarded.hpp"
-#include "Semaphore.hpp"
+#include "ReiserRT_Core/ObjectQueue.hpp"
+#include "ReiserRT_Core/RingBufferGuarded.hpp"
 
 #define OBJECT_QUEUE_INITIALIZES_RAW_MEMORY 1
 

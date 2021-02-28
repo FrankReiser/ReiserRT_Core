@@ -6,7 +6,7 @@
 * @date Created on Feb 17, 2021
 */
 
-#include "ObjectPool.hpp"
+#include "ReiserRT_Core/ObjectPool.hpp"
 
 /**
 * @brief Macro OBJECT_POOL_USES_MUTEX_AND_SIMPLE_RING_BUFFER
@@ -20,9 +20,10 @@
 */
 #define OBJECT_POOL_USES_MUTEX_AND_SIMPLE_RING_BUFFER 1
 
+#include "ReiserRT_Core/RingBufferSimple.hpp"
+
 #include <atomic>
 #include <mutex>
-#include "RingBufferSimple.hpp"
 
 using namespace ReiserRT::Core;
 

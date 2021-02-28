@@ -5,7 +5,7 @@
 #ifndef REISERRT_RINGBUFFERGUARDEDTESTTASKS_H
 #define REISERRT_RINGBUFFERGUARDEDTESTTASKS_H
 
-#include "RingBufferGuarded.hpp"
+#include "ReiserRT_Core/RingBufferGuarded.hpp"
 
 #include <atomic>
 
