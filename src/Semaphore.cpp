@@ -7,8 +7,6 @@
 
 //#include "ProjectConfigure.h"
 
-//#define SEMAPHORE_USES_PRIORITY_INHERIT_MUTEX 1 ///@todo This should be obtained from platform detection.
-
 #include "ReiserRT_Core/Semaphore.hpp"
 
 #ifdef REISER_RT_HAS_PTHREADS

@@ -12,8 +12,6 @@
 #include <type_traits>
 #include <functional>
 
-///@todo I am pretty sure that there is a problem with the Emplace/Put on reserved stuff. GitHub build test reports an error there starting from testMessageQueue line 124.
-///Even though this is just an emplace call. It uses emplace on reserve internally.
 namespace ReiserRT
 {
     namespace Core

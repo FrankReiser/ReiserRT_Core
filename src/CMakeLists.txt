@@ -57,7 +57,6 @@ target_sources( ReiserRT_Core
             ${_publicHeaders}
         )
 
-#todo Figure out how I should appropriately version this.
 set_target_properties(ReiserRT_Core
         PROPERTIES
             POSITION_INDEPENDENT_CODE 1

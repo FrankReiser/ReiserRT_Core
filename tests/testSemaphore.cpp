@@ -241,7 +241,7 @@ int main() {
                     break;
                 }
 
-                ///@todo Obviously, the GiveTasks should all be completed too. This would be a sanity check on the test itself.
+                // Obviously, the GiveTasks should all be completed too. This would be a sanity check on the test itself.
 
             } while(false);
 
