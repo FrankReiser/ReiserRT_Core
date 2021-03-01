@@ -62,7 +62,7 @@ set_target_properties(ReiserRT_Core
             POSITION_INDEPENDENT_CODE 1
             VERSION ${PROJECT_VERSION}
             SOVERSION ${PROJECT_VERSION_MAJOR}
-#            PUBLIC_HEADER ${CMAKE_CURRENT_LIST_DIR}/RingBufferSimple.hpp
+            PUBLIC_HEADER "${_publicHeaders}"
         )
 
 target_compile_definitions(ReiserRT_Core
@@ -113,6 +113,7 @@ install(
 #    PUBLIC_HEADER
 #        DESTINATION ${INSTALL_INCLUDEDIR}/ReiserRT_Core
 #        COMPONENT dev
+#    PUBLIC_HEADER "${_publicHeaders}"
 )
 
 install( DIRECTORY ../ReiserRT_Core DESTINATION ${INSTALL_INCLUDEDIR} )
