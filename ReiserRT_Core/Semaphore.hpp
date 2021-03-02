@@ -23,6 +23,7 @@ namespace ReiserRT
         * They are designed to efficiently manage resource availability, until resources are exhausted (count of zero)
         * at which point, a client must wait (block) until resources are released and made available for reuse.
         *
+        * @todo A maximum and pend on notify if reached. This would allow RingBufferGuarded to block on put if it would result in an overflow.
         * @todo Support move semantics.
         * @todo Support timed wait and test wait?
         */
@@ -65,7 +66,6 @@ namespace ReiserRT
             */
             ~Semaphore();
 
-        private:
             /**
             * @brief Copy Constructor for Semaphore
             *
@@ -102,7 +102,6 @@ namespace ReiserRT
             */
             Semaphore & operator =( Semaphore && another ) = delete;
 
-        public:
             /**
             * @brief The Wait Operation
             *
@@ -119,22 +118,19 @@ namespace ReiserRT
             *
             * This operation attempts to decrement the availableCount towards zero.
             * If the availableCount is zero, the operation will block until availableCount is incremented
-            * away from zero via a notify operation. Once the availableCount has successfully been incremented,
+            * away from zero via a notify operation. When the wait has successfully taken an available count,
             * the user provided function object is invoked while an internal lock is held.
             *
             * @param operation This is a value (copy) of a user provided function object to be invoked after the availableCount is decremented.
-            * The user operation is invoked while an internal lock is held.
-            * @warning Should the user operation throw an exception, an availableCount may be wasted, as it has already been decremented.
-            * It is the responsibility of the implementor of such an operation to decide if this is recoverable and a notify call can be utilized
-            * to restore the availableCount.
-            * @todo We can do better than this. We already have in several places using RAII techniques. Actually, it's more complicated
-            * than that. You don't want the throw an exception. I am not preventing it because it's certainly possible in my own
-            * code. However, I feel that it is a design problem on the outside. If the design "managed" things it shouldn't happen.
-            * These hooks are intended to be used for tight code in a aggregating class. I.e., bookkeeping chores. Document better.
+            * The user operation is invoked while an internal lock is held. The function object may be wrapped with std::ref to avert overhead
+            * in making a copy.
+            * @warning Should the user operation throw an exception, the availableCount will be restored to its former state as if
+            * the wait call was never invoked.
             * @warning It is expected that the function object remain valid throughout the duration of the wait invocation. Failure
             * to provide this assurance will lead to undefined behavior.
             * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
             * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
+            * @throw The user operation may throw an exception of unknown type.
             */
             void wait( FunctionType operation );
 
@@ -155,8 +151,8 @@ namespace ReiserRT
             *
             * @param operation This is a value (copy) of a user provided function object to be invoked prior during prior to the availableCount
             * being incremented. The user operation is invoked while an internal lock is held.
-            * @warning Should the user provided operation throw an exception, the availableCount is not incremented.
-            * It is the responsibility of the implementor of such an operation to take appropriate measures to prevent resource leakage.
+            * @warning Should the user provided operation throw an exception, the availableCount is not incremented and no thread
+            * is awakened.
             * @warning It is expected that the function object remain valid throughout the duration of the wait invocation. Failure
             * to provide this assurance will lead to undefined behavior.
             * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
@@ -190,7 +186,6 @@ namespace ReiserRT
             * @brief Pointer Member to Hidden Implementation
             *
             * This is our pointer to our hidden implementation.
-            * @todo Make this a unique_ptr and make the class 'movable'.
             */
             Imple * pImple;
         };

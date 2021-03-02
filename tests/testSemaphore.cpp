@@ -24,6 +24,10 @@ using namespace std;
 int main() {
     auto retVal = 0;
 
+    ///@todo Test the new functionality of wait with function object where the available count is restored if an exception
+    ///is thrown by the user provided function object.
+
+
     do {
         // Construction, no-wait wait testing.
         // We will not wait or notify within this block as that could hang the test if

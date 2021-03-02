@@ -21,7 +21,11 @@
 
 using namespace ReiserRT::Core;
 
-/// @todo Document class Semaphore::Imple
+/**
+* @brief A Counted, Wait-able Semaphore Class
+*
+* This class provides the implementation specifics for the Semaphore class.
+*/
 class Semaphore::Imple
 {
 public:
@@ -31,7 +35,7 @@ public:
     * This operation constructs tImplementation.
     *
     * @param theInitialCount The initial Semaphore count, defaults to zero and is clamped to
-    * std::numeric_limits< AvailableCountType>::max() or slightly more than 2 billion.
+    * std::numeric_limits< AvailableCountType>::max() or slightly more than 4 billion.
     */
     explicit Imple( size_t theInitialCount = 0 );
 
@@ -133,13 +137,26 @@ public:
     * @brief The Wait Operation
     *
     * This operation takes the mutex and invokes the _wait operation to perform the rest of the waiting work.
-    * After the wait work has been done, it invokes the user provide function object.
+    * After the wait work has been done, it attempts to invokes the user provide function object.
+    * If the user function object should throw an exception, the available count is restored to its former state.
     * The mutex is released upon return.
     *
     * @param operation This is a reference to a user provided function object to invoke during the context of the internal lock.
     * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
+    * @throw The user operation may throw an exception of unknown type.
     */
-    inline void wait( FunctionType & operation ) { std::unique_lock< MutexType > lock{ mutex }; _wait( lock ); operation(); }
+    inline void wait( FunctionType & operation ) {
+        std::unique_lock< MutexType > lock{ mutex };
+        _wait( lock );
+        try {
+            operation();
+        }
+        catch ( std::exception & )
+        {
+            ++availableCount;
+            throw;
+        }
+    }
 
     /**
     * @brief The Notify Operation
