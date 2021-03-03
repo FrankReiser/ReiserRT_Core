@@ -23,7 +23,6 @@ namespace ReiserRT
         * They are designed to efficiently manage resource availability, until resources are exhausted (count of zero)
         * at which point, a client must wait (block) until resources are released and made available for reuse.
         *
-        * @todo A maximum and pend on notify if reached. This would allow RingBufferGuarded to block on put if it would result in an overflow.
         * @todo Support move semantics.
         * @todo Support timed wait and test wait?
         */
@@ -54,7 +53,7 @@ namespace ReiserRT
             * This operation constructs a Semaphore.
             *
             * @param theInitialCount The initial Semaphore count, defaults to zero and is clamped to
-            * std::numeric_limits< AvailableCountType>::max() or slightly more than 2 billion.
+            * std::numeric_limits< uint32_t >::max() or slightly more than 4 billion (2^32 -1).
             */
             explicit Semaphore( size_t theInitialCount = 0 );
 
@@ -62,7 +61,7 @@ namespace ReiserRT
             * @brief Destructor for the Semaphore
             *
             * This destructor invokes the abort operation. If the Semaphore is still being
-            * used by any thread when this destructor is invoked, those threads will be thrown an AbortedException.
+            * used by any thread when this destructor is invoked, those threads will experience a runtime error.
             */
             ~Semaphore();
 
@@ -105,8 +104,8 @@ namespace ReiserRT
             /**
             * @brief The Wait Operation
             *
-            * This operation attempts to decrement the availableCount towards zero.
-            * If the availableCount is zero, the operation will block until availableCount is incremented
+            * This operation attempts to decrement the available count towards zero.
+            * If the available count is already zero, the operation will block until available count is incremented
             * away from zero.
             *
             * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
@@ -117,14 +116,16 @@ namespace ReiserRT
             * @brief The Wait Operation with Functor Interface
             *
             * This operation attempts to decrement the availableCount towards zero.
-            * If the availableCount is zero, the operation will block until availableCount is incremented
+            * If the available count is already zero, the operation will block until availableCount is incremented
             * away from zero via a notify operation. When the wait has successfully taken an available count,
             * the user provided function object is invoked while an internal lock is held.
+            * This provides affords the client an opportunity to do bookkeeping under mutual exclusion without having to
+            * take a separate lock.
             *
             * @param operation This is a value (copy) of a user provided function object to be invoked after the availableCount is decremented.
             * The user operation is invoked while an internal lock is held. The function object may be wrapped with std::ref to avert overhead
             * in making a copy.
-            * @warning Should the user operation throw an exception, the availableCount will be restored to its former state as if
+            * @warning Should the user operation throw an exception, the available count will be restored to its former state as if
             * the wait call was never invoked.
             * @warning It is expected that the function object remain valid throughout the duration of the wait invocation. Failure
             * to provide this assurance will lead to undefined behavior.
@@ -137,9 +138,10 @@ namespace ReiserRT
             /**
             * @brief The Notify Operation
             *
-            * This operation increments the availableCount away from zero and will wake, at most, one waiting thread.
+            * This operation increments the available count away from zero and will wake, at most, one waiting thread.
             *
-            * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
+            * @throw Throws std::runtime_error if the abort operation is invoked via another thread or if we have been
+            * notified more times than we can count (2^32 -1).
             */
             void notify();
 
@@ -148,15 +150,18 @@ namespace ReiserRT
             *
             * This operation invokes a user provided function object while an internal lock is held.
             * It then increments the availableCount away from zero and will wake, at most, one waiting thread.
+            * This provides affords the client an opportunity to do bookkeeping under mutual exclusion without having to
+            * take a separate lock.
             *
-            * @param operation This is a value (copy) of a user provided function object to be invoked prior during prior to the availableCount
-            * being incremented. The user operation is invoked while an internal lock is held.
+            * @param operation This is a value (copy) of a user provided function object to be invoked prior during prior
+            * to the available count being incremented. The user operation is invoked while an internal lock is held.
             * @warning Should the user provided operation throw an exception, the availableCount is not incremented and no thread
             * is awakened.
             * @warning It is expected that the function object remain valid throughout the duration of the wait invocation. Failure
             * to provide this assurance will lead to undefined behavior.
             * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
-            * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
+            * @throw Throws std::runtime_error if the abort operation is invoked via another thread or if we have been
+            * notified more times than we can count (2^32 -1).
             */
             void notify( FunctionType operation );
 
@@ -175,9 +180,9 @@ namespace ReiserRT
             * This is primarily an implementation validation operation. It returns a snapshot of the
             * current available count.
             *
-            * @throw Throws std::runtime_error if the abortFlag has been set via the abort operation.
+            * @throw Throws std::runtime_error if the abort has been invoked.
             *
-            * @return Returns a snapshot of the availableCount at time of invocation.
+            * @return Returns a snapshot of the available count at time of invocation.
             */
             size_t getAvailableCount();
 
@@ -187,7 +192,7 @@ namespace ReiserRT
             *
             * This is our pointer to our hidden implementation.
             */
-            Imple * pImple;
+            Imple * pImple{ nullptr };
         };
     }
 }

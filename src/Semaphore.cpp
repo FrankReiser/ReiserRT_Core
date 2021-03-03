@@ -32,7 +32,7 @@ public:
     /**
     * @brief Qualified Constructor for Implementation
     *
-    * This operation constructs tImplementation.
+    * This operation constructs the Implementation.
     *
     * @param theInitialCount The initial Semaphore count, defaults to zero and is clamped to
     * std::numeric_limits< AvailableCountType>::max() or slightly more than 4 billion.
@@ -314,8 +314,11 @@ void Semaphore::Imple::_wait( std::unique_lock< MutexType > & lock )
 
 void Semaphore::Imple::_notify()
 {
-    // If the abort flag is set, throw a SemaphoreAbortedException.
-    if ( abortFlag ) throw std::runtime_error{ "Semaphore::Imple::_notify: Semaphore Aborted!" };
+    // If the abort flag is set OR we have been "over notified", throw a runtime error.
+    if ( abortFlag || availableCount == std::numeric_limits< AvailableCountType >::max() ) {
+        throw std::runtime_error{ abortFlag ?
+            "Semaphore::Imple::_notify: Semaphore Aborted!" : "Semaphore::Imple::_notify: Notification Limit Hit!" };
+    }
 
     ++availableCount;
 
