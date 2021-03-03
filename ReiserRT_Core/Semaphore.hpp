@@ -53,7 +53,7 @@ namespace ReiserRT
             * This operation constructs a Semaphore.
             *
             * @param theInitialCount The initial Semaphore count, defaults to zero and is clamped to
-            * std::numeric_limits< AvailableCountType>::max() or slightly more than 2 billion.
+            * std::numeric_limits< uint32_t >::max() or slightly more than 4 billion (2^32 -1).
             */
             explicit Semaphore( size_t theInitialCount = 0 );
 
@@ -61,11 +61,10 @@ namespace ReiserRT
             * @brief Destructor for the Semaphore
             *
             * This destructor invokes the abort operation. If the Semaphore is still being
-            * used by any thread when this destructor is invoked, those threads will be thrown an AbortedException.
+            * used by any thread when this destructor is invoked, those threads will experience a runtime error.
             */
             ~Semaphore();
 
-        private:
             /**
             * @brief Copy Constructor for Semaphore
             *
@@ -102,12 +101,11 @@ namespace ReiserRT
             */
             Semaphore & operator =( Semaphore && another ) = delete;
 
-        public:
             /**
             * @brief The Wait Operation
             *
-            * This operation attempts to decrement the availableCount towards zero.
-            * If the availableCount is zero, the operation will block until availableCount is incremented
+            * This operation attempts to decrement the available count towards zero.
+            * If the available count is already zero, the operation will block until available count is incremented
             * away from zero.
             *
             * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
@@ -118,32 +116,32 @@ namespace ReiserRT
             * @brief The Wait Operation with Functor Interface
             *
             * This operation attempts to decrement the availableCount towards zero.
-            * If the availableCount is zero, the operation will block until availableCount is incremented
-            * away from zero via a notify operation. Once the availableCount has successfully been incremented,
+            * If the available count is already zero, the operation will block until availableCount is incremented
+            * away from zero via a notify operation. When the wait has successfully taken an available count,
             * the user provided function object is invoked while an internal lock is held.
+            * This provides affords the client an opportunity to do bookkeeping under mutual exclusion without having to
+            * take a separate lock.
             *
             * @param operation This is a value (copy) of a user provided function object to be invoked after the availableCount is decremented.
-            * The user operation is invoked while an internal lock is held.
-            * @warning Should the user operation throw an exception, an availableCount may be wasted, as it has already been decremented.
-            * It is the responsibility of the implementor of such an operation to decide if this is recoverable and a notify call can be utilized
-            * to restore the availableCount.
-            * @todo We can do better than this. We already have in several places using RAII techniques. Actually, it's more complicated
-            * than that. You don't want the throw an exception. I am not preventing it because it's certainly possible in my own
-            * code. However, I feel that it is a design problem on the outside. If the design "managed" things it shouldn't happen.
-            * These hooks are intended to be used for tight code in a aggregating class. I.e., bookkeeping chores. Document better.
+            * The user operation is invoked while an internal lock is held. The function object may be wrapped with std::ref to avert overhead
+            * in making a copy.
+            * @warning Should the user operation throw an exception, the available count will be restored to its former state as if
+            * the wait call was never invoked.
             * @warning It is expected that the function object remain valid throughout the duration of the wait invocation. Failure
             * to provide this assurance will lead to undefined behavior.
             * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
             * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
+            * @throw The user operation may throw an exception of unknown type.
             */
             void wait( FunctionType operation );
 
             /**
             * @brief The Notify Operation
             *
-            * This operation increments the availableCount away from zero and will wake, at most, one waiting thread.
+            * This operation increments the available count away from zero and will wake, at most, one waiting thread.
             *
-            * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
+            * @throw Throws std::runtime_error if the abort operation is invoked via another thread or if we have been
+            * notified more times than we can count (2^32 -1).
             */
             void notify();
 
@@ -152,15 +150,18 @@ namespace ReiserRT
             *
             * This operation invokes a user provided function object while an internal lock is held.
             * It then increments the availableCount away from zero and will wake, at most, one waiting thread.
+            * This provides affords the client an opportunity to do bookkeeping under mutual exclusion without having to
+            * take a separate lock.
             *
-            * @param operation This is a value (copy) of a user provided function object to be invoked prior during prior to the availableCount
-            * being incremented. The user operation is invoked while an internal lock is held.
-            * @warning Should the user provided operation throw an exception, the availableCount is not incremented.
-            * It is the responsibility of the implementor of such an operation to take appropriate measures to prevent resource leakage.
+            * @param operation This is a value (copy) of a user provided function object to be invoked prior during prior
+            * to the available count being incremented. The user operation is invoked while an internal lock is held.
+            * @warning Should the user provided operation throw an exception, the availableCount is not incremented and no thread
+            * is awakened.
             * @warning It is expected that the function object remain valid throughout the duration of the wait invocation. Failure
             * to provide this assurance will lead to undefined behavior.
             * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
-            * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
+            * @throw Throws std::runtime_error if the abort operation is invoked via another thread or if we have been
+            * notified more times than we can count (2^32 -1).
             */
             void notify( FunctionType operation );
 
@@ -179,9 +180,9 @@ namespace ReiserRT
             * This is primarily an implementation validation operation. It returns a snapshot of the
             * current available count.
             *
-            * @throw Throws std::runtime_error if the abortFlag has been set via the abort operation.
+            * @throw Throws std::runtime_error if the abort has been invoked.
             *
-            * @return Returns a snapshot of the availableCount at time of invocation.
+            * @return Returns a snapshot of the available count at time of invocation.
             */
             size_t getAvailableCount();
 
@@ -190,9 +191,8 @@ namespace ReiserRT
             * @brief Pointer Member to Hidden Implementation
             *
             * This is our pointer to our hidden implementation.
-            * @todo Make this a unique_ptr and make the class 'movable'.
             */
-            Imple * pImple;
+            Imple * pImple{ nullptr };
         };
     }
 }
