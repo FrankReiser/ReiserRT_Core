@@ -110,10 +110,7 @@ install(
     LIBRARY
         DESTINATION ${INSTALL_LIBDIR}
         COMPONENT lib
-#    PUBLIC_HEADER
-#        DESTINATION ${INSTALL_INCLUDEDIR}/ReiserRT_Core
-#        COMPONENT dev
-#    PUBLIC_HEADER "${_publicHeaders}"
+    PUBLIC_HEADER
+        DESTINATION ${INSTALL_INCLUDEDIR}/ReiserRT_Core
+        COMPONENT dev
 )
-
-install( DIRECTORY ../ReiserRT_Core DESTINATION ${INSTALL_INCLUDEDIR} )
