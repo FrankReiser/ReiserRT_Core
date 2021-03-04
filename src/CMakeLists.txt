@@ -23,28 +23,23 @@ set( _privateSources
         MessageQueue.cpp
         )
 
-
-# If we are under UNIX/Linux the pthreads library should be available and we are dependent on
-# requiring the mutex attribute operations for priority inheritance control.
-# Otherwise, we do not do much with pthreads here. It looks good,
-# but the cache has "PTHREAD_LOC," variable in it. That's right, it includes a comma unlike
-# any other variable in the cache. Seems to work okay though and there just might be a reason for it.
-if(UNIX)
-    set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-    set(THREAD_PREFER_PTHREAD_FLAG TRUE)
-    find_package(Threads REQUIRED)
-
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREAD_PREFER_PTHREAD_FLAG TRUE)
+#[[
+include(FindThreads)
+]]
+find_package(Threads REQUIRED)
+message( STATUS "Threads_FOUND: ${Threads_FOUND}")
+message( STATUS "CMAKE_THREAD_LIBS_INIT: ${CMAKE_THREAD_LIBS_INIT}" )
+message( STATUS "CMAKE_USE_WIN32_THREADS_INIT: ${CMAKE_USE_WIN32_THREADS_INIT}" )
+message( STATUS "CMAKE_USE_PTHREADS_INIT: ${CMAKE_USE_PTHREADS_INIT}" )
+if(CMAKE_USE_PTHREADS_INIT)
     set( _REISER_RT_HAS_PTHREADS ON)
-
 endif()
 
 if(_REISER_RT_HAS_PTHREADS)
-    list( APPEND _privateHeaders
-            ${CMAKE_CURRENT_LIST_DIR}/PriorityInheritMutex.hpp
-            )
-    list( APPEND _privateSources
-            ${CMAKE_CURRENT_LIST_DIR}/PriorityInheritMutex.cpp
-            )
+    list( APPEND _privateHeaders ${CMAKE_CURRENT_LIST_DIR}/PriorityInheritMutex.hpp )
+    list( APPEND _privateSources ${CMAKE_CURRENT_LIST_DIR}/PriorityInheritMutex.cpp )
 endif()
 
 # Now the entire Library, currently SHARED by default. Could make an option though.
@@ -85,7 +80,7 @@ target_include_directories( ReiserRT_Core
 # Anything that links to 'Us', needs Threads::Threads also.
 target_link_libraries(ReiserRT_Core Threads::Threads)
 
-# I think you might only need this for executable type targets.
+#@todo I think you might only need this for executable type targets on platforms other than GNU/Linux but I see message_RPATH???
 # Prepare RPATH
 #[[
 file(RELATIVE_PATH _rel ${CMAKE_INSTALL_PREFIX}/${INSTALL_BINDIR}
