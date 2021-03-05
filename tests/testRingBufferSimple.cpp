@@ -2,7 +2,7 @@
 // Created by frank on 2/18/21.
 //
 
-#include "ReiserRT_Core/RingBufferSimple.hpp"
+#include "RingBufferSimple.hpp"
 
 #include <iostream>
 

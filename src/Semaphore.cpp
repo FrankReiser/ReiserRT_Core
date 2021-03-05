@@ -7,7 +7,7 @@
 
 //#include "ProjectConfigure.h"
 
-#include "ReiserRT_Core/Semaphore.hpp"
+#include "Semaphore.hpp"
 
 #ifdef REISER_RT_HAS_PTHREADS
 #include "PriorityInheritMutex.hpp"

@@ -8,6 +8,8 @@
 #ifndef OBJECTPOOL_H_
 #define OBJECTPOOL_H_
 
+#include "ReiserRT_CoreExport.h"
+
 #include <memory>
 #include <type_traits>
 #include <functional>
@@ -24,7 +26,7 @@ namespace ReiserRT
         * This class provides a base for all specialized ObjectPool template instantiations.
         * It provides a hidden implementation and the primary interface operations required for ObjectQueue.
         */
-        class ObjectPoolBase
+        class ReiserRT_Core_EXPORT ObjectPoolBase
         {
         private:
             /**
@@ -205,7 +207,7 @@ namespace ReiserRT
         * at compile-time as an error.
         */
         template < typename T, size_t minTypeAllocSize = sizeof( T ) >
-        class ObjectPool : public ObjectPoolBase
+        class ReiserRT_Core_EXPORT ObjectPool : public ObjectPoolBase
         {
             // You cannot specify a minTypeAllocSize less than the size of type T.
             static_assert( minTypeAllocSize >= sizeof( T ),
