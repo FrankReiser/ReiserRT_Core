@@ -2,7 +2,7 @@
 // Created by frank on 2/19/21.
 //
 
-#include "ReiserRT_Core/MessageQueue.hpp"
+#include "MessageQueue.hpp"
 
 #include <iostream>
 #include <random>

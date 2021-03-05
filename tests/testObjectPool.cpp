@@ -2,7 +2,7 @@
 // Created by frank on 2/19/21.
 //
 
-#include "ReiserRT_Core/ObjectPool.hpp"
+#include "ObjectPool.hpp"
 
 #include <iostream>
 #include <forward_list>

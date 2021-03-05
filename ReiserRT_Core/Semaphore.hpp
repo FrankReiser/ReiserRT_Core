@@ -8,6 +8,8 @@
 #ifndef SEMAPHORE_HPP_
 #define SEMAPHORE_HPP_
 
+#include "ReiserRT_CoreExport.h"
+
 #include <stdexcept>
 #include <functional>
 
@@ -26,7 +28,7 @@ namespace ReiserRT
         * @todo Support move semantics.
         * @todo Support timed wait and test wait?
         */
-        class Semaphore
+        class ReiserRT_Core_EXPORT Semaphore
         {
         private:
             /**

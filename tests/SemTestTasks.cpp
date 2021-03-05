@@ -2,7 +2,7 @@
 // Created by frank on 2/18/21.
 //
 
-#include "ReiserRT_Core/Semaphore.hpp"
+#include "Semaphore.hpp"
 
 #include "SemTestTasks.h"
 #include "StartingGun.h"

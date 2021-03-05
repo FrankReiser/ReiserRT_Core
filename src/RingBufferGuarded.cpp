@@ -8,4 +8,4 @@
 * @date Created on Feb 17, 2021
 */
 
-#include "ReiserRT_Core/RingBufferGuarded.hpp"
+#include "RingBufferGuarded.hpp"

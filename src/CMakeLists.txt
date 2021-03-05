@@ -61,9 +61,11 @@ target_sources( ReiserRT_Core
 set_target_properties(ReiserRT_Core
         PROPERTIES
             POSITION_INDEPENDENT_CODE 1
+            CXX_VISIBILITY_PRESET hidden
+            VISIBILITY_INLINES_HIDDEN 1
             VERSION ${PROJECT_VERSION}
             SOVERSION ${PROJECT_VERSION_MAJOR}
-            PUBLIC_HEADER "${_publicHeaders}"
+            PUBLIC_HEADER "${_publicHeaders};${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}/ReiserRT_CoreExport.h"
         )
 
 target_compile_definitions(ReiserRT_Core
@@ -78,10 +80,23 @@ target_link_libraries(ReiserRT_Core PUBLIC $<$<BOOL:${_REISER_RT_HAS_PTHREADS}>:
 # Specify our target interfaces for external clients
 target_include_directories( ReiserRT_Core
         PUBLIC
-            ..
+#            ..
+            ../ReiserRT_Core
+            ${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}
         )
 
-#target_link_libraries(ReiserRT_Core Threads::Threads)
+include(GenerateExportHeader)
+generate_export_header(ReiserRT_Core
+        BASE_NAME "ReiserRT_Core"
+        EXPORT_MACRO_NAME "ReiserRT_Core_EXPORT"
+        EXPORT_FILE_NAME
+        "${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}/ReiserRT_CoreExport.h"
+        DEPRECATED_MACRO_NAME "ReiserRT_Core_DEPRECATED"
+        NO_EXPORT_MACRO_NAME "ReiserRT_Core_NO_EXPORT"
+        STATIC_DEFINE "ReiserRT_Core_STATIC_DEFINE"
+        NO_DEPRECATED_MACRO_NAME "ReiserRT_Core_NO_DEPRECATED"
+        DEFINE_NO_DEPRECATED
+        )
 
 #@todo I think you might only need this for executable type targets. Consider for linkage requirements for users of ReiserRT_Core like the tests.
 # Prepare RPATH
