@@ -42,6 +42,12 @@ if(_REISER_RT_HAS_PTHREADS)
     list( APPEND _privateSources ${CMAKE_CURRENT_LIST_DIR}/PriorityInheritMutex.cpp )
 endif()
 
+# Just an experiment
+find_package(PkgConfig QUIET)
+message( STATUS "PKG_CONFIG_FOUND: ${CMAKE_USE_PTHREADS_INIT}" )
+
+
+
 # Now the entire Library, currently SHARED by default. Could make an option though.
 add_library( ReiserRT_Core SHARED "" )
 target_sources( ReiserRT_Core
@@ -65,10 +71,9 @@ target_compile_definitions(ReiserRT_Core
         $<$<BOOL:${_REISER_RT_HAS_PTHREADS}>:REISER_RT_HAS_PTHREADS>
         )
 
-if(_REISER_RT_HAS_PTHREADS)
-    target_link_libraries(ReiserRT_Core Threads::Threads)
-endif()
-
+# We do not actually link Threads::Threads at this time but, this creates a requirement that will eventually have to be satisfied.
+# Anything that links to 'Us', needs Threads::Threads also. This all assuming we found pthreads.
+target_link_libraries(ReiserRT_Core PUBLIC $<$<BOOL:${_REISER_RT_HAS_PTHREADS}>:Threads::Threads>)
 
 # Specify our target interfaces for external clients
 target_include_directories( ReiserRT_Core
@@ -76,11 +81,9 @@ target_include_directories( ReiserRT_Core
             ..
         )
 
-# We do not actually link Threads::Threads at this time but, it creates a requirement that will eventually have to be satisfied.
-# Anything that links to 'Us', needs Threads::Threads also.
-target_link_libraries(ReiserRT_Core Threads::Threads)
+#target_link_libraries(ReiserRT_Core Threads::Threads)
 
-#@todo I think you might only need this for executable type targets on platforms other than GNU/Linux but I see message_RPATH???
+#@todo I think you might only need this for executable type targets. Consider for linkage requirements for users of ReiserRT_Core like the tests.
 # Prepare RPATH
 #[[
 file(RELATIVE_PATH _rel ${CMAKE_INSTALL_PREFIX}/${INSTALL_BINDIR}
@@ -90,7 +93,7 @@ if(APPLE)
 else()
     set(_rpath "\$ORIGIN/${_rel}")
 endif()
-file(TO_NATIVE_PATH "${_rpath}/${INSTALL_LIBDIR}" message_RPATH)
+file(TO_NATIVE_PATH "${_rpath}/${INSTALL_LIBDIR}" ReiserRT_Core_RPATH)
 ]]
 
 install(
