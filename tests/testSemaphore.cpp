@@ -3,7 +3,7 @@
 //
 
 // What we are testing
-#include "ReiserRT_Core/Semaphore.hpp"
+#include "Semaphore.hpp"
 
 // Test task class specifications for give and taking the semaphore.
 #include "SemTestTasks.h"
