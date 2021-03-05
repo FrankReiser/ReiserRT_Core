@@ -1,11 +1,11 @@
 # Public Header files
 set( _publicHeaders
-        ../ReiserRT_Core/RingBufferSimple.hpp
-        ../ReiserRT_Core/Semaphore.hpp
-        ../ReiserRT_Core/RingBufferGuarded.hpp
-        ../ReiserRT_Core/ObjectPool.hpp
-        ../ReiserRT_Core/ObjectQueue.hpp
-        ../ReiserRT_Core/MessageQueue.hpp
+        RingBufferSimple.hpp
+        Semaphore.hpp
+        RingBufferGuarded.hpp
+        ObjectPool.hpp
+        ObjectQueue.hpp
+        MessageQueue.hpp
         )
 
 # Private Header files (none until otherwise determined)
@@ -23,69 +23,86 @@ set( _privateSources
         MessageQueue.cpp
         )
 
-
-# If we are under UNIX/Linux the pthreads library should be available and we are dependent on
-# requiring the mutex attribute operations for priority inheritance control.
-# Otherwise, we do not do much with pthreads here. It looks good,
-# but the cache has "PTHREAD_LOC," variable in it. That's right, it includes a comma unlike
-# any other variable in the cache. Seems to work okay though and there just might be a reason for it.
-if(UNIX)
-    set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-    set(THREAD_PREFER_PTHREAD_FLAG TRUE)
-    find_package(Threads REQUIRED)
-
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREAD_PREFER_PTHREAD_FLAG TRUE)
+#[[
+include(FindThreads)
+]]
+find_package(Threads REQUIRED)
+message( STATUS "Threads_FOUND: ${Threads_FOUND}")
+message( STATUS "CMAKE_THREAD_LIBS_INIT: ${CMAKE_THREAD_LIBS_INIT}" )
+message( STATUS "CMAKE_USE_WIN32_THREADS_INIT: ${CMAKE_USE_WIN32_THREADS_INIT}" )
+message( STATUS "CMAKE_USE_PTHREADS_INIT: ${CMAKE_USE_PTHREADS_INIT}" )
+if(CMAKE_USE_PTHREADS_INIT)
     set( _REISER_RT_HAS_PTHREADS ON)
-
 endif()
 
 if(_REISER_RT_HAS_PTHREADS)
-    list( APPEND _privateHeaders
-            ${CMAKE_CURRENT_LIST_DIR}/PriorityInheritMutex.hpp
-            )
-    list( APPEND _privateSources
-            ${CMAKE_CURRENT_LIST_DIR}/PriorityInheritMutex.cpp
-            )
+    list( APPEND _privateHeaders ${CMAKE_CURRENT_LIST_DIR}/PriorityInheritMutex.hpp )
+    list( APPEND _privateSources ${CMAKE_CURRENT_LIST_DIR}/PriorityInheritMutex.cpp )
 endif()
+
+# Just an experiment
+find_package(PkgConfig QUIET)
+message( STATUS "PKG_CONFIG_FOUND: ${CMAKE_USE_PTHREADS_INIT}" )
+
+
 
 # Now the entire Library, currently SHARED by default. Could make an option though.
 add_library( ReiserRT_Core SHARED "" )
 target_sources( ReiserRT_Core
         PRIVATE
             ${_privateSources}
-            ${_privateHeaders}
-        PUBLIC
-            ${_publicHeaders}
+#            ${_privateHeaders}
+#        PUBLIC
+#            ${_publicHeaders}
         )
 
 set_target_properties(ReiserRT_Core
         PROPERTIES
             POSITION_INDEPENDENT_CODE 1
+            CXX_VISIBILITY_PRESET hidden
+            VISIBILITY_INLINES_HIDDEN 1
             VERSION ${PROJECT_VERSION}
             SOVERSION ${PROJECT_VERSION_MAJOR}
-            PUBLIC_HEADER "${_publicHeaders}"
+            DEBUG_POSTFIX "_d"
+            PUBLIC_HEADER "${_publicHeaders};${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}/ReiserRT_CoreExport.h"
         )
 
 target_compile_definitions(ReiserRT_Core
         PRIVATE
-        $<$<BOOL:${_REISER_RT_HAS_PTHREADS}>:REISER_RT_HAS_PTHREADS>
+            $<$<BOOL:${_REISER_RT_HAS_PTHREADS}>:REISER_RT_HAS_PTHREADS>
+        INTERFACE
+            $<INSTALL_INTERFACE:USING_ReiserRT_Core>
         )
 
-if(_REISER_RT_HAS_PTHREADS)
-    target_link_libraries(ReiserRT_Core Threads::Threads)
-endif()
-
+# We do not actually link Threads::Threads at this time but, this creates a requirement that will eventually have to be satisfied.
+# Anything that links to 'Us', needs Threads::Threads also. This all assuming we found pthreads.
+target_link_libraries(ReiserRT_Core PUBLIC $<$<BOOL:${_REISER_RT_HAS_PTHREADS}>:Threads::Threads>)
 
 # Specify our target interfaces for external clients
 target_include_directories( ReiserRT_Core
         PUBLIC
-            ..
+#            ..
+#            ../ReiserRT_Core
+            $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}>
+            $<INSTALL_INTERFACE:${INSTALL_INCLUDEDIR}>
         )
 
-# We do not actually link Threads::Threads at this time but, it creates a requirement that will eventually have to be satisfied.
-# Anything that links to 'Us', needs Threads::Threads also.
-target_link_libraries(ReiserRT_Core Threads::Threads)
+include(GenerateExportHeader)
+generate_export_header(ReiserRT_Core
+        BASE_NAME "ReiserRT_Core"
+        EXPORT_MACRO_NAME "ReiserRT_Core_EXPORT"
+        EXPORT_FILE_NAME
+        "${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}/ReiserRT_CoreExport.h"
+        DEPRECATED_MACRO_NAME "ReiserRT_Core_DEPRECATED"
+        NO_EXPORT_MACRO_NAME "ReiserRT_Core_NO_EXPORT"
+        STATIC_DEFINE "ReiserRT_Core_STATIC_DEFINE"
+        NO_DEPRECATED_MACRO_NAME "ReiserRT_Core_NO_DEPRECATED"
+        DEFINE_NO_DEPRECATED
+        )
 
-# I think you might only need this for executable type targets.
+#@todo I think you might only need this for executable type targets. Consider for linkage requirements for users of ReiserRT_Core like the tests.
 # Prepare RPATH
 #[[
 file(RELATIVE_PATH _rel ${CMAKE_INSTALL_PREFIX}/${INSTALL_BINDIR}
@@ -95,12 +112,14 @@ if(APPLE)
 else()
     set(_rpath "\$ORIGIN/${_rel}")
 endif()
-file(TO_NATIVE_PATH "${_rpath}/${INSTALL_LIBDIR}" message_RPATH)
+file(TO_NATIVE_PATH "${_rpath}/${INSTALL_LIBDIR}" ReiserRT_Core_RPATH)
 ]]
 
 install(
     TARGETS
         ReiserRT_Core
+    EXPORT
+        ReiserRT_CoreTargets
     ARCHIVE
         DESTINATION ${INSTALL_LIBDIR}
         COMPONENT lib
@@ -110,10 +129,38 @@ install(
     LIBRARY
         DESTINATION ${INSTALL_LIBDIR}
         COMPONENT lib
-#    PUBLIC_HEADER
-#        DESTINATION ${INSTALL_INCLUDEDIR}/ReiserRT_Core
-#        COMPONENT dev
-#    PUBLIC_HEADER "${_publicHeaders}"
+    PUBLIC_HEADER
+        DESTINATION ${INSTALL_INCLUDEDIR}/ReiserRT_Core
+        COMPONENT dev
 )
 
-install( DIRECTORY ../ReiserRT_Core DESTINATION ${INSTALL_INCLUDEDIR} )
+install (
+        EXPORT
+            ReiserRT_CoreTargets
+        NAMESPACE
+            "ReiserRT_Core::"
+        DESTINATION
+            ${INSTALL_CMAKEDIR}
+        COMPONENT
+            dev
+)
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/ReiserRT_CoreConfigVersion.cmake
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY SameMajorVersion
+)
+configure_package_config_file(
+        ${PROJECT_SOURCE_DIR}/cmake/ReiserRT_CoreConfig.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/ReiserRT_CoreConfig.cmake
+        INSTALL_DESTINATION ${INSTALL_CMAKEDIR}
+)
+
+install(
+        FILES
+            ${CMAKE_CURRENT_BINARY_DIR}/ReiserRT_CoreConfig.cmake
+            ${CMAKE_CURRENT_BINARY_DIR}/ReiserRT_CoreConfigVersion.cmake
+        DESTINATION
+            ${INSTALL_CMAKEDIR}
+)

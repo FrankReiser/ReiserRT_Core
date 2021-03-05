@@ -8,6 +8,8 @@
 #ifndef OBJECTQUEUE_H_
 #define OBJECTQUEUE_H_
 
+#include "ReiserRT_CoreExport.h"
+
 #include <cstdint>
 #include <type_traits>
 #include <functional>
@@ -22,7 +24,7 @@ namespace ReiserRT
         * This class provides a base for all specialized ObjectQueue template instantiations.
         * It provides a hidden implementation and the primary interface operations required for ObjectQueue.
         */
-        class ObjectQueueBase
+        class ReiserRT_Core_EXPORT ObjectQueueBase
         {
         private:
             /**
@@ -254,7 +256,7 @@ namespace ReiserRT
         * @warning Type T must be no-throw, move constructible and no-throw destructible.
         */
         template < typename T >
-        class ObjectQueue : public ObjectQueueBase
+        class ReiserRT_Core_EXPORT ObjectQueue : public ObjectQueueBase
         {
             static_assert( std::is_move_constructible<T>::value, "Type T must be move constructible!!!" );
             static_assert( std::is_nothrow_destructible<T>::value, "Type T must be no throw destructible!!!" );

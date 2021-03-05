@@ -8,6 +8,8 @@
 #ifndef MESSAGEQUEUE_H_
 #define MESSAGEQUEUE_H_
 
+#include "ReiserRT_CoreExport.h"
+
 #include "ObjectPool.hpp"
 #include "ObjectQueue.hpp"
 
@@ -24,7 +26,7 @@ namespace ReiserRT
         * The core requirements for derived messages are specified by its interface functions
         * which are documented within.
         */
-        class MessageBase
+        class ReiserRT_Core_EXPORT MessageBase
         {
         public:
             /**
@@ -135,7 +137,7 @@ namespace ReiserRT
         * This requested size will be rounded up to next architecture size multiple for alignment purposes.
         */
         template < size_t requestedMaxMessageSize = 0 >
-        class MessageQueue
+        class ReiserRT_Core_EXPORT MessageQueue
         {
             // Validate requested size is at least the minimum required.
             static_assert( requestedMaxMessageSize >= sizeof( MessageBase ), "Template parameter requestedMaxMessageSize must >= sizeof( MessageQueue::BaseMessage )!!!" );

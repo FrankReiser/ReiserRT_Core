@@ -8,6 +8,8 @@
 #ifndef RINGBUFFERGUARDED_H_
 #define RINGBUFFERGUARDED_H_
 
+#include "ReiserRT_CoreExport.h"
+
 #include "RingBufferSimple.hpp"
 #include "Semaphore.hpp"
 
@@ -28,7 +30,7 @@ namespace ReiserRT
         * @note Must be a scalar type (e.g., char, int, float or void pointer).
         */
         template< typename T >
-        class RingBufferGuardedBase : public RingBufferSimple< T >
+        class ReiserRT_Core_EXPORT RingBufferGuardedBase : public RingBufferSimple< T >
         {
         private:
             // T must be a valid scalar type for rapid load and store operations. Non-scalar types are supportable
@@ -327,6 +329,8 @@ namespace ReiserRT
         /**
         * @brief RingBufferGuarded Class
         *
+        * @todo I really am not sure what I gain by using this intermediate other than making the interface public and defined a base type
+        *
         * This template class provides a template for simple scalar types (not pointer types). It is derived from
         * RingBufferGuardedBase of the same template argument type which own an implementation instance.
         *
@@ -334,7 +338,7 @@ namespace ReiserRT
         * @note Must be a scalar type (e.g., char, int, float).
         */
         template< typename T >
-        class RingBufferGuarded : public RingBufferGuardedBase< T >
+        class ReiserRT_Core_EXPORT RingBufferGuarded : public RingBufferGuardedBase< T >
         {
         private:
             /**
@@ -419,7 +423,7 @@ namespace ReiserRT
         * the type pointer template. It inherits directly from the RingBufferGuardedBase.
         */
         template<>
-        class RingBufferGuarded< void * > : public RingBufferGuardedBase< void * >
+        class ReiserRT_Core_EXPORT RingBufferGuarded< void * > : public RingBufferGuardedBase< void * >
         {
         private:
             /**
@@ -502,7 +506,7 @@ namespace ReiserRT
         * a RingBufferGuarded. It relies on its base class, RingBufferGuarded< void * >, for all but a cast to and fro.
         */
         template< typename T >
-        class RingBufferGuarded< T * > : public RingBufferGuarded< void * >
+        class ReiserRT_Core_EXPORT RingBufferGuarded< T * > : public RingBufferGuarded< void * >
         {
         private:
             /**

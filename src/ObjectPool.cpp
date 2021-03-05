@@ -20,7 +20,7 @@
 */
 #define OBJECT_POOL_USES_MUTEX_AND_SIMPLE_RING_BUFFER 1
 
-#include "ReiserRT_Core/RingBufferSimple.hpp"
+#include "RingBufferSimple.hpp"
 
 #include <atomic>
 #include <mutex>
