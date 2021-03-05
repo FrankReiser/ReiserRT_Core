@@ -6,7 +6,7 @@
 * @date Created on Feb 17, 2021
 */
 
-#include "ReiserRT_Core/ObjectPool.hpp"
+#include "ObjectPool.hpp"
 
 /**
 * @brief Macro OBJECT_POOL_USES_MUTEX_AND_SIMPLE_RING_BUFFER
