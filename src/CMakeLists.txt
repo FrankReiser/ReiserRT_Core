@@ -1,11 +1,11 @@
 # Public Header files
 set( _publicHeaders
-        ../ReiserRT_Core/RingBufferSimple.hpp
-        ../ReiserRT_Core/Semaphore.hpp
-        ../ReiserRT_Core/RingBufferGuarded.hpp
-        ../ReiserRT_Core/ObjectPool.hpp
-        ../ReiserRT_Core/ObjectQueue.hpp
-        ../ReiserRT_Core/MessageQueue.hpp
+        RingBufferSimple.hpp
+        Semaphore.hpp
+        RingBufferGuarded.hpp
+        ObjectPool.hpp
+        ObjectQueue.hpp
+        MessageQueue.hpp
         )
 
 # Private Header files (none until otherwise determined)
@@ -53,9 +53,9 @@ add_library( ReiserRT_Core SHARED "" )
 target_sources( ReiserRT_Core
         PRIVATE
             ${_privateSources}
-            ${_privateHeaders}
-        PUBLIC
-            ${_publicHeaders}
+#            ${_privateHeaders}
+#        PUBLIC
+#            ${_publicHeaders}
         )
 
 set_target_properties(ReiserRT_Core
@@ -65,12 +65,15 @@ set_target_properties(ReiserRT_Core
             VISIBILITY_INLINES_HIDDEN 1
             VERSION ${PROJECT_VERSION}
             SOVERSION ${PROJECT_VERSION_MAJOR}
+            DEBUG_POSTFIX "_d"
             PUBLIC_HEADER "${_publicHeaders};${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}/ReiserRT_CoreExport.h"
         )
 
 target_compile_definitions(ReiserRT_Core
         PRIVATE
-        $<$<BOOL:${_REISER_RT_HAS_PTHREADS}>:REISER_RT_HAS_PTHREADS>
+            $<$<BOOL:${_REISER_RT_HAS_PTHREADS}>:REISER_RT_HAS_PTHREADS>
+        INTERFACE
+            $<INSTALL_INTERFACE:USING_ReiserRT_Core>
         )
 
 # We do not actually link Threads::Threads at this time but, this creates a requirement that will eventually have to be satisfied.
@@ -81,8 +84,9 @@ target_link_libraries(ReiserRT_Core PUBLIC $<$<BOOL:${_REISER_RT_HAS_PTHREADS}>:
 target_include_directories( ReiserRT_Core
         PUBLIC
 #            ..
-            ../ReiserRT_Core
-            ${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}
+#            ../ReiserRT_Core
+            $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}>
+            $<INSTALL_INTERFACE:${INSTALL_INCLUDEDIR}>
         )
 
 include(GenerateExportHeader)
@@ -114,6 +118,8 @@ file(TO_NATIVE_PATH "${_rpath}/${INSTALL_LIBDIR}" ReiserRT_Core_RPATH)
 install(
     TARGETS
         ReiserRT_Core
+    EXPORT
+        ReiserRT_CoreTargets
     ARCHIVE
         DESTINATION ${INSTALL_LIBDIR}
         COMPONENT lib
@@ -126,4 +132,35 @@ install(
     PUBLIC_HEADER
         DESTINATION ${INSTALL_INCLUDEDIR}/ReiserRT_Core
         COMPONENT dev
+)
+
+install (
+        EXPORT
+            ReiserRT_CoreTargets
+        NAMESPACE
+            "ReiserRT_Core::"
+        DESTINATION
+            ${INSTALL_CMAKEDIR}
+        COMPONENT
+            dev
+)
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/ReiserRT_CoreConfigVersion.cmake
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY SameMajorVersion
+)
+configure_package_config_file(
+        ${PROJECT_SOURCE_DIR}/cmake/ReiserRT_CoreConfig.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/ReiserRT_CoreConfig.cmake
+        INSTALL_DESTINATION ${INSTALL_CMAKEDIR}
+)
+
+install(
+        FILES
+            ${CMAKE_CURRENT_BINARY_DIR}/ReiserRT_CoreConfig.cmake
+            ${CMAKE_CURRENT_BINARY_DIR}/ReiserRT_CoreConfigVersion.cmake
+        DESTINATION
+            ${INSTALL_CMAKEDIR}
 )
