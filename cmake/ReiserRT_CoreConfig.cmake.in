@@ -1,4 +1,4 @@
-# ReiserRT_Core.cmake
+# ReiserRT_CoreConfig.cmake
 # -------------------
 #
 # ReiserRT_Core cmake module.
@@ -14,7 +14,7 @@
 # targets. ::
 #   ReiserRT_Core::ReiserRT_Core - the shared library with header & defs attached.
 #
-
+#
 # Suggested usage:
 #
 #   find_package(ReiserRT_Core)
