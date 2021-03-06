@@ -22,9 +22,16 @@ namespace ReiserRT
         /**
         * @brief RingBufferGuardedBase Class
         *
-        * This template class provides a base for more specialized types.
-        * It employs a counted semaphore object which block get operations on a low or empty ring buffer and
-        * put operations on a near full or full ring buffer.
+        * This template class provides a base for more specialized types contained within this file.
+        * It is not intended to be used directly.
+        * This class employs a counted semaphore object which blocks get operations on a low or empty ring buffer.
+        * @note This class does not block on a full ring buffer condition. On full conditions, put operations will
+        * throw overflow. Preventing overflow is not feasible employing a single counted semaphore object. Employing a
+        * second one would negatively impact the performance of this class potentially even leading to deadlock.
+        * Much study would be required for the potential deadlock and it is just not worth considering since this class
+        * has met its design goals.
+        * If such a functionality is required by a user, it could easily be built on top of an instance of this base.
+        * without impacting the performance of this class.
         *
         * @tparam T The ring buffer element type.
         * @note Must be a scalar type (e.g., char, int, float or void pointer).
@@ -110,7 +117,7 @@ namespace ReiserRT
             * @brief The Abort Operation
             *
             * This operation aborts the counted semaphore which will wake all pending get threads.  Such threads
-            * will experience a Semaphore::AbortedException.
+            * will experience a runtime error exception.
             */
             inline void abort() { state = State::Terminal; semaphore.abort(); }
 
@@ -126,7 +133,7 @@ namespace ReiserRT
             * into the semaphore wait operation. This essentially allows it to loop back into our stack frame while in the context
             * of its lock to invoke the get operation and set our return value. The wait operation has no idea of what is actually
             * being accomplished. The use of the reference wrapper ensures the temporary Semaphore::FunctorType does not need to
-            * access the heap for its internals.
+            * access the heap for a copy of its internals.
             *
             * @pre The ring buffer is expected to be in the "Ready" state to invoke this operation. Violations will result in an exception
             * being thrown.
@@ -166,13 +173,14 @@ namespace ReiserRT
             * into the semaphore notify operation. This essentially allows it to loop back into our stack frame while in the context
             * of its lock to invoke the put operation and load our value. The notify operation has no idea of what is actually
             * being accomplished. The use of the reference wrapper ensures the temporary Semaphore::FunctorType does not need to
-            * access the heap for its internals.
+            * access the heap for a copy of its internals.
             *
             * @pre The ring buffer is expected to be in the "Ready" state to invoke this operation. Violations will result in an exception
             * being thrown.
             *
             * @throw Throws std::logic_error if not in the "Ready" state.
-            * @throw Throws std::overflow exception if our base class is in a "Full" state. No value is made available for subsequent retrieval.
+            * @throw Throws std::overflow exception if our base class is in a "Full" state. No value is made available
+            * for subsequent retrieval.
             *
             * @param p val A value to be put into the ring buffer implementation.
             */
@@ -188,13 +196,6 @@ namespace ReiserRT
                 }
 
                 // Setup a lambda to be invoked in the context of the semaphore's internal lock.
-                // There is no guarding of overflow here. If it throws, the RingBuffer is not being serviced adequately.
-                // It is up to the client to manage and mitigate this possibility.
-                ///@todo Document the fact that this does not "Guard" against put overflows but rather, guards against
-                ///concurrent access and pends on the bottom. Or, Alternatively, consider the implications of making
-                ///notify wait? I like this better but I do not know if I can make it happen easily.
-                ///note also that my test code accommodates the throw because I've fixed it to do so. That should be
-                ///addressed in addition to this.
                 auto putFunk = [ this, val ]() { this->Base::put( val ); };
                 semaphore.notify( std::ref( putFunk ) );
             }
@@ -329,13 +330,11 @@ namespace ReiserRT
         /**
         * @brief RingBufferGuarded Class
         *
-        * @todo I really am not sure what I gain by using this intermediate other than making the interface public and defined a base type
-        *
         * This template class provides a template for simple scalar types (not pointer types). It is derived from
         * RingBufferGuardedBase of the same template argument type which own an implementation instance.
         *
         * @tparam T The ring buffer element type (not for pointer types).
-        * @note Must be a scalar type (e.g., char, int, float).
+        * @note Must be a scalar type (e.g., char, int, float). This is enforced by RingBufferGuardedBase.
         */
         template< typename T >
         class ReiserRT_Core_EXPORT RingBufferGuarded : public RingBufferGuardedBase< T >
