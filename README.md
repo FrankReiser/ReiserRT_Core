@@ -1,10 +1,10 @@
 # ReiserRT_Core
-Frank Reiser's C++11 components for multi-threaded, real-time 
+Frank Reiser's C++11 components for multi-threaded, realtime 
 embedded systems.
 
 ## Preface
-The topic of real-time programming is a complicated. This 
-README file cannot begin to cover this in any sort of detail.
+The topic of realtime programming is a complicated. This 
+README file cannot begin to cover that in any sort of detail.
 I will just touch on a few specific items below:
 
 1. Determinism: What timeliness guarantees are required of the 
@@ -31,7 +31,7 @@ Then, there is always the "all of the above" approach.
 ## Some notes on Operating Systems
 
 ### Windows
-Windows offers real-time process priority classes. However,
+Windows offers realtime process priority classes. However,
 I would not kid myself too much here. To the best of my knowledge,
 Windows does not offer a fully preemptive kernel. I am also
 not sure about "Priority Inheritance".
@@ -48,22 +48,22 @@ various forms of this work on CentOS and RedHat variants with
 great success. These types of standard Linux distributions offer
 up POSIX pthreads and other threading primitives. C++11 threads
 are implemented on top of POSIX pthreads on these type of systems.
-Schedulers for real-time are provided in the form of SCHED_FIFO
-and SCHED_RR (round-robin). They also support mutex protocols
+Schedulers for realtime are provided in the form of SCHED_FIFO
+and SCHED_RR (round-robin). POSIX also support a mutex protocol
 to utilize "Priority Inheritance" to prevent a low priority thread
 from unduly blocking a high priority thread. However, they do not
-"out of the box" offer a fully preemptive kernel.
+typically "out of the box", offer a fully preemptive kernel.
 It should be noted that using these scheduler types on a non RTOS
-is subject to bandwidth limitations imposed by the kernel.
+may be subject to bandwidth limitations imposed by the kernel.
 When awakened by the scheduler, do you work quickly and
 go back to sleep. Heavy duty processing may need to be delegated
-to other tasks utilizing SCHED_OTHER.
+to background tasks utilizing SCHED_OTHER.
 
 ### Linux (fully preemptive kernel - RTOS)
 I believe there are kernel patches available to accomplish this.
-There are providers of such operating systems. They
+There are providers of such realtime operating systems. These
 are typically built on top of another distribution and offer
-numerous support features to do deep kernel tracing dives 
+numerous support features such as deep kernel tracing 
 should that become necessary. This code has been deployed in
 various forms on such Linux Real Time Operating Systems (RTOS)
 
@@ -73,10 +73,10 @@ are built on top of lower level components contained within, that
 can stand on their own. These will be discussed further down.
 
 ## Object Pools
-Most real-time programs should avoid usage of the standard heap
+Most realtime programs should avoid usage of the standard heap
 like the plague. The standard heap is a system wide resource
 and is a contentious place where blocking is likely occur.
-Blocking on a "new" or "delete" operation will negatively 
+Blocking on a "new" or "delete" operations will negatively 
 impact system determinism. Object pools only utilize the heap
 during initialization and destruction.
 
@@ -132,8 +132,8 @@ main classes in this library.
 
 ## Counted Semaphores
 The Semaphore class is a thread-safe "resource management" tool.
-It is constructed with an initial count indicated 
-"resources available" which may be zero.
+It is constructed with an initial count indicating the 
+"resources available" which can be zero.
 It supports two primary operations. These are wait and notify.
 The wait will block if the available count becomes zero. At that
 point, only a notify operation invoked by another thread
