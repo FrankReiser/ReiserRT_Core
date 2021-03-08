@@ -138,7 +138,8 @@ install (
         EXPORT
             ReiserRT_CoreTargets
         NAMESPACE
-            "ReiserRT_Core::"
+#            "ReiserRT_Core::"
+            "ReiserRT::"
         DESTINATION
             ${INSTALL_CMAKEDIR}
         COMPONENT
