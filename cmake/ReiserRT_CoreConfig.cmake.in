@@ -12,7 +12,7 @@
 #
 # If ReiserRT_Core is found, this module defines the following :prop_tgt:`IMPORTED`
 # targets. ::
-#   ReiserRT::ReiserRT_Core - the shared library with header & defs attached.
+#   ReiserRT_Core::ReiserRT_Core - the shared library with header & defs attached.
 #
 #
 # Suggested usage:
