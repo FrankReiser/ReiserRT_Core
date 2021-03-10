@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.17)
 
 project(
-        ReiserRT
+        ReiserRT_Core
         VERSION 1.0.1
         DESCRIPTION "Frank Reiser's Realtime Core Library")
 
