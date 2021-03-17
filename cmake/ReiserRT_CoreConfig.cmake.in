@@ -31,6 +31,9 @@
 
 @PACKAGE_INIT@
 
+include(CMakeFindDependencyMacro)
+find_dependency(Threads)
+
 include("${CMAKE_CURRENT_LIST_DIR}/ReiserRT_CoreTargets.cmake")
 check_required_components(
   "ReiserRT_Core"

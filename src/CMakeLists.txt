@@ -70,12 +70,12 @@ set_target_properties(ReiserRT_Core
             PUBLIC_HEADER "${_publicHeaders};${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}/ReiserRT_CoreExport.h"
         )
 
-#@todo What does USING_ReiserRT_Core really do for me?
 target_compile_definitions(ReiserRT_Core
         PUBLIC
             $<$<BOOL:${_REISER_RT_HAS_PTHREADS}>:REISER_RT_HAS_PTHREADS>
-        INTERFACE
-            $<INSTALL_INTERFACE:USING_ReiserRT_Core>
+# I have no use for this feature at this time, so I am not going to incorporate it.
+#        INTERFACE
+#            $<INSTALL_INTERFACE:USING_ReiserRT_Core>
         )
 
 # We do not actually link Threads::Threads at this time but, this creates a requirement that will eventually have to be satisfied.
@@ -87,16 +87,15 @@ target_link_libraries(ReiserRT_Core PUBLIC Threads::Threads)
 # Specify our target interfaces for external clients
 target_include_directories( ReiserRT_Core
         PUBLIC
-            "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR};${CMAKE_BINARY_DIR}/${INSTALL_INCLUDE_DIR}/include>"
-            "$<INSTALL_INTERFACE:${INSTALL_INCLUDEDIR}>"
+            "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR};${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}>"
+            "$<INSTALL_INTERFACE:${INSTALL_INCLUDEDIR}/ReiserRT_Core>"
         )
 
 include(GenerateExportHeader)
 generate_export_header(ReiserRT_Core
         BASE_NAME "ReiserRT_Core"
         EXPORT_MACRO_NAME "ReiserRT_Core_EXPORT"
-        EXPORT_FILE_NAME
-        "${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}/ReiserRT_Core/ReiserRT_CoreExport.h"
+        EXPORT_FILE_NAME "${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}/ReiserRT_CoreExport.h"
         DEPRECATED_MACRO_NAME "ReiserRT_Core_DEPRECATED"
         NO_EXPORT_MACRO_NAME "ReiserRT_Core_NO_EXPORT"
         STATIC_DEFINE "ReiserRT_Core_STATIC_DEFINE"
