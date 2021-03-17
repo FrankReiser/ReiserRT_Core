@@ -42,10 +42,11 @@ if(_REISER_RT_HAS_PTHREADS)
     list( APPEND _privateSources ${CMAKE_CURRENT_LIST_DIR}/PriorityInheritMutex.cpp )
 endif()
 
+#[[
 # Just an experiment
 find_package(PkgConfig QUIET)
 message( STATUS "PKG_CONFIG_FOUND: ${CMAKE_USE_PTHREADS_INIT}" )
-
+]]
 
 
 # Now the entire Library, currently SHARED by default. Could make an option though.
@@ -70,31 +71,31 @@ set_target_properties(ReiserRT_Core
         )
 
 target_compile_definitions(ReiserRT_Core
-        PRIVATE
+        PUBLIC
             $<$<BOOL:${_REISER_RT_HAS_PTHREADS}>:REISER_RT_HAS_PTHREADS>
-        INTERFACE
-            $<INSTALL_INTERFACE:USING_ReiserRT_Core>
+# I have no use for this feature at this time, so I am not going to incorporate it.
+#        INTERFACE
+#            $<INSTALL_INTERFACE:USING_ReiserRT_Core>
         )
 
 # We do not actually link Threads::Threads at this time but, this creates a requirement that will eventually have to be satisfied.
-# Anything that links to 'Us', needs Threads::Threads also. This all assuming we found pthreads.
-target_link_libraries(ReiserRT_Core PUBLIC $<$<BOOL:${_REISER_RT_HAS_PTHREADS}>:Threads::Threads>)
+# Anything that links to 'Us', needs Threads::Threads also.
+# Rationale: Our tests will need Threads to do adequate testing. Any client would most certainly be using threads also.
+# If PriorityInheritMutex compiles under REISER_RT_HAS_PTHREADS then, it is needed by any client without doubt.
+target_link_libraries(ReiserRT_Core PUBLIC Threads::Threads)
 
 # Specify our target interfaces for external clients
 target_include_directories( ReiserRT_Core
         PUBLIC
-#            ..
-#            ../ReiserRT_Core
-            $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}>
-            $<INSTALL_INTERFACE:${INSTALL_INCLUDEDIR}>
+            "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR};${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}>"
+            "$<INSTALL_INTERFACE:${INSTALL_INCLUDEDIR}/ReiserRT_Core>"
         )
 
 include(GenerateExportHeader)
 generate_export_header(ReiserRT_Core
         BASE_NAME "ReiserRT_Core"
         EXPORT_MACRO_NAME "ReiserRT_Core_EXPORT"
-        EXPORT_FILE_NAME
-        "${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}/ReiserRT_CoreExport.h"
+        EXPORT_FILE_NAME "${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}/ReiserRT_CoreExport.h"
         DEPRECATED_MACRO_NAME "ReiserRT_Core_DEPRECATED"
         NO_EXPORT_MACRO_NAME "ReiserRT_Core_NO_EXPORT"
         STATIC_DEFINE "ReiserRT_Core_STATIC_DEFINE"
@@ -130,7 +131,7 @@ install(
         DESTINATION ${INSTALL_LIBDIR}
         COMPONENT lib
     PUBLIC_HEADER
-        DESTINATION ${INSTALL_INCLUDEDIR}/ReiserRT_Core
+        DESTINATION "${INSTALL_INCLUDEDIR}/ReiserRT_Core"
         COMPONENT dev
 )
 
@@ -138,8 +139,7 @@ install (
         EXPORT
             ReiserRT_CoreTargets
         NAMESPACE
-#            "ReiserRT_Core::"
-            "ReiserRT::"
+            "ReiserRT_Core::"
         DESTINATION
             ${INSTALL_CMAKEDIR}
         COMPONENT
@@ -165,3 +165,4 @@ install(
         DESTINATION
             ${INSTALL_CMAKEDIR}
 )
+
