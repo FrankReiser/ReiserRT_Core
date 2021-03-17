@@ -8,7 +8,7 @@
 #ifndef OBJECTPOOL_H_
 #define OBJECTPOOL_H_
 
-#include "ReiserRT_Core/ReiserRT_CoreExport.h"
+#include "ReiserRT_CoreExport.h"
 
 #include <memory>
 #include <type_traits>

@@ -8,7 +8,7 @@
 #ifndef RINGBUFFERSIMPLE_H_
 #define RINGBUFFERSIMPLE_H_
 
-#include "ReiserRT_Core/ReiserRT_CoreExport.h"
+#include "ReiserRT_CoreExport.h"
 
 #include <type_traits>
 #include <cstdint>

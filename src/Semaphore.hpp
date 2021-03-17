@@ -8,7 +8,7 @@
 #ifndef SEMAPHORE_HPP_
 #define SEMAPHORE_HPP_
 
-#include "ReiserRT_Core/ReiserRT_CoreExport.h"
+#include "ReiserRT_CoreExport.h"
 
 #include <stdexcept>
 #include <functional>

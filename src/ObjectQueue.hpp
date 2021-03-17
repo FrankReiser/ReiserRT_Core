@@ -8,7 +8,7 @@
 #ifndef OBJECTQUEUE_H_
 #define OBJECTQUEUE_H_
 
-#include "ReiserRT_Core/ReiserRT_CoreExport.h"
+#include "ReiserRT_CoreExport.h"
 
 #include <cstdint>
 #include <type_traits>

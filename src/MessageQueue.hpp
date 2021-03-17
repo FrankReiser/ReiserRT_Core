@@ -8,7 +8,7 @@
 #ifndef MESSAGEQUEUE_H_
 #define MESSAGEQUEUE_H_
 
-#include "ReiserRT_Core/ReiserRT_CoreExport.h"
+#include "ReiserRT_CoreExport.h"
 
 #include "ObjectPool.hpp"
 #include "ObjectQueue.hpp"
