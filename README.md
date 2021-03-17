@@ -10,7 +10,7 @@ Note: This project requires CMake v3.17 or higher.
 
 ## Example Usage
 Example hookup and usage can be found in the various
-tests that present in the tests folder.
+tests that are present in the tests folder.
 
 ## Building and Installation
 Roughly as follows:
