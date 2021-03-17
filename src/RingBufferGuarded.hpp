@@ -8,7 +8,7 @@
 #ifndef RINGBUFFERGUARDED_H_
 #define RINGBUFFERGUARDED_H_
 
-#include "ReiserRT_CoreExport.h"
+#include "ReiserRT_Core/ReiserRT_CoreExport.h"
 
 #include "RingBufferSimple.hpp"
 #include "Semaphore.hpp"
