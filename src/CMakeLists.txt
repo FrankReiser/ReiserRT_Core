@@ -88,7 +88,7 @@ target_link_libraries(ReiserRT_Core PUBLIC Threads::Threads)
 target_include_directories( ReiserRT_Core
         PUBLIC
             "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR};${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}>"
-            "$<INSTALL_INTERFACE:${INSTALL_INCLUDEDIR}/ReiserRT_Core>"
+            "$<INSTALL_INTERFACE:${INSTALL_INCLUDEDIR}>"
         )
 
 include(GenerateExportHeader)
@@ -131,7 +131,7 @@ install(
         DESTINATION ${INSTALL_LIBDIR}
         COMPONENT lib
     PUBLIC_HEADER
-        DESTINATION "${INSTALL_INCLUDEDIR}/ReiserRT_Core"
+        DESTINATION "${INSTALL_INCLUDEDIR}"
         COMPONENT dev
 )
 
