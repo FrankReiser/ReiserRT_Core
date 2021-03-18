@@ -19,6 +19,7 @@ target_sources( testSemaphore PRIVATE
 target_include_directories( testSemaphore PUBLIC ../src )
 target_link_libraries( testSemaphore ReiserRT_Core )
 add_test( NAME runSemaphoreTest COMMAND $<TARGET_FILE:testSemaphore> )
+set_tests_properties( runSemaphoreTest PROPERTIES TIMEOUT 120 )
 
 add_executable( testRingBufferGuarded "" )
 target_sources( testRingBufferGuarded PRIVATE
@@ -28,6 +29,7 @@ target_sources( testRingBufferGuarded PRIVATE
 target_include_directories( testRingBufferGuarded PUBLIC ../src )
 target_link_libraries( testRingBufferGuarded ReiserRT_Core )
 add_test( NAME runRingBufferGuardedTest COMMAND $<TARGET_FILE:testRingBufferGuarded> )
+set_tests_properties( runRingBufferGuardedTest PROPERTIES TIMEOUT 120 )
 
 add_executable( testObjectPool "" )
 target_sources( testObjectPool PRIVATE testObjectPool.cpp )
@@ -46,4 +48,5 @@ target_sources( testMessageQueue PRIVATE testMessageQueue.cpp )
 target_include_directories( testMessageQueue PUBLIC ../src )
 target_link_libraries( testMessageQueue ReiserRT_Core )
 add_test( NAME runMessageQueueTest COMMAND $<TARGET_FILE:testMessageQueue> )
+set_tests_properties( runMessageQueueTest PROPERTIES TIMEOUT 120 )
 
