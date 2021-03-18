@@ -140,7 +140,7 @@ int main() {
             constexpr unsigned int numCores = 8;
 
             // Our Semaphore Initial Count
-            constexpr unsigned int count = 524288;
+            constexpr unsigned int count = 524288 >> 1;
             Semaphore sem{ 0 };  // Initially empty
 
             // Put and Get Task Functors, which can return state information when the runs are complete.
