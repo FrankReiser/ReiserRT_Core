@@ -10,6 +10,8 @@
 
 #include "ReiserRT_CoreExport.h"
 
+#include "ObjectPoolDeleter.hpp"
+
 #include <memory>
 #include <type_traits>
 #include <functional>
@@ -45,6 +47,14 @@ namespace ReiserRT
             * adequate. On 20200707, the internal ring buffer is maximum is limited to 1 Mega blocks.
             */
             using CounterType = uint32_t;
+
+            /**
+            * @brief Friend Class Declaration.
+            *
+            * ObjectPoolDeleterBase requires access to our returnRawBlock operation and we wish no other access
+            * other than that of derived types of ObjectPool (template instantiations).
+            */
+            friend class ObjectPoolDeleterBase;
 
         public:
             /**
@@ -153,6 +163,18 @@ namespace ReiserRT
             void returnRawBlock( void * pRaw ) noexcept;
 
             /**
+            * @brief Create a Concrete ObjectPoolDeleter Object
+            *
+            * This operation creates an ObjectPoolDeleter locally and moves it off the stack for return.
+            * No heap usage is required.
+            *
+            * @tparam The type of object to which a ObjectPoolDeleter instance is required.
+            * @return An instance of a concrete ObjectPoolDeleter object moved off the stack.
+            */
+            template < typename T >
+            ObjectPoolDeleter< T > createDeleter() { return std::move(ObjectPoolDeleter< T >{this } ); }
+
+            /**
             * @brief Get the ObjectPoolBase size
             *
             * This operation retrieves the fixed size of the ObjectPoolBase determined at the time of construction.
@@ -186,10 +208,10 @@ namespace ReiserRT
         *
         * This template class provides a compile-time, high performance, generic object factory from a preallocated
         * memory pool. The implementation relies heavily on C++11 meta-programming capabilities to accomplish its goal
-        * of compile-time polymorphism over dynamic dispatch. The RingBufferSimple class of the same namespace
+        * of compile-time polymorphism. The RingBufferSimple class of the same namespace
         * is utilized extensively. Types created and delivered from this implementation are encapsulated
         * inside of a C++11 unique_ptr with a custom "Deleter" which automatically returns memory to this pool when the
-        * unique_ptr is destroyed.
+        * unique_ptr is destroyed. Please @see ObjectPoolDeleter for details.
         *
         * @note Blocks of contiguous objects are not supported, only a single object per create request.
         *
@@ -232,98 +254,22 @@ namespace ReiserRT
             constexpr static size_t paddedTypeAllocSize = ( alignmentOverspill != 0 ) ?
                     minTypeAllocSize + sizeof( void * ) - alignmentOverspill : minTypeAllocSize;
 
-        private:
-
-            /**
-            * @brief Deleter Functor
-            *
-            * This class provides a functor interface to be invoked when an object created by ObjectPool encapsulated
-            * within a unique_ptr, is to be destroyed and subsequently returned to the memory pool.
-            */
-            class Deleter
-            {
-            private:
-                /**
-                * @brief Friend Declaration
-                *
-                * Our specialized parent ObjectPool is a friend and only it can invoke our "Qualified Constructor"
-                * which specifies an instance of the specialization.
-                */
-                friend class ObjectPool;
-
-                /**
-                * @brief Qualified Constructor for Deleter
-                *
-                * Constructs a Deleter object with a pointer reference to the pool instance which created it.
-                *
-                * @param thePool A pointer to the object pool instance which invoke the operation.
-                */
-                explicit Deleter( ObjectPool * thePool ) noexcept : pool{ thePool } {}
-
-            public:
-                /**
-                * @brief Default Constructor for Deleter
-                *
-                * Default construction required for an uninitialized instance of ObjectPtrType.
-                */
-                Deleter() noexcept = default;
-
-                /**
-                * @brief Default Destructor for Deleter
-                *
-                * We have no special needs. Therefore we request the default operation which does nothing.
-                */
-//                ~Deleter() noexcept = default;
-                ~Deleter() = default;
-
-                /**
-                * @brief Copy Constructor for Deleter
-                *
-                * This is our copy constructor operation. An implementation must exist to copy Deleter objects
-                * as this is what is a minimum requirement for unique_ptr ownership transfer and shared_ptr copying.
-                *
-                * @param another A reference to an object instance being copied.
-                */
-                Deleter( const Deleter & another ) noexcept : pool{ another.pool } {}
-
-                /**
-                * @brief Assignment Operator for Deleter
-                *
-                * This operation compliments our copy construtor. One shouldn't exist without the other.
-                *
-                * @param another A reference to an object instance being assigned from.
-                */
-                Deleter & operator=( const Deleter & another ) noexcept { pool = another.pool; return *this; }
-
-                /**
-                * @brief Functor Interface for Deleter
-                *
-                * This operation provides the interface necessary for instances of unique_ptr or shared_ptr to
-                * destroy the object and return the memory to the pool.
-                *
-                * @param pT A pointer to the object to be destroyed and returned to the pool.
-                * @warning Do not call with a nullptr. Type unique_ptr does not do so when it is destroyed.
-                */
-//                void operator()( T * pT ) noexcept { pT->~T(); if ( pool ) pool->returnBlock( pT ); }
-                void operator()( T * pT ) { pT->~T(); if ( pool ) pool->returnBlock( pT ); }
-
-            private:
-                /**
-                * @brief A Reference to Our Object Memory Pool
-                *
-                * This attribute records the ObjectPool instance that instantiated a Deleter.
-                */
-                ObjectPool * pool{ nullptr };
-            };
-
         public:
+            /**
+            * @brief The ObjectPoolDeleter Type
+            *
+            * This type definition describes the ObjectPoolDeleter specialization that we utilize to construct
+            * a unique_ptr specialization for return a createObj invocation.
+            */
+            using ObjectPoolDeleterType = ObjectPoolDeleter< T >;
+
             /**
             * @brief The Return Value Type
             *
             * This type definition describes the unique_ptr specialization that we return on a createObj invocation.
             * Of significance is that we associate a custom Deleter with the typed unique_ptr that we return.
             */
-            using ObjectPtrType = std::unique_ptr< T, Deleter >;
+            using ObjectPtrType = std::unique_ptr< T, ObjectPoolDeleterType >;
 
             /**
             * @brief Default Constructor for ObjectPool
@@ -446,6 +392,8 @@ namespace ReiserRT
                     // Throw more informative underflow_error exception.
                     ///@todo This is Windows specific! I need what I did for GCC here and platform specific.
                     ///Also, figure out what is common between the two and maybe put this in a cpp file to invoke.
+                    ///GNU C requires the inclusion of cxxabi.h for this to work. Can I make this platform specific
+                    ///within an implementation file.
 #if 0
                     int status;
                     char * pTypeName = abi::__cxa_demangle( typeid( T ).name(), 0, 0, &status );
@@ -488,8 +436,8 @@ namespace ReiserRT
                 T * pCooked = new ( pRaw )D{ std::forward<Args>(args)... };
                 managedRawPtr.release();
 
-                // Wrap cooked and deliver.
-                return ObjectPtrType{ pCooked, Deleter{ this } };
+                // Wrap for delivery.
+                return ObjectPtrType{ pCooked, std::move(createDeleter<T>() ) };
             }
 
             /**
@@ -505,20 +453,6 @@ namespace ReiserRT
             * This declaration brings the base class functionality into the public scope.
             */
             using ObjectPoolBase::getRunningStateStatistics;
-
-        protected:
-            /**
-            * @brief Return Memory to the Pool
-            *
-            * This protected operation is used solely by our Deleter object to return memory to the ObjectPool after
-            * an object's destruction. The pointer to this memory is put back into our RingBuffer for subsequent reuse.
-            *
-            * @param p A pointer to raw memory, that originally came from the ObjectPool.
-            */
-            void returnBlock( void * p ) noexcept
-            {
-                returnRawBlock( p );
-            }
         };
     }
 }

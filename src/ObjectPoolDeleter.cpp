@@ -1,4 +1,18 @@
-//
-// Created by frank on 3/23/21.
-//
+/**
+* @file ObjectPoolDeleter.cpp
+* @brief The Implementation for a Generic ObjectPoolDeleter Class.
+* @authors Frank Reiser
+* @date Created on Mar 23, 2021
+*/
 
+#include "ObjectPoolDeleter.hpp"
+#include "ObjectPool.hpp"
+
+using namespace ReiserRT;
+using namespace ReiserRT::Core;
+
+void ReiserRT::Core::ObjectPoolDeleterBase::returnRawBlock(void * pV ) noexcept
+{
+    // Return the memory to the pool
+    pool->returnRawBlock( pV );
+}
