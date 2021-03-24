@@ -1,208 +1,24 @@
 /**
 * @file ObjectPool.hpp
-* @brief The Specification for a Generic Object Pool.
+* @brief The Specification for a Specialized Object Pool Classes.
 * @authors Frank Reiser
-* @date Created on Apr 9, 2015
+* @date Created on Mar 24, 2021
+*
+* @note Factored out from what is now ObjectPoolBase.hpp (Was ObjectPool.hpp). See history on that file for
+* prior changes to template class ObjectPool now contained within.
 */
-
-#ifndef OBJECTPOOL_H_
-#define OBJECTPOOL_H_
 
 #include "ReiserRT_CoreExport.h"
 
-#include "ObjectPoolDeleter.hpp"
+#include "ObjectPoolBase.hpp"
 
-#include <memory>
-#include <type_traits>
-#include <functional>
-#include <string>
-#include <stdexcept>
+#ifndef OBJECTPOOL_HPP
+#define OBJECTPOOL_HPP
 
 namespace ReiserRT
 {
     namespace Core
     {
-        /**
-        * @brief The ObjectPoolBase Class
-        *
-        * This class provides a base for all specialized ObjectPool template instantiations.
-        * It provides a hidden implementation and the primary interface operations required for ObjectQueue.
-        */
-        class ReiserRT_Core_EXPORT ObjectPoolBase
-        {
-        private:
-            /**
-            * @brief Forward Declaration of Imple
-            *
-            * This is our forward declaration of our Hidden Implementation.
-            */
-            class Imple;
-
-            /**
-            * @brief Performance Tracking Feature Counter Type
-            *
-            * The ObjectPoolBase can keep track of certain performance characteristics. These would primarily be a
-            * "Low Watermark" and the current "Running Count". Since this is a pool, the "Running Count" starts
-            * out full (high) and so would the "Low Watermark". We use a 32 bit value for these, which should be
-            * adequate. On 20200707, the internal ring buffer is maximum is limited to 1 Mega blocks.
-            */
-            using CounterType = uint32_t;
-
-            /**
-            * @brief Friend Class Declaration.
-            *
-            * ObjectPoolDeleterBase requires access to our returnRawBlock operation and we wish no other access
-            * other than that of derived types of ObjectPool (template instantiations).
-            */
-            friend class ObjectPoolDeleterBase;
-
-        public:
-            /**
-            * @brief A Return Type for Inquiring Clients
-            *
-            * This structure provides the essential information for clients inquiring on performance
-            * measurements. It represents a snapshot of the current state of affairs at invocation.
-            * The "Low Watermark" is significantly more stable than the "Running Count" which may be erratic,
-            * dependent on the client.
-            */
-            struct RunningStateStats
-            {
-                /**
-                * @brief Default Constructor for RunningStateStats
-                *
-                * This operation uses the compiler generated default, which in our case is to default the data
-                * members to zero.
-                */
-                RunningStateStats() noexcept = default;
-
-                size_t size{ 0 };               //!< The Size of the Pool Requested Rounded Up to Next power of Two.
-                CounterType runningCount{ 0 };  //!< The Current Running Count Captured Atomically (snapshot)
-                CounterType lowWatermark{ 0 };  //!< The Current Low Watermark Captured Atomically (snapshot)
-            };
-
-        protected:
-            /**
-            * @brief Default Constructor for ObjectPoolBase
-            *
-            * Default construction of ObjectPoolBase is disallowed. Hence, this operation has been deleted.
-            */
-            ObjectPoolBase() = delete;
-
-            /**
-            * @brief Qualified Constructor for ObjectPool
-            *
-            * This qualified constructor builds an ObjectPool using the requestedNumElements and element size argument
-            * values. It delegates to the hidden implementation to fill the construction requirements.
-            *
-            * @param requestedNumElements The requested ObjectPool size. This will be rounded up to the next whole
-            * power of two and clamped within RingBuffer design limits.
-            * @param elementSize The maximum size of each allocation block.
-            */
-            explicit ObjectPoolBase( size_t requestedNumElements, size_t elementSize );
-
-            /**
-            * @brief Copy Constructor for ObjectPoolBase
-            *
-            * Copying ObjectPoolBase is disallowed. Hence, this operation has been deleted.
-            *
-            * @param another Another instance of a ObjectPoolBase.
-            */
-            ObjectPoolBase( const ObjectPoolBase & another ) = delete;
-
-            /**
-            * @brief Copy Assignment Operation for ObjectPoolBase
-            *
-            * Copying ObjectPoolBase is disallowed. Hence, this operation has been deleted.
-            *
-            * @param another Another instance of a ObjectPoolBase of the same template type.
-            */
-            ObjectPoolBase & operator =( const ObjectPoolBase & another ) = delete;
-
-            /**
-            * @brief Move Constructor for ObjectPoolBase
-            *
-            * Moving ObjectPoolBase is disallowed. Hence, this operation has been deleted.
-            *
-            * @param another An rvalue reference to another instance of a ObjectPoolBase of the same template type.
-            */
-            ObjectPoolBase( ObjectPoolBase && another ) = delete;
-
-            /**
-            * @brief Move Assignment Operation for ObjectPoolBase
-            *
-            * Moving ObjectPoolBase is disallowed. Hence, this operation has been deleted.
-            *
-            * @param another An rvalue reference to another instance of a ObjectPoolBase of the same template type.
-            */
-            ObjectPoolBase & operator =( ObjectPoolBase && another ) = delete;
-
-            /**
-            * @brief Destructor for ObjectPoolBase
-            *
-            * The destructor destroys the hidden implementation object.
-            */
-            ~ObjectPoolBase();
-
-            /**
-            * @brief The Get Raw Block Operation
-            *
-            * This operation requests a block of memory from the pool.
-            *
-            * @throw Throws std::underflow error if the memory pool has been exhausted.
-            * @returns A pointer to the raw memory block.
-            */
-            void * getRawBlock();
-
-            /**
-            * @brief The Return Raw Block Operation
-            *
-            * This operation returns a block of memory to the pool for subsequent reuse.
-            *
-            * @param pRaw A pointer to the raw block of memory to return to the pool.
-            */
-            void returnRawBlock( void * pRaw ) noexcept;
-
-            /**
-            * @brief Create a Concrete ObjectPoolDeleter Object
-            *
-            * This operation creates an ObjectPoolDeleter locally and moves it off the stack for return.
-            * No heap usage is required.
-            *
-            * @tparam The type of object to which a ObjectPoolDeleter instance is required.
-            * @return An instance of a concrete ObjectPoolDeleter object moved off the stack.
-            */
-            template < typename T >
-            ObjectPoolDeleter< T > createDeleter() { return std::move(ObjectPoolDeleter< T >{this } ); }
-
-            /**
-            * @brief Get the ObjectPoolBase size
-            *
-            * This operation retrieves the fixed size of the ObjectPoolBase determined at the time of construction.
-            * It delegates to the hidden implementation for the information.
-            *
-            * @return Returns the ObjectPoolBase::Imple fixed size determined at the time of construction.
-            */
-            size_t getSize() noexcept;
-
-            /**
-            * @brief Get the Running State Statistics
-            *
-            * This operation provides for performance monitoring of the ObjectPoolBase. The data returned
-            * is an atomically captured snapshot of the RunningStateStats. The "low watermark",
-            * compared to the size can provide an indication of the exhaustion level.
-            *
-            * @return Returns a snapshot of internal RunningStateStats.
-            */
-            RunningStateStats getRunningStateStatistics() noexcept;
-
-            /**
-            * @brief The Hidden Implementation Instance
-            *
-            * This attribute stores an instance of our hidden implementation.
-            */
-            Imple * pImple;
-        };
-
         /**
         * @brief A Generic Object Pool Implementation with ObjectFactory Functionality
         *
@@ -233,7 +49,7 @@ namespace ReiserRT
         {
             // You cannot specify a minTypeAllocSize less than the size of type T.
             static_assert( minTypeAllocSize >= sizeof( T ),
-                    "Template parameter minTypeAllocSize must be >= sizeof( T )!!!" );
+                           "Template parameter minTypeAllocSize must be >= sizeof( T )!!!" );
 
         public:
             /**
@@ -252,7 +68,7 @@ namespace ReiserRT
             * This ensures that all objects created, ultimately from the arena, are architecture aligned.
             */
             constexpr static size_t paddedTypeAllocSize = ( alignmentOverspill != 0 ) ?
-                    minTypeAllocSize + sizeof( void * ) - alignmentOverspill : minTypeAllocSize;
+                                                          minTypeAllocSize + sizeof( void * ) - alignmentOverspill : minTypeAllocSize;
 
         public:
             /**
@@ -288,7 +104,7 @@ namespace ReiserRT
             * power of two and clamped within RingBuffer design limits.
             */
             explicit ObjectPool( size_t requestedNumElements )
-              : ObjectPoolBase( requestedNumElements, paddedTypeAllocSize )
+            : ObjectPoolBase( requestedNumElements, paddedTypeAllocSize )
             {
             }
 
@@ -333,11 +149,11 @@ namespace ReiserRT
             *
             * This destructor does little but delegate to the base class for the required clean-up.
             *
-            * @note Destroying an ObjectPool while pointers to Objects are allocated and essentially 
+            * @note Destroying an ObjectPool while pointers to Objects are allocated and essentially
              "loaned", would be a terrible thing to do. It will almost certainly lead to an exception
               being thrown.
             */
-            ~ObjectPool() {}
+            ~ObjectPool() = default;
 
             /**
             * @brief The createObj Variadic Template Operation
@@ -368,15 +184,15 @@ namespace ReiserRT
             {
                 // Type D must be derived from type T or the same as type T.
                 static_assert( std::is_base_of< T, D >::value,
-                        "Type D must be same the same type as T or derived from type T!!!" );
+                               "Type D must be same the same type as T or derived from type T!!!" );
 
                 // Type D must be the same type as type T or type T must specify virtual destruction.
                 static_assert( std::is_same< D, T >::value || std::has_virtual_destructor< T >::value,
-                         "Type D must be the same type as type T or type T must have a virtual destructor!!!" );
+                               "Type D must be the same type as type T or type T must have a virtual destructor!!!" );
 
                 // Type D must be the same type as type T or have a size less than that of the paddedTypeAllocSize.
                 static_assert( std::is_same< D, T >::value || sizeof( D ) <= paddedTypeAllocSize,
-                         "Type D must be the same type as type T or sizeof(D) must be <= padded allocation size!!!" );
+                               "Type D must be the same type as type T or sizeof(D) must be <= padded allocation size!!!" );
 
                 // Type D must be nothrow_destructible.
                 static_assert( std::is_nothrow_destructible< D >::value, "Type D must be nothrow destructible!!!" );
@@ -396,19 +212,19 @@ namespace ReiserRT
                     ///within an implementation file.
 #if 0
                     int status;
-                    char * pTypeName = abi::__cxa_demangle( typeid( T ).name(), 0, 0, &status );
-                    char * pDerivedName = abi::__cxa_demangle( typeid( D ).name(), 0, 0, &status );
-                    std::string typeName{ pTypeName };
-                    std::string derivedName{ pDerivedName };
-                    free( pTypeName );
-                    free( pDerivedName );
-                    std::string exceptionText{ "ObjectPool< " };
-                    exceptionText += typeName;
-                    exceptionText += ", ";
-                    exceptionText += std::to_string( minTypeAllocSize );
-                    exceptionText += " >::createObj< ";
-                    exceptionText += derivedName;
-                    exceptionText += " >( Args&&... args ) - Pool Exhausted!";
+                            char * pTypeName = abi::__cxa_demangle( typeid( T ).name(), 0, 0, &status );
+                            char * pDerivedName = abi::__cxa_demangle( typeid( D ).name(), 0, 0, &status );
+                            std::string typeName{ pTypeName };
+                            std::string derivedName{ pDerivedName };
+                            free( pTypeName );
+                            free( pDerivedName );
+                            std::string exceptionText{ "ObjectPool< " };
+                            exceptionText += typeName;
+                            exceptionText += ", ";
+                            exceptionText += std::to_string( minTypeAllocSize );
+                            exceptionText += " >::createObj< ";
+                            exceptionText += derivedName;
+                            exceptionText += " >( Args&&... args ) - Pool Exhausted!";
 #else
                     const char * pTypeName = typeid( T ).name();
                     const char * pDerivedName = typeid( D ).name();
@@ -457,4 +273,4 @@ namespace ReiserRT
     }
 }
 
-#endif /* OBJECTPOOL_H_ */
+#endif //OBJECTPOOL_HPP
