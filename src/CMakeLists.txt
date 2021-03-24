@@ -4,6 +4,7 @@ set( _publicHeaders
         Semaphore.hpp
         RingBufferGuarded.hpp
         ObjectPool.hpp
+        ObjectPoolDeleter.hpp
         ObjectQueue.hpp
         MessageQueue.hpp
         )
@@ -19,6 +20,7 @@ set( _privateSources
         Semaphore.cpp
         RingBufferGuarded.cpp
         ObjectPool.cpp
+        ObjectPoolDeleter.cpp
         ObjectQueue.cpp
         MessageQueue.cpp
         )

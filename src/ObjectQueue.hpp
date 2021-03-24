@@ -30,7 +30,7 @@ namespace ReiserRT
             /**
             * @brief Forward Declaration of Imple
             *
-            * We foward declare our Hidden Implementation.
+            * We forward declare our Hidden Implementation.
             */
             class Imple;
 
@@ -55,7 +55,7 @@ namespace ReiserRT
             struct RunningStateStats
             {
                 /**
-                * @brief Default Contructor for RunningStateStats
+                * @brief Default Constructor for RunningStateStats
                 *
                 * This operation uses the compiler generated default, which in our case is to default the data members to zero.
                 */
