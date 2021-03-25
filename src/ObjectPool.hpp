@@ -199,11 +199,14 @@ namespace ReiserRT
 
                 // Get raw buffer from ring. This could throw underflow if pool is exhausted.
                 void * pRaw;
+///@todo I have to rethink this whole thing. Played around with throw_with_nested but that was for the Windows specific.
+///I am not going to try and accomplish this right now. It is somewhat borked and may not last the test of time.
+#if 0
                 try
                 {
                     pRaw =  getRawBlock();
                 }
-                catch ( const std::underflow_error & )
+                catch ( const std::underflow_error & e )
                 {
                     // Throw more informative underflow_error exception.
                     ///@todo This is Windows specific! I need what I did for GCC here and platform specific.
@@ -212,19 +215,19 @@ namespace ReiserRT
                     ///within an implementation file.
 #if 0
                     int status;
-                            char * pTypeName = abi::__cxa_demangle( typeid( T ).name(), 0, 0, &status );
-                            char * pDerivedName = abi::__cxa_demangle( typeid( D ).name(), 0, 0, &status );
-                            std::string typeName{ pTypeName };
-                            std::string derivedName{ pDerivedName };
-                            free( pTypeName );
-                            free( pDerivedName );
-                            std::string exceptionText{ "ObjectPool< " };
-                            exceptionText += typeName;
-                            exceptionText += ", ";
-                            exceptionText += std::to_string( minTypeAllocSize );
-                            exceptionText += " >::createObj< ";
-                            exceptionText += derivedName;
-                            exceptionText += " >( Args&&... args ) - Pool Exhausted!";
+                    char * pTypeName = abi::__cxa_demangle( typeid( T ).name(), 0, 0, &status );
+                    char * pDerivedName = abi::__cxa_demangle( typeid( D ).name(), 0, 0, &status );
+                    std::string typeName{ pTypeName };
+                    std::string derivedName{ pDerivedName };
+                    free( pTypeName );
+                    free( pDerivedName );
+                    std::string exceptionText{ "ObjectPool< " };
+                    exceptionText += typeName;
+                    exceptionText += ", ";
+                    exceptionText += std::to_string( minTypeAllocSize );
+                    exceptionText += " >::createObj< ";
+                    exceptionText += derivedName;
+                    exceptionText += " >( Args&&... args ) - Pool Exhausted!";
 #else
                     const char * pTypeName = typeid( T ).name();
                     const char * pDerivedName = typeid( D ).name();
@@ -236,9 +239,11 @@ namespace ReiserRT
                     exceptionText += pDerivedName;
                     exceptionText += " >( Args&&... args ) - Pool Exhausted!";
 #endif
-
-                    throw std::underflow_error( exceptionText );
+                    std::throw_with_nested( std::underflow_error( exceptionText ) );
                 }
+#else
+                pRaw =  getRawBlock();
+#endif
 
                 // A deleter and managed cooked pointer type.
                 using DeleterType = std::function< void( void * ) noexcept >;
