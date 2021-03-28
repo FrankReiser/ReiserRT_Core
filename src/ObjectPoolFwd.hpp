@@ -14,15 +14,21 @@ namespace ReiserRT
 {
     namespace Core
     {
-        // Forward
+        /**
+        * @brief Forward Declaration of ObjectPool Template
+        */
         template< typename T >
         class ObjectPool;
 
-        // Forward
+        /**
+        * @brief Forward Declaration of ObjectPoolDeleter Template
+        */
         template< typename T >
         class ObjectPoolDeleter;
 
-        // Alias for What ObjectPool createObj returns.
+        /**
+        * @brief Alias Type for What ObjectPool::createObj Returns.
+        */
         template < typename T >
         using ObjectPoolPtrType = std::unique_ptr< T, ObjectPoolDeleter< T > >;
     }

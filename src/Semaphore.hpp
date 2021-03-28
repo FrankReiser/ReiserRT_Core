@@ -5,8 +5,8 @@
 * @date Created on May 29, 2015
 */
 
-#ifndef SEMAPHORE_HPP_
-#define SEMAPHORE_HPP_
+#ifndef REISERRT_CORE_SEMAPHORE_HPP
+#define REISERRT_CORE_SEMAPHORE_HPP
 
 #include "ReiserRT_CoreExport.h"
 
@@ -200,4 +200,4 @@ namespace ReiserRT
 }
 
 
-#endif /* SEMAPHORE_HPP_ */
+#endif /* REISERRT_CORE_SEMAPHORE_HPP */

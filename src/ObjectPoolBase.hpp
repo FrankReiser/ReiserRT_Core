@@ -5,8 +5,8 @@
 * @date Created on Apr 9, 2015
 */
 
-#ifndef OBJECTPOOLBASE_H_
-#define OBJECTPOOLBASE_H_
+#ifndef REISERRT_CORE_OBJECTPOOLBASE_HPP
+#define REISERRT_CORE_OBJECTPOOLBASE_HPP
 
 #include "ReiserRT_CoreExport.h"
 
@@ -172,7 +172,7 @@ namespace ReiserRT
             * @return An instance of a concrete ObjectPoolDeleter object moved off the stack.
             */
             template < typename T >
-            ObjectPoolDeleter< T > createDeleter() { return std::move(ObjectPoolDeleter< T >{this } ); }
+            ObjectPoolDeleter< T > createDeleter() { return std::move(ObjectPoolDeleter< T >{this} ); }
 
             /**
             * @brief Get the ObjectPoolBase Size
@@ -216,4 +216,4 @@ namespace ReiserRT
     }
 }
 
-#endif /* OBJECTPOOLBASE_H_ */
+#endif /* REISERRT_CORE_OBJECTPOOLBASE_HPP */

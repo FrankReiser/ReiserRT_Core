@@ -5,8 +5,8 @@
 * @date Created on Apr 10, 2017
 */
 
-#ifndef RINGBUFFERGUARDED_H_
-#define RINGBUFFERGUARDED_H_
+#ifndef REISERRT_CORE_RINGBUFFERGUARDED_HPP
+#define REISERRT_CORE_RINGBUFFERGUARDED_HPP
 
 #include "RingBufferSimple.hpp"
 #include "Semaphore.hpp"
@@ -585,5 +585,5 @@ namespace ReiserRT
     }
 }
 
-#endif /* RINGBUFFERGUARDED_H_ */
+#endif /* REISERRT_CORE_RINGBUFFERGUARDED_HPP */
 

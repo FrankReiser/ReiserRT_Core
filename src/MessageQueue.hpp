@@ -5,8 +5,8 @@
 * @date Created on May 23, 2017
 */
 
-#ifndef MESSAGEQUEUE_H_
-#define MESSAGEQUEUE_H_
+#ifndef REISERRT_CORE_MESSAGEQUEUE_HPP
+#define REISERRT_CORE_MESSAGEQUEUE_HPP
 
 #include "ReiserRT_CoreExport.h"
 
@@ -445,6 +445,4 @@ public:
     }
 }
 
-
-
-#endif /* MESSAGEQUEUE_H_ */
+#endif /* REISERRT_CORE_MESSAGEQUEUE_HPP */

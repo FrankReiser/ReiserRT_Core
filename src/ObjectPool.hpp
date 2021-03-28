@@ -9,9 +9,10 @@
 */
 
 #include "ObjectPoolBase.hpp"
+#include "ObjectPoolFwd.hpp"
 
-#ifndef OBJECTPOOL_HPP
-#define OBJECTPOOL_HPP
+#ifndef REISERRT_CORE_OBJECTPOOL_HPP
+#define REISERRT_CORE_OBJECTPOOL_HPP
 
 namespace ReiserRT
 {
@@ -42,53 +43,17 @@ namespace ReiserRT
         * @warning The value must not be less than the size of template parameter T. This will be detected and reported
         * at compile-time as an error.
         */
-#if 0
-        template < typename T, size_t minTypeAllocSize = sizeof( T ) >
-#else
         template < typename T >
-#endif
         class ObjectPool : public ObjectPoolBase
         {
-#if 0
-            // You cannot specify a minTypeAllocSize less than the size of type T.
-            static_assert( minTypeAllocSize >= sizeof( T ),
-                           "Template parameter minTypeAllocSize must be >= sizeof( T )!!!" );
         public:
-            /**
-            * @brief Allocation Size Alignment Overspill
-            *
-            * This compile-time constant is essentially the remainder of the template parameter value minTypeAllocSize
-            * divided by the size of the architecture. It is use to determine a padding to bring this size to the next
-            * multiple of architecture size.
-            */
-            constexpr static size_t alignmentOverspill = minTypeAllocSize % sizeof( void * );
-
-            /**
-            * @brief The Padded Allocation Size
-            *
-            * This compile-time constant value is what we will allocate to each object created from the pool.
-            * This ensures that all objects created, ultimately from the arena, are architecture aligned.
-            */
-            constexpr static size_t paddedTypeAllocSize = ( alignmentOverspill != 0 ) ?
-                                                          minTypeAllocSize + sizeof( void * ) - alignmentOverspill : minTypeAllocSize;
-#endif
-
-        public:
-            /**
-            * @brief The ObjectPoolDeleter Type
-            *
-            * This type definition describes the ObjectPoolDeleter specialization that we utilize to construct
-            * a unique_ptr specialization for return a createObj invocation.
-            */
-            using ObjectPoolDeleterType = ObjectPoolDeleter< T >;
-
             /**
             * @brief The Return Value Type
             *
             * This type definition describes the unique_ptr specialization that we return on a createObj invocation.
-            * Of significance is that we associate a custom Deleter with the typed unique_ptr that we return.
+            * The details can be found within "ObjectPoolFwd.hpp".
             */
-            using ObjectPtrType = std::unique_ptr< T, ObjectPoolDeleterType >;
+            using ObjectPtrType = ObjectPoolPtrType< T >;
 
             /**
             * @brief Default Constructor for ObjectPool
@@ -109,13 +74,8 @@ namespace ReiserRT
             * This defaults to the size of type T but may be larger to accommodate the creation of derived types.
             * This value is clamped to be no less than the size of type T.
             */
-#if 0
-            explicit ObjectPool( size_t requestedNumElements )
-            : ObjectPoolBase( requestedNumElements, paddedTypeAllocSize )
-#else
             explicit ObjectPool( size_t requestedNumElements, size_t minTypeAllocSize = sizeof( T ) )
                 : ObjectPoolBase{ requestedNumElements, std::max( minTypeAllocSize, sizeof( T ) ) }
-#endif
             {
             }
 
@@ -203,12 +163,6 @@ namespace ReiserRT
                 // Type D must be the same type as type T or type T must specify virtual destruction.
                 static_assert( std::is_same< D, T >::value || std::has_virtual_destructor< T >::value,
                                "Type D must be the same type as type T or type T must have a virtual destructor!!!" );
-
-#if 0
-                // Type D must be the same type as type T or have a size less than that of the paddedTypeAllocSize.
-                static_assert( std::is_same< D, T >::value || sizeof( D ) <= paddedTypeAllocSize,
-                               "Type D must be the same type as type T or sizeof(D) must be <= padded allocation size!!!" );
-#endif
 
                 // Type D must be nothrow_destructible.
                 static_assert( std::is_nothrow_destructible< D >::value, "Type D must be nothrow destructible!!!" );
@@ -300,4 +254,4 @@ namespace ReiserRT
     }
 }
 
-#endif //OBJECTPOOL_HPP
+#endif //REISERRT_CORE_OBJECTPOOL_HPP
