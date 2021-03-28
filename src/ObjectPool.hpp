@@ -44,13 +44,19 @@ namespace ReiserRT
         * @warning The value must not be less than the size of template parameter T. This will be detected and reported
         * at compile-time as an error.
         */
+        ///@todo What about a size of zero. Could happen with an empty class.
+        ///@todo I think it is a mistake to "export" a template. There is no "library code" with a template!!!
+#if 0
         template < typename T, size_t minTypeAllocSize = sizeof( T ) >
+#else
+        template < typename T >
+#endif
         class ReiserRT_Core_EXPORT ObjectPool : public ObjectPoolBase
         {
+#if 0
             // You cannot specify a minTypeAllocSize less than the size of type T.
             static_assert( minTypeAllocSize >= sizeof( T ),
                            "Template parameter minTypeAllocSize must be >= sizeof( T )!!!" );
-
         public:
             /**
             * @brief Allocation Size Alignment Overspill
@@ -69,6 +75,15 @@ namespace ReiserRT
             */
             constexpr static size_t paddedTypeAllocSize = ( alignmentOverspill != 0 ) ?
                                                           minTypeAllocSize + sizeof( void * ) - alignmentOverspill : minTypeAllocSize;
+#else
+        private:
+            static inline size_t getPaddedTypeAllocSize( size_t minTypeAllocSize )
+            {
+                size_t alignmentOverspill = minTypeAllocSize % sizeof( void * );
+                return  ( alignmentOverspill != 0 ) ? minTypeAllocSize + sizeof( void * ) - alignmentOverspill :
+                    minTypeAllocSize;
+            }
+#endif
 
         public:
             /**
@@ -103,8 +118,14 @@ namespace ReiserRT
             * @param requestedNumElements The requested ObjectPool size. This will be rounded up to the next whole
             * power of two and clamped within RingBuffer design limits.
             */
+#if 0
             explicit ObjectPool( size_t requestedNumElements )
             : ObjectPoolBase( requestedNumElements, paddedTypeAllocSize )
+#else
+            ///@todo Factor the getPaddedTypeAllocSize stuff into the base class.
+            explicit ObjectPool( size_t requestedNumElements, size_t minTypeAllocSize = sizeof( T ) )
+                : ObjectPoolBase( requestedNumElements, getPaddedTypeAllocSize( minTypeAllocSize ) )
+#endif
             {
             }
 
@@ -190,9 +211,11 @@ namespace ReiserRT
                 static_assert( std::is_same< D, T >::value || std::has_virtual_destructor< T >::value,
                                "Type D must be the same type as type T or type T must have a virtual destructor!!!" );
 
+#if 0
                 // Type D must be the same type as type T or have a size less than that of the paddedTypeAllocSize.
                 static_assert( std::is_same< D, T >::value || sizeof( D ) <= paddedTypeAllocSize,
                                "Type D must be the same type as type T or sizeof(D) must be <= padded allocation size!!!" );
+#endif
 
                 // Type D must be nothrow_destructible.
                 static_assert( std::is_nothrow_destructible< D >::value, "Type D must be nothrow destructible!!!" );

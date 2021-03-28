@@ -148,8 +148,11 @@ namespace ReiserRT
             * The object pool type is that of our MessageBase. Object Pools support derived message types, which may be larger
             * than MessageBase so we employ the requestedMaxMessageSize template argument here.
             */
+#if 0
             using ObjectPoolType = ReiserRT::Core::ObjectPool< MessageBase, requestedMaxMessageSize >;
-
+#else
+            using ObjectPoolType = ReiserRT::Core::ObjectPool< MessageBase >;
+#endif
             /**
             * @brief The Message Smart Pointer Type
             *
@@ -164,6 +167,7 @@ namespace ReiserRT
             */
             using ObjectQueueType = ReiserRT::Core::ObjectQueue< MessagePtrType >;
 
+#if 0
             /**
             * @brief The Padded Message Allocation Size
             *
@@ -172,6 +176,7 @@ namespace ReiserRT
             * alignment purposes.
             */
             static constexpr size_t paddedMessageAllocSize = ObjectPoolType::paddedTypeAllocSize;
+#endif
 public:
             /**
             * @brief The Running State Statistics
@@ -198,7 +203,7 @@ public:
             * @param requestedNumElements
             */
             explicit MessageQueue( size_t requestedNumElements )
-              : objectPool{ requestedNumElements }
+              : objectPool{ requestedNumElements, requestedMaxMessageSize }
               , objectQueue{ requestedNumElements }
               , nameOfLastMessageDispatched{ nullptr }
             {
@@ -272,9 +277,11 @@ public:
                 // Type T must be nothrow destructable
                 static_assert( std::is_nothrow_destructible<T>::value, "Type T must be no throw destructible!!!" );
 
+#if 0
                 // The sizeof type T must be less than or equal to the paddedMessageAllocSize
                 static_assert( sizeof( T ) <= paddedMessageAllocSize,
                                 "The sizeof type T must be less than or equal to the paddedMessageAllocSize, derived from requestedMaxMessageSize!!!" );
+#endif
 
                 // First, we'll reserve a put handle. This will block if the MessageQueue is full serving as a guard before we allocate
                 // from the pool which would throw if we allowed it to become exhausted.
@@ -313,9 +320,11 @@ public:
                 // Type T must be nothrow destructable
                 static_assert( std::is_nothrow_destructible<T>::value, "Type T must be no throw destructable!!!" );
 
+#if 0
                 // The sizeof type T must be less than or equal to the paddedMessageAllocSize
                 static_assert( sizeof( T ) <= paddedMessageAllocSize,
                                 "The sizeof type T must be less than or equal to the paddedMessageAllocSize, derived from requestedMaxMessageSize!!!" );
+#endif
 
                 // First, we'll reserve a put handle. This will block if the MessageQueue is full serving as a guard before we allocate
                 // from the pool which would throw if we allowed it to become exhausted.
