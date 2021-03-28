@@ -109,19 +109,6 @@ generate_export_header(ReiserRT_Core
         DEFINE_NO_DEPRECATED
         )
 
-#@todo I think you might only need this for executable type targets. Consider for linkage requirements for users of ReiserRT_Core like the tests.
-# Prepare RPATH
-#[[
-file(RELATIVE_PATH _rel ${CMAKE_INSTALL_PREFIX}/${INSTALL_BINDIR}
-        ${CMAKE_INSTALL_PREFIX})
-if(APPLE)
-    set(_rpath "@loader_path/${_rel}")
-else()
-    set(_rpath "\$ORIGIN/${_rel}")
-endif()
-file(TO_NATIVE_PATH "${_rpath}/${INSTALL_LIBDIR}" ReiserRT_Core_RPATH)
-]]
-
 install(
     TARGETS
         ReiserRT_Core

@@ -120,7 +120,7 @@ namespace ReiserRT
         * originating ObjectPool instance.
         */
         template < typename T >
-        class ReiserRT_Core_EXPORT ObjectPoolDeleter : public ObjectPoolDeleterBase
+        class ObjectPoolDeleter : public ObjectPoolDeleterBase
         {
         private:
             /**

@@ -26,7 +26,7 @@ namespace ReiserRT
         * @brief The ObjectPoolBase Class
         *
         * This class provides a base for all specialized ObjectPool template instantiations.
-        * It provides a hidden implementation and the primary interface operations required for ObjectQueue.
+        * It provides a hidden implementation and the primary interface operations required for ObjectPool.
         */
         class ReiserRT_Core_EXPORT ObjectPoolBase
         {
@@ -175,7 +175,7 @@ namespace ReiserRT
             ObjectPoolDeleter< T > createDeleter() { return std::move(ObjectPoolDeleter< T >{this } ); }
 
             /**
-            * @brief Get the ObjectPoolBase size
+            * @brief Get the ObjectPoolBase Size
             *
             * This operation retrieves the fixed size of the ObjectPoolBase determined at the time of construction.
             * It delegates to the hidden implementation for the information.
@@ -183,6 +183,16 @@ namespace ReiserRT
             * @return Returns the ObjectPoolBase::Imple fixed size determined at the time of construction.
             */
             size_t getSize() noexcept;
+
+            /**
+            * @brief Get the ObjectPoolBase Element Size
+            *
+            * This operation retrieves the fixed size of the Elements managed by ObjectPoolBase determined at time of
+            * construction. It delegates to the hidden implementation for the information.
+            *
+            * @return Returns the ObjectPoolBase::Imple fixed element size determined at the time of construction.
+            */
+            size_t getElementSize() noexcept;
 
             /**
             * @brief Get the Running State Statistics

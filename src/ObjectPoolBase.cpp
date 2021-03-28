@@ -8,18 +8,6 @@
 
 #include "ObjectPoolBase.hpp"
 
-/**
-* @brief Macro OBJECT_POOL_USES_MUTEX_AND_SIMPLE_RING_BUFFER
-*
-* The lock free RingBuffer has a vulnerability with multiple getter threads with the near "empty" condition
-* due to "postponed completions" resulting underflow. This happens when one a getter thread gets preempted
-* and not updating completing the postponing record. A similar issue can happen on near full conditions
-* with putter threads resulting in overflow. Basically, in order to use the lock free RingBuffer successfully,
-* there should be no more than one getter thread and one putter thread. This can not be guaranteed that
-* some future maintainer of code is unaware.
-*/
-#define OBJECT_POOL_USES_MUTEX_AND_SIMPLE_RING_BUFFER 1
-
 #include "RingBufferSimple.hpp"
 
 #include <atomic>
@@ -39,7 +27,7 @@ using namespace ReiserRT::Core;
 #include <string.h>     // For memset operation.
 #endif
 
-class ObjectPoolBase::Imple
+class ReiserRT_Core_EXPORT ObjectPoolBase::Imple
 {
 private:
     /**
@@ -195,15 +183,6 @@ private:
     void returnRawBlock( void * pRaw ) noexcept;
 
     /**
-    * @brief Get the ObjectPool size
-    *
-    * This operation retrieves the fixed size of the ObjectPoolBase::Imple determined at the time of construction.
-    *
-    * @return Returns the ObjectPoolBase::Imple fixed size determined at the time of construction.
-    */
-    size_t getSize() noexcept;
-
-    /**
     * @brief Get the Running State Statistics
     *
     * This operation provides for performance monitoring of the ObjectPoolBase::Imple. The data returned
@@ -353,11 +332,6 @@ void ObjectPoolBase::Imple::returnRawBlock( void * pRaw ) noexcept
                                                    std::memory_order_seq_cst, std::memory_order_seq_cst ) );
 }
 
-size_t ObjectPoolBase::Imple::getSize() noexcept
-{
-    return poolSize;
-}
-
 ObjectPoolBase::RunningStateStats ObjectPoolBase::Imple::getRunningStateStatistics() noexcept
 {
     InternalRunningStateStats stats;
@@ -401,7 +375,12 @@ void ObjectPoolBase::returnRawBlock( void * pRaw ) noexcept
 
 size_t ObjectPoolBase::getSize() noexcept
 {
-    return pImple->getSize();
+    return pImple->poolSize;
+}
+
+size_t ObjectPoolBase::getElementSize() noexcept
+{
+    return pImple->elementSize;
 }
 
 ObjectPoolBase::RunningStateStats ObjectPoolBase::getRunningStateStatistics() noexcept

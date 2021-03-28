@@ -8,8 +8,6 @@
 * prior changes to template class ObjectPool now contained within.
 */
 
-#include "ReiserRT_CoreExport.h"
-
 #include "ObjectPoolBase.hpp"
 
 #ifndef OBJECTPOOL_HPP
@@ -44,14 +42,12 @@ namespace ReiserRT
         * @warning The value must not be less than the size of template parameter T. This will be detected and reported
         * at compile-time as an error.
         */
-        ///@todo What about a size of zero. Could happen with an empty class.
-        ///@todo I think it is a mistake to "export" a template. There is no "library code" with a template!!!
 #if 0
         template < typename T, size_t minTypeAllocSize = sizeof( T ) >
 #else
         template < typename T >
 #endif
-        class ReiserRT_Core_EXPORT ObjectPool : public ObjectPoolBase
+        class ObjectPool : public ObjectPoolBase
         {
 #if 0
             // You cannot specify a minTypeAllocSize less than the size of type T.
@@ -109,6 +105,9 @@ namespace ReiserRT
             *
             * @param requestedNumElements The requested ObjectPool size. This will be rounded up to the next whole
             * power of two and clamped within RingBuffer design limits.
+            * @param minTypeAllocationSize. This minimum size for the elements managed by the ObjectPool.
+            * This defaults to the size of type T but may be larger to accommodate the creation of derived types.
+            * This value is clamped to be no less than the size of type T.
             */
 #if 0
             explicit ObjectPool( size_t requestedNumElements )
@@ -176,10 +175,10 @@ namespace ReiserRT
             *
             * The operation makes use of C++11 meta-programming capabilities and a variadic template specification
             * to inline the construction using "perfect forwarding" of the arguments. Objects created are constructed
-            * using an "in-place" new operation, into a memory block retrieved from the base class implementation.
+            * using an "in-place" new operation, into memory blocks retrieved from the base class implementation.
             *
-            * @tparam D An argument type derived from type T or type T itself, guaranteed to fit within a memory block
-            * from the arena. It must also be nothrow destructible and if type D is derived from type T,
+            * @tparam D An argument type derived from type T or type T itself.
+            * It must be nothrow destructible and if type D is derived from type T,
             * then type T must specify a virtual destructor. Usage violations will be detected at compile time.
             * @tparam Args Zero or more arguments necessary to satisfy a particular type D constructor overload.
             *
@@ -188,7 +187,10 @@ namespace ReiserRT
             * @return This operation returns the new object constructed, wrapped within a std::unique_ptr,
             * associated with our custom Deleter. This unique_ptr is aliased as ObjectPtrType.
             *
-            * @throw Throws underflow_error on memory pool exhaustion.
+            * @throw Throws std::underflow_error on memory pool exhaustion.
+            * @throw Throws std::runtime_error if the size of type D exceeds the size of elements managed by the ObjectPool.
+            * The element size is that requested during ObjectPoolConstruction with the minTypeSizeAlloc parameter
+            * plus any alignment padding added by the implementation.
             * @note May throw other exceptions if the constructor of type D throws an exception.
             */
             template< typename D, typename... Args >
@@ -256,6 +258,12 @@ namespace ReiserRT
                     std::throw_with_nested( std::underflow_error( exceptionText ) );
                 }
 #else
+                // Before we even bother getting a raw block of memory, we will validate that
+                // the type being created will fit in the block.
+                if ( getElementSize() < sizeof( D ) )
+                    throw std::runtime_error( "ObjectPool::createObj: The size of type D exceeds maximum element size" );
+
+                // Obtain a raw block of memory to cook.
                 pRaw =  getRawBlock();
 #endif
 
