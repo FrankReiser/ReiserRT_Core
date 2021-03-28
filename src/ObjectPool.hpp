@@ -75,14 +75,6 @@ namespace ReiserRT
             */
             constexpr static size_t paddedTypeAllocSize = ( alignmentOverspill != 0 ) ?
                                                           minTypeAllocSize + sizeof( void * ) - alignmentOverspill : minTypeAllocSize;
-#else
-        private:
-            static inline size_t getPaddedTypeAllocSize( size_t minTypeAllocSize )
-            {
-                size_t alignmentOverspill = minTypeAllocSize % sizeof( void * );
-                return  ( alignmentOverspill != 0 ) ? minTypeAllocSize + sizeof( void * ) - alignmentOverspill :
-                    minTypeAllocSize;
-            }
 #endif
 
         public:
@@ -122,9 +114,8 @@ namespace ReiserRT
             explicit ObjectPool( size_t requestedNumElements )
             : ObjectPoolBase( requestedNumElements, paddedTypeAllocSize )
 #else
-            ///@todo Factor the getPaddedTypeAllocSize stuff into the base class.
             explicit ObjectPool( size_t requestedNumElements, size_t minTypeAllocSize = sizeof( T ) )
-                : ObjectPoolBase( requestedNumElements, getPaddedTypeAllocSize( minTypeAllocSize ) )
+                : ObjectPoolBase{ requestedNumElements, std::max( minTypeAllocSize, sizeof( T ) ) }
 #endif
             {
             }

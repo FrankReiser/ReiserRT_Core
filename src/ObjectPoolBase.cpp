@@ -128,7 +128,7 @@ private:
     *
     * @param requestedNumElements The requested ObjectPool size. This will be rounded up to the next whole
     * power of two and clamped within RingBuffer design limits.
-    * @param theElementSize The maximum size of each allocation block.
+    * @param theElementSize The size of each element.
     */
     explicit Imple( size_t requestedNumElements, size_t theElementSize );
 
@@ -214,6 +214,8 @@ private:
     */
     RunningStateStats getRunningStateStatistics() noexcept;
 
+    static size_t getPaddedTypeAllocSize( size_t requestedElementSize );
+
     /**
     * @brief Our RingBuffer
     *
@@ -268,7 +270,7 @@ ObjectPoolBase::Imple::Imple( size_t requestedNumElements, size_t theElementSize
         : ringBuffer{ requestedNumElements }
         , mutex{}
 #if defined( OBJECT_POOL_INITIALIZES_RAW_MEMORY) && ( OBJECT_POOL_INITIALIZES_RAW_MEMORY != 0 )
-        , elementSize{ theElementSize }
+        , elementSize{ getPaddedTypeAllocSize( theElementSize ) }
 #endif
         , poolSize{ ringBuffer.getSize() }
         , runningState{}
@@ -368,6 +370,14 @@ ObjectPoolBase::RunningStateStats ObjectPoolBase::Imple::getRunningStateStatisti
 
     return snapshot;
 }
+
+size_t ObjectPoolBase::Imple::getPaddedTypeAllocSize( size_t requestedElementSize )
+{
+    size_t alignmentOverspill = requestedElementSize % sizeof( void * );
+    return  ( alignmentOverspill != 0 ) ? requestedElementSize + sizeof( void * ) - alignmentOverspill :
+            requestedElementSize;
+}
+
 
 ObjectPoolBase::ObjectPoolBase( size_t requestedNumElements, size_t elementSize )
         : pImple{ new Imple{ requestedNumElements, elementSize } }
