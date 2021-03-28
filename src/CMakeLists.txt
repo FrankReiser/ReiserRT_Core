@@ -6,6 +6,7 @@ set( _publicHeaders
         ObjectPoolBase.hpp
         ObjectPool.hpp
         ObjectPoolDeleter.hpp
+        ObjectPoolFwd.hpp
         ObjectQueue.hpp
         MessageQueue.hpp
         )
@@ -23,6 +24,7 @@ set( _privateSources
         ObjectPoolBase.cpp
         ObjectPool.cpp
         ObjectPoolDeleter.cpp
+        ObjectPoolFwd.cpp
         ObjectQueue.cpp
         MessageQueue.cpp
         )
