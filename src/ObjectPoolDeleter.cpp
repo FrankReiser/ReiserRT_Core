@@ -6,7 +6,7 @@
 */
 
 #include "ObjectPoolDeleter.hpp"
-#include "ObjectPool.hpp"
+#include "ObjectPoolBase.hpp"
 
 using namespace ReiserRT;
 using namespace ReiserRT::Core;

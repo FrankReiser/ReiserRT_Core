@@ -5,8 +5,8 @@
 * @date Created on Mar 23, 2021
 */
 
-#ifndef OBJECTPOOLDELETER_HPP
-#define OBJECTPOOLDELETER_HPP
+#ifndef REISERRT_CORE_OBJECTPOOLDELETER_HPP
+#define REISERRT_CORE_OBJECTPOOLDELETER_HPP
 
 #include "ReiserRT_CoreExport.h"
 
@@ -23,12 +23,6 @@ namespace ReiserRT
         * This class provides the deleter implementation for objects created by ObjectPool which are "owned"
         * by a unique_ptr object. It invokes the object destructor and returns the memory block back to the
         * originating ObjectPool instance.
-        *
-        * This base class is generic as is ObjectPoolBase. It only deals with void pointers. This became necessary
-        * because the compiler was somehow optimizing away lambda functions created against the interface of
-        * ObjectPoolDeleter. This only became necessary when it was decided to extract the "Deleter" specification from
-        * the templated ObjectPool class to simplify the declaration of ObjectPool, ObjectPoolPtrType for easier usage.
-        * Having this concrete, non-template base class alleviated the issue.
         */
         class ReiserRT_Core_EXPORT ObjectPoolDeleterBase
         {
@@ -120,7 +114,7 @@ namespace ReiserRT
         * originating ObjectPool instance.
         */
         template < typename T >
-        class ReiserRT_Core_EXPORT ObjectPoolDeleter : public ObjectPoolDeleterBase
+        class ObjectPoolDeleter : public ObjectPoolDeleterBase
         {
         private:
             /**
@@ -205,4 +199,4 @@ namespace ReiserRT
     }
 }
 
-#endif //OBJECTPOOLDELETER_HPP
+#endif //REISERRT_CORE_OBJECTPOOLDELETER_HPP

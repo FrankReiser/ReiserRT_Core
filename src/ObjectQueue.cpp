@@ -22,7 +22,7 @@ using namespace ReiserRT::Core;
 *
 * This class provides for ObjectQueueBase class' hidden implementation.
 */
-class ObjectQueueBase::Imple
+class ReiserRT_Core_EXPORT ObjectQueueBase::Imple
 {
 private:
     /**

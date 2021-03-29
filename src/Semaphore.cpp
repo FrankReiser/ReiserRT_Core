@@ -26,7 +26,7 @@ using namespace ReiserRT::Core;
 *
 * This class provides the implementation specifics for the Semaphore class.
 */
-class Semaphore::Imple
+class ReiserRT_Core_EXPORT Semaphore::Imple
 {
 public:
     /**

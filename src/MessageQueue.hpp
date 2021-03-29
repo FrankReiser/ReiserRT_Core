@@ -5,8 +5,8 @@
 * @date Created on May 23, 2017
 */
 
-#ifndef MESSAGEQUEUE_H_
-#define MESSAGEQUEUE_H_
+#ifndef REISERRT_CORE_MESSAGEQUEUE_HPP
+#define REISERRT_CORE_MESSAGEQUEUE_HPP
 
 #include "ReiserRT_CoreExport.h"
 
@@ -136,8 +136,11 @@ namespace ReiserRT
         * @note This needs to a minimum of the size of MessageBase and should be the size of the largest derived message.
         * This requested size will be rounded up to next architecture size multiple for alignment purposes.
         */
-        template < size_t requestedMaxMessageSize = 0 >
-        class ReiserRT_Core_EXPORT MessageQueue
+        ///@todo Consider reworking this like ObjectPool. Sacrificing compile time error detection for utility with
+        ///runtime error detection. It not quite as important since MessageQueues are supposed to be implementation
+        ///details. ObjectPool on the other hand, very well may need to be passed around in interface specifications.
+        template < size_t requestedMaxMessageSize = sizeof( MessageBase ) >
+        class MessageQueue
         {
             // Validate requested size is at least the minimum required.
             static_assert( requestedMaxMessageSize >= sizeof( MessageBase ), "Template parameter requestedMaxMessageSize must >= sizeof( MessageQueue::BaseMessage )!!!" );
@@ -146,9 +149,9 @@ namespace ReiserRT
             * @brief The Object Pool Type
             *
             * The object pool type is that of our MessageBase. Object Pools support derived message types, which may be larger
-            * than MessageBase so we employ the requestedMaxMessageSize template argument here.
+            * than MessageBase.
             */
-            using ObjectPoolType = ReiserRT::Core::ObjectPool< MessageBase, requestedMaxMessageSize >;
+            using ObjectPoolType = ReiserRT::Core::ObjectPool< MessageBase >;
 
             /**
             * @brief The Message Smart Pointer Type
@@ -164,14 +167,6 @@ namespace ReiserRT
             */
             using ObjectQueueType = ReiserRT::Core::ObjectQueue< MessagePtrType >;
 
-            /**
-            * @brief The Padded Message Allocation Size
-            *
-            * We alias our padded message allocation size to that of ObjectPoolType::paddedTypeAllocSize
-            * which is the requestedMaxMessageSize rounded up to the next multiple of the architecture size for
-            * alignment purposes.
-            */
-            static constexpr size_t paddedMessageAllocSize = ObjectPoolType::paddedTypeAllocSize;
 public:
             /**
             * @brief The Running State Statistics
@@ -198,7 +193,7 @@ public:
             * @param requestedNumElements
             */
             explicit MessageQueue( size_t requestedNumElements )
-              : objectPool{ requestedNumElements }
+              : objectPool{ requestedNumElements, requestedMaxMessageSize }
               , objectQueue{ requestedNumElements }
               , nameOfLastMessageDispatched{ nullptr }
             {
@@ -253,28 +248,32 @@ public:
             * This operation puts (enqueues) a MessageBase derived type into the queue.
             * If the message queue is full at the time of invocation, this operation will block until space becomes available.
             *
-            * @tparam T The type of message to enqueue.
-            * @note Type T must be derived from MessageBase, must be nothrow move constructible/assignable and nothrow destructable
-            * and have a size less than or equal to the padded message allocation block size.
+            * @tparam M The type of message to enqueue.
+            * @note Type M must be derived from MessageBase, must be nothrow move constructible/assignable and nothrow destructable
+            * and have a size less than or equal to the padded message allocation block size managed by its internal
+            * ObjectPool instance.
             * @param msg The message to put (enqueue) into the message queue.
             *
-            * @throw Throws Semaphore::AbortedException if the ObjectQueue abort operation has been invoked.
+            * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked or if the
+            * derived message type exceeds that allowed by its internal ObjectPool instance.
             */
-            template< typename T >
-            void put( T && msg )
+            template< typename M >
+            void put( M && msg )
             {
-                // Type T must be derived from MessageBase.
-                static_assert( std::is_base_of< MessageBase, T >::value, "Type T must derived from MessageQueue::BaseMessage!!!" );
+                // Type M must be derived from MessageBase.
+                static_assert( std::is_base_of< MessageBase, M >::value, "Type M must derived from MessageQueue::BaseMessage!!!" );
 
-                // Type T must be move assignable && move construtible.
-                static_assert( std::is_move_constructible<T>::value, "Type T must be move constructible!!!");
+                // Type M must be move assignable && move construtible.
+                static_assert( std::is_move_constructible< M >::value, "Type M must be move constructible!!!");
 
-                // Type T must be nothrow destructable
-                static_assert( std::is_nothrow_destructible<T>::value, "Type T must be no throw destructible!!!" );
+                // Type M must be nothrow destructable
+                static_assert( std::is_nothrow_destructible< M >::value, "Type M must be no throw destructible!!!" );
 
-                // The sizeof type T must be less than or equal to the paddedMessageAllocSize
-                static_assert( sizeof( T ) <= paddedMessageAllocSize,
-                                "The sizeof type T must be less than or equal to the paddedMessageAllocSize, derived from requestedMaxMessageSize!!!" );
+#if 0
+                // The sizeof type M must be less than or equal to the paddedMessageAllocSize
+                static_assert( sizeof( M ) <= paddedMessageAllocSize,
+                                "The sizeof type M must be less than or equal to the paddedMessageAllocSize, derived from requestedMaxMessageSize!!!" );
+#endif
 
                 // First, we'll reserve a put handle. This will block if the MessageQueue is full serving as a guard before we allocate
                 // from the pool which would throw if we allowed it to become exhausted.
@@ -283,7 +282,7 @@ public:
                 // Now, we should be able to safely get memory from the pool without it throwing an exception.
                 // By design, it has, at a minimum, the required number of blocks to meet the internal counted semaphore guard.
                 // After the message is moved the pool memory, we'll immediately enqueue it onto the reserved put handle.
-                objectQueue.emplaceOnReserved( reservedPutHandle, objectPool.template createObj< T >( std::move( msg ) ) );
+                objectQueue.emplaceOnReserved( reservedPutHandle, objectPool.template createObj< M >( std::move( msg ) ) );
             }
 
             /**
@@ -293,29 +292,33 @@ public:
             * onto the pool memory using a variadic argument list. The arguments are perfect forwarded to the internal createObj call.
             * If the message queue is full at the time of invocation, this operation will block until space becomes available.
             *
-            * @tparam T The type of message to enqueue.
-            * @note Type T must be derived from MessageBase, must be nothrow move constructible/assignable and nothrow destructable
-            * and have a size less than or equal to the padded message allocation block size.
+            * @tparam M The type of message to enqueue.
+            * @note Type M must be derived from MessageBase, must be nothrow move constructible/assignable and nothrow destructable
+            * and have a size less than or equal to the padded message allocation block size managed by its internal
+            * ObjectPool instance.
             * @tparam Args A Variadic argument list for constructing in place onto pool memory.
             * @param args The arguments require to construct a message to enqueue into the message queue.
             *
-            * @throw Throws Semaphore::AbortedException if the ObjectQueue abort operation has been invoked.
+            * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked or if the
+            * derived message type exceeds that allowed by its internal ObjectPool instance.
             */
-            template < typename T, typename... Args >
+            template < typename M, typename... Args >
             void emplace( Args&&... args )
             {
-                // Type T must be derived from MessageBase.
-                static_assert( std::is_base_of< MessageBase, T >::value, "Type T must derived from MessageQueue::BaseMessage!!!" );
+                // Type M must be derived from MessageBase.
+                static_assert( std::is_base_of< MessageBase, M >::value, "Type M must derived from MessageQueue::BaseMessage!!!" );
 
-                // Type T must be move assignable && move constructible.
-                static_assert( std::is_move_constructible<T>::value, "Type T must be move constructible!!!");
+                // Type M must be move assignable && move constructible.
+                static_assert( std::is_move_constructible< M >::value, "Type M must be move constructible!!!");
 
-                // Type T must be nothrow destructable
-                static_assert( std::is_nothrow_destructible<T>::value, "Type T must be no throw destructable!!!" );
+                // Type M must be nothrow destructable
+                static_assert( std::is_nothrow_destructible< M >::value, "Type M must be no throw destructable!!!" );
 
-                // The sizeof type T must be less than or equal to the paddedMessageAllocSize
-                static_assert( sizeof( T ) <= paddedMessageAllocSize,
-                                "The sizeof type T must be less than or equal to the paddedMessageAllocSize, derived from requestedMaxMessageSize!!!" );
+#if 0
+                // The sizeof type MT must be less than or equal to the paddedMessageAllocSize
+                static_assert( sizeof( M ) <= paddedMessageAllocSize,
+                                "The sizeof type M must be less than or equal to the paddedMessageAllocSize, derived from requestedMaxMessageSize!!!" );
+#endif
 
                 // First, we'll reserve a put handle. This will block if the MessageQueue is full serving as a guard before we allocate
                 // from the pool which would throw if we allowed it to become exhausted.
@@ -324,7 +327,7 @@ public:
                 // Now, we should be able to safely get memory from the pool without it throwing an exception.
                 // By design, it has, at a minimum, the required number of blocks to meet the internal counted semaphore guard.
                 // After the message is emplaced onto pool memory, we'll imediately enqueue it onto the reserved put handle.
-                objectQueue.emplaceOnReserved( reservedPutHandle, objectPool.template createObj< T >( std::forward<Args>(args)...  ) );
+                objectQueue.emplaceOnReserved( reservedPutHandle, objectPool.template createObj< M >( std::forward<Args>(args)...  ) );
             }
 
             /**
@@ -335,7 +338,7 @@ public:
             * It utilizes the ObjectQueue::getAndInvoke operation which guarantees that an exception thrown during the dispatch,
             * leaves our internal queue sane (invariant). However, such an exception would propagate up the call stack.
             *
-            * @throw Throws Semaphore::AbortedException if the ObjectQueue abort operation has been invoked.
+            * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.
             */
             void getAndDispatch()
             {
@@ -363,13 +366,13 @@ public:
             * @brief The Get and Dispatch Operation with Wake-up Notification
             *
             * This operation waits (blocks) until a message is available in the queue. As soon as a message is available
-            * for dequeuing, the wake-up function is invoked and the message is retrieved and directly dispatched
+            * for dequeuing, the wake-up function is invoked ansystemcd the message is retrieved and directly dispatched
             * by invoking the abstract MessageBase::dispatch operation.
             * It utilizes the ObjectQueue::getAndInvoke operation which guarantees that an exception thrown during the dispatch,
             * leaves our internal queue sane (invariant). However, such an exception would propagate up the call stack.
             *
             * @param wakeupFunctor A call-able object to be invoked upon message availability.
-            * @throw Throws Semaphore::AbortedException if the ObjectQueue abort operation has been invoked.
+            * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.
             */
             void getAndDispatch( WakeupCallFunctionType wakeupFunctor )
             {
@@ -442,6 +445,4 @@ public:
     }
 }
 
-
-
-#endif /* MESSAGEQUEUE_H_ */
+#endif /* REISERRT_CORE_MESSAGEQUEUE_HPP */

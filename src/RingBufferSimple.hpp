@@ -5,8 +5,8 @@
 * @date Created on Apr 9, 2017
 */
 
-#ifndef RINGBUFFERSIMPLE_H_
-#define RINGBUFFERSIMPLE_H_
+#ifndef REISERRT_CORE_RINGBUFFERSIMPLE_HPP
+#define REISERRT_CORE_RINGBUFFERSIMPLE_HPP
 
 #include "ReiserRT_CoreExport.h"
 
@@ -101,7 +101,7 @@ namespace ReiserRT
             static CounterType numBitsForNE( size_t requestedNumElements )
             {
                 // Clamp requested number of elements to a minimum of 2 and a maximum of maxElements.
-                CounterType n = CounterType( requestedNumElements < 2 ? 2 : requestedNumElements > maxElements ? maxElements : requestedNumElements );
+                auto n = CounterType( requestedNumElements < 2 ? 2 : requestedNumElements > maxElements ? maxElements : requestedNumElements );
 
                 // Initially subtract 1 from non zero values to correctly calculate the number of bits.
                 return _numBitsForNE( --n >> 1 ) + 1;
@@ -608,4 +608,4 @@ namespace ReiserRT
 
 
 
-#endif /* RINGBUFFERSIMPLE_H_ */
+#endif /* REISERRT_CORE_RINGBUFFERSIMPLE_HPP */

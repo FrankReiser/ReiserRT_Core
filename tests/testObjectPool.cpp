@@ -191,8 +191,13 @@ int main()
                 long dummy4{ 0 };    // Just make it bigger than TestClassForOP1
             };
 
+#if 0
             using ObjectPtrType = ObjectPool< TestClassForOP1, sizeof(TestClassForOP2) >::ObjectPtrType;
             ObjectPool< TestClassForOP1, sizeof(TestClassForOP2) > objectPool(4);
+#else
+            using ObjectPtrType = ObjectPool< TestClassForOP1 >::ObjectPtrType;
+            ObjectPool< TestClassForOP1 > objectPool(4, sizeof(TestClassForOP2) );
+#endif
 
             // Attempt to create a derived object from the pool
             ObjectPtrType op = objectPool.createObj< TestClassForOP2 >();
@@ -268,9 +273,14 @@ int main()
                 virtual int getClassID() { return 2; }
             };
 
+#if 0
             using TestPoolType = ObjectPool< TestClassBaseForOP, sizeof(TestClassDerivedForOP1) >;
             using TestPtrType = TestPoolType::ObjectPtrType;
-            TestPoolType testPool(4);
+#else
+            using TestPoolType = ObjectPool< TestClassBaseForOP >;
+            using TestPtrType = TestPoolType::ObjectPtrType;
+#endif
+            TestPoolType testPool(4, sizeof(TestClassDerivedForOP1));
 
             // Now create an object of TestClassDerivedForOP1 which is designed to throw and verify ObjectPool invariant.
             try

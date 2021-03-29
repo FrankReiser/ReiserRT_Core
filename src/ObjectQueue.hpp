@@ -5,8 +5,8 @@
 * @date Created on Apr 4, 2015
 */
 
-#ifndef OBJECTQUEUE_H_
-#define OBJECTQUEUE_H_
+#ifndef REISERRT_CORE_OBJECTQUEUE_HPP
+#define REISERRT_CORE_OBJECTQUEUE_HPP
 
 #include "ReiserRT_CoreExport.h"
 
@@ -827,4 +827,4 @@ void ReiserRT::Core::ObjectQueue< T >::abortReservedPut( void * pRaw )
         rawPutAndNotify( pRaw );
     }
 }
-#endif /* OBJECTQUEUE_H_ */
+#endif /* REISERRT_CORE_OBJECTQUEUE_HPP */

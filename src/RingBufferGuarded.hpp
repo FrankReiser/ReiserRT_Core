@@ -5,10 +5,8 @@
 * @date Created on Apr 10, 2017
 */
 
-#ifndef RINGBUFFERGUARDED_H_
-#define RINGBUFFERGUARDED_H_
-
-#include "ReiserRT_CoreExport.h"
+#ifndef REISERRT_CORE_RINGBUFFERGUARDED_HPP
+#define REISERRT_CORE_RINGBUFFERGUARDED_HPP
 
 #include "RingBufferSimple.hpp"
 #include "Semaphore.hpp"
@@ -30,7 +28,7 @@ namespace ReiserRT
         * @note Must be a scalar type (e.g., char, int, float or void pointer).
         */
         template< typename T >
-        class ReiserRT_Core_EXPORT RingBufferGuardedBase : public RingBufferSimple< T >
+        class RingBufferGuardedBase : public RingBufferSimple< T >
         {
         private:
             // T must be a valid scalar type for rapid load and store operations. Non-scalar types are supportable
@@ -338,7 +336,7 @@ namespace ReiserRT
         * @note Must be a scalar type (e.g., char, int, float).
         */
         template< typename T >
-        class ReiserRT_Core_EXPORT RingBufferGuarded : public RingBufferGuardedBase< T >
+        class RingBufferGuarded : public RingBufferGuardedBase< T >
         {
         private:
             /**
@@ -423,7 +421,7 @@ namespace ReiserRT
         * the type pointer template. It inherits directly from the RingBufferGuardedBase.
         */
         template<>
-        class ReiserRT_Core_EXPORT RingBufferGuarded< void * > : public RingBufferGuardedBase< void * >
+        class RingBufferGuarded< void * > : public RingBufferGuardedBase< void * >
         {
         private:
             /**
@@ -506,7 +504,7 @@ namespace ReiserRT
         * a RingBufferGuarded. It relies on its base class, RingBufferGuarded< void * >, for all but a cast to and fro.
         */
         template< typename T >
-        class ReiserRT_Core_EXPORT RingBufferGuarded< T * > : public RingBufferGuarded< void * >
+        class RingBufferGuarded< T * > : public RingBufferGuarded< void * >
         {
         private:
             /**
@@ -587,5 +585,5 @@ namespace ReiserRT
     }
 }
 
-#endif /* RINGBUFFERGUARDED_H_ */
+#endif /* REISERRT_CORE_RINGBUFFERGUARDED_HPP */
 
