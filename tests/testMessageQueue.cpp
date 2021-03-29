@@ -150,7 +150,7 @@ int main()
             using MessageQueueType = MessageQueue<sizeof(SimpleTestMessage)>;
             MessageQueueType msgQueue(3);
 #else
-            MessageQueue msgQueue(3);
+            MessageQueue msgQueue(3, sizeof( SimpleTestMessage ));
 #endif
 
             // Verify running statistics at start.
