@@ -121,7 +121,7 @@ namespace ReiserRT
             *
             * @return Intended to return the name of the message class.
             */
-            virtual const char * name() { return "Unforgiven"; }
+            virtual const char * name() const;
         };
 
         /**
@@ -139,12 +139,15 @@ namespace ReiserRT
         ///@todo Consider reworking this like ObjectPool. Sacrificing compile time error detection for utility with
         ///runtime error detection. It not quite as important since MessageQueues are supposed to be implementation
         ///details. ObjectPool on the other hand, very well may need to be passed around in interface specifications.
+#if 0
         template < size_t requestedMaxMessageSize = sizeof( MessageBase ) >
+#endif
         class MessageQueue
         {
+#if 0
             // Validate requested size is at least the minimum required.
             static_assert( requestedMaxMessageSize >= sizeof( MessageBase ), "Template parameter requestedMaxMessageSize must >= sizeof( MessageQueue::BaseMessage )!!!" );
-
+#endif
             /**
             * @brief The Object Pool Type
             *
@@ -192,8 +195,13 @@ public:
             *
             * @param requestedNumElements
             */
+#if 0
             explicit MessageQueue( size_t requestedNumElements )
               : objectPool{ requestedNumElements, requestedMaxMessageSize }
+#else
+            explicit MessageQueue( size_t requestedNumElements, size_t requestedMaxMessageSize = sizeof( MessageBase ) )
+              : objectPool{ requestedNumElements, requestedMaxMessageSize }
+#endif
               , objectQueue{ requestedNumElements }
               , nameOfLastMessageDispatched{ nullptr }
             {

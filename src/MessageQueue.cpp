@@ -9,3 +9,11 @@
 */
 
 #include "MessageQueue.hpp"
+
+using namespace ReiserRT::Core;
+
+
+const char * MessageBase::name() const
+{
+    return "Unforgiven";
+}

@@ -28,7 +28,7 @@ public:
 protected:
     virtual void dispatch() { ++dispatchCount; }
 
-    virtual const char* name() { return "SimpleTestMessage"; }
+    virtual const char* name() const { return "SimpleTestMessage"; }
 
 public:
     static size_t dispatchCount;
@@ -79,7 +79,9 @@ private:
         unsigned int randNumHash;
     };
 
+#if 0
     using MessageQueueType = MessageQueue< sizeof(ImpleMessage) >;
+#endif
 
 public:
     MessageQueueUserProcess() {}
@@ -129,7 +131,11 @@ public:
 private:
     ActiveContextType messageHandlerThread{};
     size_t numberImpleMessagesDispatched{ 0 };
+#if 0
     MessageQueueType msgQueue{ 4 };
+#else
+    MessageQueue msgQueue{ 4, sizeof( ImpleMessage ) };
+#endif
 };
 
 
@@ -140,11 +146,19 @@ int main()
     do {
         // Try a simple message put and dispatch and then a emplace and dispatch
         {
+#if 0
             using MessageQueueType = MessageQueue<sizeof(SimpleTestMessage)>;
             MessageQueueType msgQueue(3);
+#else
+            MessageQueue msgQueue(3);
+#endif
 
             // Verify running statistics at start.
+#if 0
             MessageQueueType::RunningStateStats runningStateStats = msgQueue.getRunningStateStatistics();
+#else
+            MessageQueue::RunningStateStats runningStateStats = msgQueue.getRunningStateStatistics();
+#endif
             if (0 != runningStateStats.runningCount)
             {
                 cout << "The Message Queue running count is " << runningStateStats.runningCount
