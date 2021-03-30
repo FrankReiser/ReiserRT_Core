@@ -221,17 +221,26 @@ namespace ReiserRT
                 pRaw =  getRawBlock();
 #endif
 
-                // A deleter and managed cooked pointer type.
-                using DeleterType = std::function< void( void * ) noexcept >;
-                using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
+                // I could have used a unique_ptr to pull this trick off, but it isn't pretty. C-Tidy doesn't like
+                // it and this is clean and lean. So, I just rolled my own again.
+                struct RawMemoryManager {
+                    RawMemoryManager( ObjectPool< T > * pThePool, void * pTheRaw ) : pP{ pThePool }, pR{ pTheRaw } {}
+                    ~RawMemoryManager() { if ( pP && pR ) pP->returnRawBlock( pR ); }
 
-                // Wrap in a managed pointer
-                auto deleter = [ this ]( void * p ) noexcept { this->returnRawBlock( p ); };
-                ManagedRawPointerType managedRawPtr{ pRaw, std::ref( deleter ) };
+                    void release() { pR = nullptr; }
+                private:
+                    ObjectPool< T > * pP{ nullptr };
+                    void * pR{ nullptr };
+                };
+
+                // Wrap up the raw memory in our manager class so that it can be properly return to the pool
+                // should something go wrong.
+                RawMemoryManager rawMemoryManager{ this, pRaw };
 
                 // Cook directly on raw and if construction doesn't throw, release managed pointer's ownership.
+                // Ownership has been successfully transferred to pCooked.
                 T * pCooked = new ( pRaw )D{ std::forward<Args>(args)... };
-                managedRawPtr.release();
+                rawMemoryManager.release(); // CLang C-Tidy warns we have not stored the value returned by release. Ignore.
 
                 // Wrap for delivery.
                 return ObjectPtrType{ pCooked, std::move(createDeleter<T>() ) };

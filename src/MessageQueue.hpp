@@ -268,7 +268,7 @@ public:
                 // Now, we should be able to safely get memory from the pool without it throwing an exception.
                 // By design, it has, at a minimum, the required number of blocks to meet the internal counted semaphore guard.
                 // After the message is moved the pool memory, we'll immediately enqueue it onto the reserved put handle.
-                objectQueue.emplaceOnReserved( reservedPutHandle, objectPool.template createObj< M >( std::move( msg ) ) );
+                objectQueue.emplaceOnReserved( reservedPutHandle, objectPool.createObj< M >( std::forward< M >( msg ) ) );
             }
 
             /**
@@ -312,8 +312,8 @@ public:
 
                 // Now, we should be able to safely get memory from the pool without it throwing an exception.
                 // By design, it has, at a minimum, the required number of blocks to meet the internal counted semaphore guard.
-                // After the message is emplaced onto pool memory, we'll imediately enqueue it onto the reserved put handle.
-                objectQueue.emplaceOnReserved( reservedPutHandle, objectPool.template createObj< M >( std::forward<Args>(args)...  ) );
+                // After the message is emplaced onto pool memory, we'll immediately enqueue it onto the reserved put handle.
+                objectQueue.emplaceOnReserved( reservedPutHandle, objectPool.createObj< M >( std::forward<Args>(args)...  ) );
             }
 
             /**
