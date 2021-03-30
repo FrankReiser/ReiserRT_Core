@@ -121,7 +121,7 @@ namespace ReiserRT
             *
             * @return Intended to return the name of the message class.
             */
-            virtual const char * name() { return "Unforgiven"; }
+            virtual const char * name() const;
         };
 
         /**
@@ -131,20 +131,9 @@ namespace ReiserRT
         * It uses ObjectPool for preallocated memory to move enqueued messages into ObjectQueue and
         * ObjectQueue to move smart pointers of abstract messages from input to output where they are
         * dispatched by the getAndDispatch operation.
-        *
-        * @tparam requestedMaxMessageSize The requested size (in bytes) for message allocation blocks for the internal pool.
-        * @note This needs to a minimum of the size of MessageBase and should be the size of the largest derived message.
-        * This requested size will be rounded up to next architecture size multiple for alignment purposes.
         */
-        ///@todo Consider reworking this like ObjectPool. Sacrificing compile time error detection for utility with
-        ///runtime error detection. It not quite as important since MessageQueues are supposed to be implementation
-        ///details. ObjectPool on the other hand, very well may need to be passed around in interface specifications.
-        template < size_t requestedMaxMessageSize = sizeof( MessageBase ) >
-        class MessageQueue
+        class ReiserRT_Core_EXPORT MessageQueue
         {
-            // Validate requested size is at least the minimum required.
-            static_assert( requestedMaxMessageSize >= sizeof( MessageBase ), "Template parameter requestedMaxMessageSize must >= sizeof( MessageQueue::BaseMessage )!!!" );
-
             /**
             * @brief The Object Pool Type
             *
@@ -188,23 +177,20 @@ public:
             * @brief Qualified Constructor for Message Queue
             *
             * This constructor accepts a requested number of elements argument and constructs an object pool
-            * and an object queue passing the argument down.
+            * and an object queue passing the arguments down.
             *
-            * @param requestedNumElements
+            * @param requestedNumElements The Requested Message Queue Depth
+            * @param requestedMaxMessageSize The Requested Maximum Message Size for Derived Message Types.
+            * There is no default value for this parameter. You must specify your maximum, derived message size
             */
-            explicit MessageQueue( size_t requestedNumElements )
-              : objectPool{ requestedNumElements, requestedMaxMessageSize }
-              , objectQueue{ requestedNumElements }
-              , nameOfLastMessageDispatched{ nullptr }
-            {
-            }
+            explicit MessageQueue( size_t requestedNumElements, size_t requestedMaxMessageSize );
 
             /**
             * @brief Destructor for MessageQueue
             *
             * This destructor invokes the object queue's abort operation.
             */
-            ~MessageQueue() { objectQueue.abort(); };
+            ~MessageQueue();
 
             /**
             * @brief Copy Constructor for Message Queue
@@ -282,7 +268,7 @@ public:
                 // Now, we should be able to safely get memory from the pool without it throwing an exception.
                 // By design, it has, at a minimum, the required number of blocks to meet the internal counted semaphore guard.
                 // After the message is moved the pool memory, we'll immediately enqueue it onto the reserved put handle.
-                objectQueue.emplaceOnReserved( reservedPutHandle, objectPool.template createObj< M >( std::move( msg ) ) );
+                objectQueue.emplaceOnReserved( reservedPutHandle, objectPool.createObj< M >( std::forward< M >( msg ) ) );
             }
 
             /**
@@ -326,8 +312,8 @@ public:
 
                 // Now, we should be able to safely get memory from the pool without it throwing an exception.
                 // By design, it has, at a minimum, the required number of blocks to meet the internal counted semaphore guard.
-                // After the message is emplaced onto pool memory, we'll imediately enqueue it onto the reserved put handle.
-                objectQueue.emplaceOnReserved( reservedPutHandle, objectPool.template createObj< M >( std::forward<Args>(args)...  ) );
+                // After the message is emplaced onto pool memory, we'll immediately enqueue it onto the reserved put handle.
+                objectQueue.emplaceOnReserved( reservedPutHandle, objectPool.createObj< M >( std::forward<Args>(args)...  ) );
             }
 
             /**
@@ -340,19 +326,7 @@ public:
             *
             * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.
             */
-            void getAndDispatch()
-            {
-                // Setup a lambda function for invoking the message dispatch operation.
-                auto funk = [ this ]( MessagePtrType & msgPtr )
-                {
-                    nameOfLastMessageDispatched = msgPtr->name();
-                    msgPtr->dispatch();
-                };
-
-                // Get (wait) for a message and invoke our lambda via reference.
-                // If the dispatch throws anything, it will propagate up the call stack.
-                objectQueue.getAndInvoke( std::ref( funk ) );
-            }
+            void getAndDispatch();
 
             /**
             * @brief Wake-up Call Function Type
@@ -374,20 +348,7 @@ public:
             * @param wakeupFunctor A call-able object to be invoked upon message availability.
             * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.
             */
-            void getAndDispatch( WakeupCallFunctionType wakeupFunctor )
-            {
-                // Setup a lambda function for invoking the message dispatch operation.
-                auto funk = [ this, &wakeupFunctor ]( MessagePtrType & msgPtr )
-                {
-                    wakeupFunctor();
-                    nameOfLastMessageDispatched = msgPtr->name();
-                    msgPtr->dispatch();
-                };
-
-                // Get (wait) for a message and invoke our lambda via reference.
-                // If the dispatch throws anything, it will propagate up the call stack.
-                objectQueue.getAndInvoke( std::ref( funk ) );
-            }
+            void getAndDispatch( WakeupCallFunctionType wakeupFunctor );
 
             /**
             * @brief Get the Name of the Last Message Dispatched.
@@ -398,14 +359,14 @@ public:
             *
             * @return Returns the name of the last message dispatched.
             */
-            const char * getNameOfLastMessageDispatched() { return nameOfLastMessageDispatched; }
+            const char * getNameOfLastMessageDispatched();
 
             /**
             * @brief The Abort Operation
             *
             * This operation defers to ObjectQueue::abort to abort the message queue.
             */
-            void abort() { objectQueue.abort(); }
+            void abort();
 
             /**
             * @brief The Get Running State Statistics.
@@ -414,10 +375,7 @@ public:
             *
             * @return Returns running state statistics.
             */
-            RunningStateStats getRunningStateStatistics() noexcept
-            {
-                return objectQueue.getRunningStateStatistics();
-            }
+            RunningStateStats getRunningStateStatistics() noexcept;
 
         private:
             /**
