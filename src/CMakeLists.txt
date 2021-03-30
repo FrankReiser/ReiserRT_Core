@@ -3,7 +3,10 @@ set( _publicHeaders
         RingBufferSimple.hpp
         Semaphore.hpp
         RingBufferGuarded.hpp
+        ObjectPoolBase.hpp
         ObjectPool.hpp
+        ObjectPoolDeleter.hpp
+        ObjectPoolFwd.hpp
         ObjectQueue.hpp
         MessageQueue.hpp
         )
@@ -18,7 +21,10 @@ set( _privateSources
         RingBufferSimple.cpp
         Semaphore.cpp
         RingBufferGuarded.cpp
+        ObjectPoolBase.cpp
         ObjectPool.cpp
+        ObjectPoolDeleter.cpp
+        ObjectPoolFwd.cpp
         ObjectQueue.cpp
         MessageQueue.cpp
         )
@@ -102,19 +108,6 @@ generate_export_header(ReiserRT_Core
         NO_DEPRECATED_MACRO_NAME "ReiserRT_Core_NO_DEPRECATED"
         DEFINE_NO_DEPRECATED
         )
-
-#@todo I think you might only need this for executable type targets. Consider for linkage requirements for users of ReiserRT_Core like the tests.
-# Prepare RPATH
-#[[
-file(RELATIVE_PATH _rel ${CMAKE_INSTALL_PREFIX}/${INSTALL_BINDIR}
-        ${CMAKE_INSTALL_PREFIX})
-if(APPLE)
-    set(_rpath "@loader_path/${_rel}")
-else()
-    set(_rpath "\$ORIGIN/${_rel}")
-endif()
-file(TO_NATIVE_PATH "${_rpath}/${INSTALL_LIBDIR}" ReiserRT_Core_RPATH)
-]]
 
 install(
     TARGETS

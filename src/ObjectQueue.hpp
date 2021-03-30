@@ -5,8 +5,8 @@
 * @date Created on Apr 4, 2015
 */
 
-#ifndef OBJECTQUEUE_H_
-#define OBJECTQUEUE_H_
+#ifndef REISERRT_CORE_OBJECTQUEUE_HPP
+#define REISERRT_CORE_OBJECTQUEUE_HPP
 
 #include "ReiserRT_CoreExport.h"
 
@@ -30,7 +30,7 @@ namespace ReiserRT
             /**
             * @brief Forward Declaration of Imple
             *
-            * We foward declare our Hidden Implementation.
+            * We forward declare our Hidden Implementation.
             */
             class Imple;
 
@@ -55,7 +55,7 @@ namespace ReiserRT
             struct RunningStateStats
             {
                 /**
-                * @brief Default Contructor for RunningStateStats
+                * @brief Default Constructor for RunningStateStats
                 *
                 * This operation uses the compiler generated default, which in our case is to default the data members to zero.
                 */
@@ -75,30 +75,12 @@ namespace ReiserRT
             */
             using FlushingFunctionType = std::function< void( void * ) noexcept >;
 
-        protected:
             /**
             * @brief Default Constructor for ObjectQueueBase
             *
             * Default construction of ObjectQueue is disallowed. Hence, this operation has been deleted.
             */
             ObjectQueueBase() = delete;
-
-            /**
-            * @brief Qualified ObjectQueueBase Constructor
-            *
-            * This constructor build the ObjectQueue of exactly the requested size. Its internal
-            * RingBuffer objects will be up-sized to the next power of two. It delegates to its hidden
-            * implementation to do the heavy lifting.
-            *
-            * @param requestedNumElements The number of elements requested for the ObjectQueue.
-            * @param elementSize The size of each element.
-            *
-            * @throw Throws std::bad_alloc if memory requirements for the Implementation cannot be satisfied.
-            *
-            * @note Requesting somewhat less than a whole power of two, for requestedNumElements provides a bit of headroom within
-            * the implementation. However, doing so is not necessary.
-            */
-            ObjectQueueBase( size_t requestedNumElements, size_t elementSize );
 
             /**
             * @brief Copy Constructor for ObjectQueueBase
@@ -135,6 +117,24 @@ namespace ReiserRT
             * @param another An rvalue reference to another instance of a ObjectQueueBase.
             */
             ObjectQueueBase & operator =( ObjectQueueBase && another ) = delete;
+
+        protected:
+            /**
+            * @brief Qualified ObjectQueueBase Constructor
+            *
+            * This constructor build the ObjectQueue of exactly the requested size. Its internal
+            * RingBuffer objects will be up-sized to the next power of two. It delegates to its hidden
+            * implementation to do the heavy lifting.
+            *
+            * @param requestedNumElements The number of elements requested for the ObjectQueue.
+            * @param elementSize The size of each element.
+            *
+            * @throw Throws std::bad_alloc if memory requirements for the Implementation cannot be satisfied.
+            *
+            * @note Requesting somewhat less than a whole power of two, for requestedNumElements provides a bit of headroom within
+            * the implementation. However, doing so is not necessary.
+            */
+            ObjectQueueBase( size_t requestedNumElements, size_t elementSize );
 
             /**
             * @brief The ObjectQueueBase Destructor
@@ -251,12 +251,13 @@ namespace ReiserRT
         * This implementation makes extensive use of RingBuffer and Semaphore of the same namespace.
         *
         * @tparam T The type of object that will be put into and received from.
-        * A whole hierarchy of objects types can be supported.
+        * @note ObjectQueue does not currently support enqueueing and de-queueing of derived types of T.
+        * It is of primary utility to MessageQueue which pushes a unique_ptr type through it.
         *
         * @warning Type T must be no-throw, move constructible and no-throw destructible.
         */
         template < typename T >
-        class ReiserRT_Core_EXPORT ObjectQueue : public ObjectQueueBase
+        class ObjectQueue : public ObjectQueueBase
         {
             static_assert( std::is_move_constructible<T>::value, "Type T must be move constructible!!!" );
             static_assert( std::is_nothrow_destructible<T>::value, "Type T must be no throw destructible!!!" );
@@ -311,13 +312,6 @@ namespace ReiserRT
                 friend class ObjectQueue;
 
                 /**
-                * @brief Default Constructor for ReservedPutHandle
-                *
-                * Default construction is disallowed for this class. Hence, this operation has been deleted.
-                */
-                ReservedPutHandle() = delete;
-
-                /**
                 * @brief Qualified Constructor for ReservedPutHandle
                 *
                 * Constructs a ReservedPutHandle instance. We record the Queue instance and the pointer to raw memory
@@ -327,6 +321,14 @@ namespace ReiserRT
                 * @param theRaw A pointer to the raw memory to move subsequently move data type T into.
                 */
                 ReservedPutHandle( ObjectQueue< T > * theQueue, void * theRaw ) noexcept : pQueue{ theQueue }, pRaw( theRaw ) {}
+
+            public:
+                /**
+                * @brief Default Constructor for ReservedPutHandle
+                *
+                * Default construction is disallowed for this class. Hence, this operation has been deleted.
+                */
+                ReservedPutHandle() = delete;
 
                 /**
                 * @brief Copy Constructor for ReservedPutHandle
@@ -346,7 +348,6 @@ namespace ReiserRT
                 */
                 ReservedPutHandle & operator = ( const ReservedPutHandle & another ) = delete;
 
-            public:
                 /**
                 * @brief Move Constructor for ReservedPutHandle
                 *
@@ -827,4 +828,4 @@ void ReiserRT::Core::ObjectQueue< T >::abortReservedPut( void * pRaw )
         rawPutAndNotify( pRaw );
     }
 }
-#endif /* OBJECTQUEUE_H_ */
+#endif /* REISERRT_CORE_OBJECTQUEUE_HPP */
