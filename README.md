@@ -29,9 +29,9 @@ When the unique_ptr is destroyed. The object memory is returned
 to the ObjectPool automatically. This operation is thread safe.
 
 ObjectPool is intended to be instantiated early and owned
-at a high level within the applications architecture so that
+at a high level within the application's architecture so that
 it will not go out of scope until all objects created from it
-are returned to the it. Failing to honor this will result
+have been returned. Failing to honor this will result
 in undefined behavior.
 
 ### MessageQueue
