@@ -22,7 +22,7 @@ base type. The quantity of which is specified during
 construction. Derived objects may also be created from
 ObjectPool as long as the appropriate maximum object size
 is not exceeded. This is also specified during construction.
-The ObjectPool<BaseType>::createObj<DerivedType>(constructArgs...)
+The `ObjectPool<BaseType>::createObj<DerivedType>(constructArgs...)`
 operation returns specialized unique_ptr types with a custom 
 deleter associated. The DerivedType can be the same as BaseType.
 When the unique_ptr is destroyed. The object memory is returned
@@ -44,16 +44,16 @@ custom messages from MessageBase and override the dispatch
 function. MessageQueue makes extensive use of ObjectPool
 and ObjectQueue to accomplish its goals.
 
-Messages are enqueued with either the 
-MessageQueue::put< DerivedMsgType >( derivedType && ) or the
-MessageQueue::emplace< DerivedMsgType >( constructorArgs... ).
+Messages are enqueued with either the
+`MessageQueue::put< DerivedMsgType >( derivedType && )` or the
+`MessageQueue::emplace< DerivedMsgType >( constructorArgs... )`.
 With the put operation, you construct the message first on
 your stack and it gets moved into the queue. With
 the emplace operation, it gets constructed right on a
 pre-allocated block. Therefore, emplace is more efficient.
 
 Messages are dequeue with the
-MessageQueue::getAndDispatch(...) operation. You have total 
+`MessageQueue::getAndDispatch(...)` operation. You have total 
 control as to what your various dispatch overrides do.
 
 MessageQueue usage should be a hidden detail of any
