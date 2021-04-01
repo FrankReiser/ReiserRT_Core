@@ -741,7 +741,6 @@ void ReiserRT::Core::ObjectQueue< T >::putOnReserved( ReservedPutHandle & handle
     // If the handle is nullptr, throw invalid_argument.
     if ( !handle.pRaw ) throw std::invalid_argument( "ObjectQueue< T >::putOnReserved invoked with invalid handle!!!" );
 
-#if 1
     ///@note The ReservedPutHandle has all the logic required to return the its raw pointer to the raw pool should
     ///we not release it.
 
@@ -753,27 +752,6 @@ void ReiserRT::Core::ObjectQueue< T >::putOnReserved( ReservedPutHandle & handle
 
     // The formerly raw is now cooked. Enqueue it for consumption.
     cookedPutAndNotify( pRaw );
-#else
-    // A Deleter and Managed raw pointer type.
-    using DeleterType = std::function< void( void *& ) noexcept >;
-    using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
-
-    // Wrap in a managed pointer in case cook move construction throws an exception. We must succeed in putting pointer
-    // into cooked queue or returning it to the raw queue or it is leaked forever.
-    auto deleter = [ this ]( void *& p ) noexcept { this->rawPutAndNotify( p ); p = nullptr; };
-    ManagedRawPointerType managedRawPtr{ handle.pRaw, std::ref( deleter ) };
-
-    // Cook directly on raw and if construction doesn't throw, release managed pointer's ownership.
-    new ( handle.pRaw )T{ std::move( obj ) };
-    managedRawPtr.release();
-
-    // Store off handle's pointer to raw memory and set handle pRaw member to nullptr;
-    void * pRaw = handle.pRaw;
-    handle.pRaw = nullptr;
-
-    // Load Cooked Memory (pRaw is cooked now)
-    cookedPutAndNotify( pRaw );
-#endif
 }
 
 template < typename T >
@@ -783,7 +761,6 @@ void ReiserRT::Core::ObjectQueue< T >::emplaceOnReserved( ReservedPutHandle & ha
     // If the handle is null pointer, throw invalid_argument.
     if ( !handle.pRaw ) throw std::invalid_argument( "ObjectQueue< T >::putOnReserved invoked with invalid handle!!!" );
 
-#if 1
     ///@note The ReservedPutHandle has all the logic required to return the its raw pointer to the raw pool should
     ///we not release it.
 
@@ -795,27 +772,6 @@ void ReiserRT::Core::ObjectQueue< T >::emplaceOnReserved( ReservedPutHandle & ha
 
     // The formerly raw is now cooked. Enqueue it for consumption.
     cookedPutAndNotify( pRaw );
-#else
-    // A Deleter and Managed raw pointer type.
-    using DeleterType = std::function< void( void *& ) noexcept >;
-    using ManagedRawPointerType = std::unique_ptr< void, DeleterType >;
-
-    // Wrap in a managed pointer in case cook move construction throws an exception. We must succeed in putting pointer
-    // into cooked queue or returning it to the raw queue or it is leaked forever.
-    auto deleter = [ this ]( void *& p ) noexcept { this->rawPutAndNotify( p ); p = nullptr; };
-    ManagedRawPointerType managedRawPtr{ handle.pRaw, std::ref( deleter ) };
-
-    // Cook directly on raw and if construction doesn't throw, release managed pointer's ownership.
-    new ( handle.pRaw )T{ std::forward<Args>(args)... };
-    managedRawPtr.release();
-
-    // Store off handle raw memory pointer and set handle pRaw member to nullptr;
-    void * pRaw = handle.pRaw;
-    handle.pRaw = nullptr;
-
-    // Load Cooked Memory (pRaw is cooked now)
-    cookedPutAndNotify( pRaw );
-#endif
 }
 
 template < typename T >
