@@ -75,6 +75,7 @@ void MessageQueue::getAndDispatch()
     // Setup a lambda function for invoking the message dispatch operation.
     auto funk = [ this ]( MessagePtrType & msgPtr )
     {
+        std::lock_guard< Details::MutexType > lockGuard{ pDetails->mutex };
         nameOfLastMessageDispatched = msgPtr->name();
         msgPtr->dispatch();
     };
@@ -98,7 +99,11 @@ void MessageQueue::getAndDispatch( WakeupCallFunctionType wakeupFunctor )
     // Setup a lambda function for invoking the message dispatch operation.
     auto funk = [ this, &wakeupFunctor ]( MessagePtrType & msgPtr )
     {
+        // Call the wakeup function first before we take the lock.
+        // It's primary usage is to record processing time and we do not desire this next
+        // potential blocking on lock acquisition to not be counted in those statistics.
         wakeupFunctor();
+        std::lock_guard< Details::MutexType > lockGuard{ pDetails->mutex };
         nameOfLastMessageDispatched = msgPtr->name();
         msgPtr->dispatch();
     };
