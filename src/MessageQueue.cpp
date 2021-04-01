@@ -104,13 +104,19 @@ MessageQueue::~MessageQueue()
 
 void MessageQueue::getAndDispatch()
 {
-#if 0
-    MessagePtrType msgPtr = std::move( objectQueue.get() );
-    std::lock_guard< Details::MutexType > lockGuard{ pDetails->mutex };
+    ///@note What is happening here, for numerous reasons, is as follows:
+    ///1) MessagePtrType is a unique_ptr type, That is what comes from our objectQueue.
+    ///   It should also be noted that ObjectQueue was specifically designed for MessageQueue,
+    ///2) We cannot use objectPool::get to return this value as our put and emplace operations
+    ///   will unblock and and attempt to create objects from ObjectPool and we would be holding
+    ///   the goods. This has resulted in underflow being thrown during stress testing.
+    ///Reason: ObjectPool and ObjectQueue are typically the same size for a MessageQueue.
+    ///ObjectPool's only guard against underflow is ObjectQueue's blocking. We cannot
+    ///allow this to unblock until MsgPtrType has been destroyed.
+    ///Therefore, the bottom line is, we must let ObjectQueue call us with a reference to
+    ///the unique_ptr so we can do our business before ObjectQueue signals availability for put
+    ///and emplace. I have lived this before and now I have lived it again. I decided to document it.
 
-    nameOfLastMessageDispatched = msgPtr->name();
-    msgPtr->dispatch();
-#else
     // Setup a lambda function for invoking the message dispatch operation.
     auto funk = [ this ]( MessagePtrType & msgPtr )
     {
@@ -122,19 +128,12 @@ void MessageQueue::getAndDispatch()
     // Get (wait) for a message and invoke our lambda via reference.
     // If the dispatch throws anything, it will propagate up the call stack.
     objectQueue.getAndInvoke( std::ref( funk ) );
-#endif
 }
 
 void MessageQueue::getAndDispatch( WakeupCallFunctionType wakeupFunctor )
 {
-#if 0
-    MessagePtrType msgPtr = std::move( objectQueue.get() );
-    std::lock_guard< Details::MutexType > lockGuard{ pDetails->mutex };
+    ///@note See note for getAndDispatch without the wakeupFunctor argument for discussion
 
-    wakeupFunctor();
-    nameOfLastMessageDispatched = msgPtr->name();
-    msgPtr->dispatch();
-#else
     // Setup a lambda function for invoking the message dispatch operation.
     auto funk = [ this, &wakeupFunctor ]( MessagePtrType & msgPtr )
     {
@@ -150,7 +149,6 @@ void MessageQueue::getAndDispatch( WakeupCallFunctionType wakeupFunctor )
     // Get (wait) for a message and invoke our lambda via reference.
     // If the dispatch throws anything, it will propagate up the call stack.
     objectQueue.getAndInvoke( std::ref( funk ) );
-#endif
 }
 
 const char * MessageQueue::getNameOfLastMessageDispatched()
