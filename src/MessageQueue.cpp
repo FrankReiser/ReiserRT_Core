@@ -19,19 +19,58 @@
 using namespace ReiserRT;
 using namespace ReiserRT::Core;
 
+/**
+* @brief MessageQueue Hidden Details
+*
+* This class contains the hidden details for MessageQueue state data.
+*
+*/
 class MessageQueue::Details
 {
+    /**
+    * @brief Friend Declaration
+    *
+    * MessageQueue needs access to construct an instance.
+    */
     friend class MessageQueue;
+
+    /**
+    * @brief Friend Declaration
+    *
+    * MessageQueue::AutoDispatchLock needs access to our lock and unlock members.
+    */
     friend class MessageQueue::AutoDispatchLock;
 
+    /**
+    * @brief Mutex Type Declaration
+    *
+    * The mutex type we will use.
+    */
 #ifdef REISER_RT_HAS_PTHREADS
     using MutexType = PriorityInheritMutex;
 #else
     using MutexType = std::mutex;
 #endif
+
+    /**
+    * @brief Constructor
+    *
+    * This Constructor is defaulted.
+    */
     Details() = default;
+
+    /**
+    * @brief Destructor
+    *
+    * This Destructor is defaulted.
+    */
     ~Details() = default;
 
+    /**
+    * @brief Mutex Instance
+    *
+    * Our mutex instance.
+    */
     MutexType mutex{};
 };
 

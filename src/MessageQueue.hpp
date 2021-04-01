@@ -163,6 +163,11 @@ namespace ReiserRT
             */
             using RunningStateStats = typename ObjectQueueType::RunningStateStats;
 
+            /**
+            * @brief Forward Declaration for Details Class
+            *
+            * The Details class contains implementation state data which is not exposed at the interface layer.
+            */
             class Details;
 
             /**
@@ -321,9 +326,8 @@ namespace ReiserRT
             * @brief The Get and Dispatch Operation
             *
             * This operation waits (blocks) until a message is available in the queue. As soon as a message is available
-            * for dequeuing, it is retrieved and directly dispatched by invoking the abstract MessageBase::dispatch operation.
-            * It utilizes the ObjectQueue::getAndInvoke operation which guarantees that an exception thrown during the dispatch,
-            * leaves our internal queue sane (invariant). However, such an exception would propagate up the call stack.
+            * for dequeuing, the dispatch lock is taken and the message is dispatched via the
+            * MessageBase::dispatch operation.
             *
             * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.
             */
@@ -341,10 +345,8 @@ namespace ReiserRT
             * @brief The Get and Dispatch Operation with Wake-up Notification
             *
             * This operation waits (blocks) until a message is available in the queue. As soon as a message is available
-            * for dequeuing, the wake-up function is invoked ansystemcd the message is retrieved and directly dispatched
-            * by invoking the abstract MessageBase::dispatch operation.
-            * It utilizes the ObjectQueue::getAndInvoke operation which guarantees that an exception thrown during the dispatch,
-            * leaves our internal queue sane (invariant). However, such an exception would propagate up the call stack.
+            * for dequeuing, the wakeupFunctor is invoked and then the dispatch lock is taken.
+            * The message is then dispatched via the MessageBase::dispatch operation.
             *
             * @param wakeupFunctor A call-able object to be invoked upon message availability.
             * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.
@@ -378,25 +380,93 @@ namespace ReiserRT
             */
             RunningStateStats getRunningStateStatistics() noexcept;
 
+            /**
+            * brief A Dispatch Lock Automatic Lock/Release Mechanism
+            *
+            * MessageQueue provides the ability to dispatch messages on an independent message queue
+            * processing thread of any particular client using a MessageQueue, asynchronously.
+            * However, that client may have also have synchronous processing requirements.
+            * This class affords a client the ability to do both through a common locking mechanism,
+            * thereby affording a synchronization means between asynchronous message dispatch implementations and other
+            * synchronous requirements.
+            */
             class AutoDispatchLock
             {
             private:
+                /**
+                * @brief Friend Declaration
+                *
+                * Only MessageQueue may construct instances of this class.
+                */
                 friend class MessageQueue;
+
+                /**
+                * @brief Constructor for AutoDispatchLock.
+                *
+                * This Constructor takes the dispatch lock.
+                *
+                * @param pTheDetails
+                */
                 explicit AutoDispatchLock( Details * pTheDetails );
 
             public:
+                /**
+                * @brief Default Construction Disallowed
+                *
+                * AutoDispatchLock must be constructed with a reference to the MessageQueue::Details.
+                */
+                AutoDispatchLock() = delete;
+
+                /**
+                * @brief
+                *
+                * This destructor release the dispatch lock.
+                */
                 ~AutoDispatchLock();
+
+                /**
+                * @brief Move Construction
+                *
+                * Move construction is defaulted.
+                *
+                * @param another
+                */
                 AutoDispatchLock( AutoDispatchLock && another ) = default;
+
+                /**
+                * @brief Move Assignment
+                *
+                * Move assignment is defaulted.
+                *
+                * @param another
+                */
                 AutoDispatchLock & operator =( AutoDispatchLock && another ) = default;
 
             private:
+                /**
+                * @brief MessageQueue Details Reference.
+                *
+                * A pointer reference to the hidden MessageQueue details.
+                */
                 Details * pDetails;
             };
 
-            ///@todo Okay test this thing.
+            /**
+            * @brief Obtain a AutoDispatchLock Object
+            *
+            * Returns an automatic dispatch lock object. The dispatch lock is taken on construction of AutoDispatchLock.
+            * When the AutoDispatchLock object is destroy, the dispatch lock is released.
+            *
+            * @return Returns an instance of AutoDispatchLock.
+            */
             AutoDispatchLock getAutoDispatchLock();
 
         private:
+            /**
+            * @brief MessageQueue Details Reference.
+            *
+            * A pointer reference to the hidden MessageQueue details.
+            */
             Details * pDetails;
 
             /**
