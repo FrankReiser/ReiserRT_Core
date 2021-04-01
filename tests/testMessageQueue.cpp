@@ -128,6 +128,8 @@ public:
 
     size_t getDispatchCount() { return numberImpleMessagesDispatched; }
 
+    MessageQueue::AutoDispatchLock getAutoDispatchLock() { return std::move( msgQueue.getAutoDispatchLock() ); }
+
 private:
     ActiveContextType messageHandlerThread{};
     size_t numberImpleMessagesDispatched{ 0 };
@@ -146,19 +148,10 @@ int main()
     do {
         // Try a simple message put and dispatch and then a emplace and dispatch
         {
-#if 0
-            using MessageQueueType = MessageQueue<sizeof(SimpleTestMessage)>;
-            MessageQueueType msgQueue(3);
-#else
             MessageQueue msgQueue(3, sizeof( SimpleTestMessage ));
-#endif
 
             // Verify running statistics at start.
-#if 0
-            MessageQueueType::RunningStateStats runningStateStats = msgQueue.getRunningStateStatistics();
-#else
             MessageQueue::RunningStateStats runningStateStats = msgQueue.getRunningStateStatistics();
-#endif
             if (0 != runningStateStats.runningCount)
             {
                 cout << "The Message Queue running count is " << runningStateStats.runningCount
@@ -259,13 +252,60 @@ int main()
             if (pUserProcess->getDispatchCount() != count)
             {
                 std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount after sendImpleMessage*count, got "
-                          << SimpleTestMessage::dispatchCount << ", expected " << count << "\n";
+                          << pUserProcess->getDispatchCount() << ", expected " << count << "\n";
                 retVal = 10;
             }
 
             // Destroy it and if it doesn't crash, we're good.
             pUserProcess.reset();
+        }
 
+        // Use an Active Class to test dispatch locking
+        {
+            // Create MessageQueueUserProcess on heap and activate it.
+            std::unique_ptr< MessageQueueUserProcess > pUserProcess{ new MessageQueueUserProcess{} };
+            pUserProcess->activate();
+
+            // Send a simple imple message and verify a dispatch count of 1
+            pUserProcess->sendImpleMessage();
+            this_thread::sleep_for( chrono::milliseconds(100) );
+            if (pUserProcess->getDispatchCount() != 1)
+            {
+                std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount after sendImple Message, got "
+                          << pUserProcess->getDispatchCount() << ", expected " << 1 << "\n";
+                retVal = 11;
+            }
+
+#if 1
+            // Using scoping to hold an auto dispatch lock
+            {
+                // Obtain an auto dispatch lock and send a message.
+                auto dispatchLock = pUserProcess->getAutoDispatchLock();
+                pUserProcess->sendImpleMessage();
+
+                // Sleep a little bit and verify that the dispatch count is still 1 from before.
+                // We should be blocking dispatches.
+                this_thread::sleep_for( chrono::milliseconds(100) );
+                if (pUserProcess->getDispatchCount() != 1)
+                {
+                    std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount blocking dispatching, got "
+                              << pUserProcess->getDispatchCount() << ", expected " << 1 << "\n";
+                    retVal = 12;
+                }
+            }
+
+            // Sleep a little bit and verify that dispatch count is now 2.
+            this_thread::sleep_for( chrono::milliseconds(100) );
+            if (pUserProcess->getDispatchCount() != 2)
+            {
+                std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount blocking dispatching, got "
+                          << pUserProcess->getDispatchCount() << ", expected " << 2 << "\n";
+                retVal = 13;
+            }
+#endif
+
+            // Destroy it and if it doesn't crash, we're good.
+            pUserProcess.reset();
         }
 
      } while ( false );
