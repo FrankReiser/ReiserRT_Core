@@ -688,6 +688,21 @@ void ReiserRT::Core::ObjectQueue< T >::emplace( Args&&... args )
 template < typename T >
 T ReiserRT::Core::ObjectQueue< T >::get()
 {
+// I am thinking the returning to raw to the pool only after the move has succeeded is beyond unnecessary.
+// The move of type T is supposed to be no-throw constructible.
+#if 1
+    // Obtain Cooked Memory (may block if the Cooked Queue is empty)
+    T * pCooked = reinterpret_cast< T * >( cookedWaitAndGet() );
+
+    // Move the value out of pCooked and destroy what is left of pCooked after move.
+    // Finally, return former cooked to the raw queue.
+    T retVal = std::move( *pCooked );
+    pCooked->~T();
+    rawPutAndNotify( pCooked );
+
+    // Return the value obtained.
+    return std::move( retVal );
+#else
     // A deleter and managed cooked pointer type.
     using DeleterType = std::function< void( T * ) noexcept >;
     using ManagedCookedPointerType = std::unique_ptr< T, DeleterType >;
@@ -704,6 +719,7 @@ T ReiserRT::Core::ObjectQueue< T >::get()
     // is then "moved out" during the assignment of the return value. However, the managed cooked pointer still owns the pointer
     // and its deleter will be called even though the contents of the encapsulated pointer have been "moved out".
     return std::move( *managedCookedPtr );
+#endif
 }
 
 template < typename T >
