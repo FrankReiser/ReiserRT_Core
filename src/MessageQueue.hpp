@@ -411,9 +411,9 @@ namespace ReiserRT
 
             public:
                 /**
-                * @brief Default Construction Disallowed
+                * @brief Default Construction
                 *
-                * AutoDispatchLock must be constructed with a reference to the MessageQueue::Details.
+                * Details attribute will be set to nullptr;
                 */
                 AutoDispatchLock() = delete;
 
@@ -425,22 +425,56 @@ namespace ReiserRT
                 ~AutoDispatchLock();
 
                 /**
+                * @brief Copy Constructor Deleted
+                *
+                * Copy construction is disallowed and is deleted.
+                *
+                * @param another Another instance of an AutoDispatchLock
+                */
+                AutoDispatchLock( const AutoDispatchLock & another ) = delete;
+
+                /**
+                * @brief Copy Assignment Deleted
+                *
+                * Copy assignment is disallowed and is deleted.
+                *
+                * @param another Another instance of an AutoDispatchLock
+                */
+                AutoDispatchLock & operator =( const AutoDispatchLock & another ) = delete;
+
+                /**
                 * @brief Move Construction
                 *
-                * Move construction is defaulted.
+                * Move construction transfers ownership of details.
+                * @note A default move constructor does not guarantee this. It is critical the moved from gets
+                * assigned null.
                 *
-                * @param another
+                * @param another Another instance of an AutoDispatchLock
                 */
-                AutoDispatchLock( AutoDispatchLock && another ) = default;
+                AutoDispatchLock( AutoDispatchLock && another ) noexcept
+                  : pDetails{ another.pDetails }
+                {
+                    another.pDetails = nullptr;
+                }
 
                 /**
                 * @brief Move Assignment
                 *
-                * Move assignment is defaulted.
+                * Move assignment transfers ownership of details.
+                * @note A default move assignment operator does not guarantee this. It is critical the moved from gets
+                * assigned null.
                 *
-                * @param another
+                * @param another Another instance of an AutoDispatchLock
                 */
-                AutoDispatchLock & operator =( AutoDispatchLock && another ) = default;
+                AutoDispatchLock & operator =( AutoDispatchLock && another ) noexcept
+                {
+                    if (this != &another)
+                    {
+                        pDetails = another.pDetails;
+                        another.pDetails = nullptr;
+                    }
+                    return *this;
+                }
 
             private:
                 /**

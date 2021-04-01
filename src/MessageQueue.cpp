@@ -81,7 +81,8 @@ MessageQueue::AutoDispatchLock::AutoDispatchLock( Details * pTheDetails )
 }
 MessageQueue::AutoDispatchLock::~AutoDispatchLock()
 {
-    pDetails->mutex.unlock();
+    if ( pDetails )
+        pDetails->mutex.unlock();
 }
 
 const char * MessageBase::name() const
@@ -168,6 +169,5 @@ MessageQueue::RunningStateStats MessageQueue::getRunningStateStatistics() noexce
 
 MessageQueue::AutoDispatchLock MessageQueue::getAutoDispatchLock()
 {
-    AutoDispatchLock autoDispatchLock{ pDetails };
-    return std::move( autoDispatchLock );
+    return std::move( AutoDispatchLock{ pDetails } );
 }
