@@ -132,15 +132,14 @@ namespace ReiserRT
         * ObjectQueue to move smart pointers of abstract messages from input to output where they are
         * dispatched by the getAndDispatch operation.
         */
-        class ReiserRT_Core_EXPORT MessageQueue
-        {
+        class ReiserRT_Core_EXPORT MessageQueue {
             /**
             * @brief The Object Pool Type
             *
             * The object pool type is that of our MessageBase. Object Pools support derived message types, which may be larger
             * than MessageBase.
             */
-            using ObjectPoolType = ReiserRT::Core::ObjectPool< MessageBase >;
+            using ObjectPoolType = ReiserRT::Core::ObjectPool<MessageBase>;
 
             /**
             * @brief The Message Smart Pointer Type
@@ -154,15 +153,17 @@ namespace ReiserRT
             *
             * The object queue type is that of our MessagePtrType.
             */
-            using ObjectQueueType = ReiserRT::Core::ObjectQueue< MessagePtrType >;
+            using ObjectQueueType = ReiserRT::Core::ObjectQueue<MessagePtrType>;
 
-public:
+        public:
             /**
             * @brief The Running State Statistics
             *
             * We alias our running state statistics to that our ObjectQueueType::RunningStateStats.
             */
             using RunningStateStats = typename ObjectQueueType::RunningStateStats;
+
+            class Details;
 
             /**
             * @brief Default Constructor for Message Queue
@@ -183,7 +184,7 @@ public:
             * @param requestedMaxMessageSize The Requested Maximum Message Size for Derived Message Types.
             * There is no default value for this parameter. You must specify your maximum, derived message size
             */
-            explicit MessageQueue( size_t requestedNumElements, size_t requestedMaxMessageSize );
+            explicit MessageQueue(size_t requestedNumElements, size_t requestedMaxMessageSize);
 
             /**
             * @brief Destructor for MessageQueue
@@ -199,7 +200,7 @@ public:
             *
             * @param another A constant reference to another message queue instance.
             */
-            MessageQueue( const MessageQueue & another ) = delete;
+            MessageQueue(const MessageQueue &another) = delete;
 
             /**
             * @brief Copy Assignment Operator for Message Queue
@@ -208,7 +209,7 @@ public:
             *
             * @param another A constant reference to another message queue instance.
             */
-            MessageQueue & operator =( const MessageQueue & another ) = delete;
+            MessageQueue &operator=(const MessageQueue &another) = delete;
 
             /**
             * @brief Move Constructor for Message Queue
@@ -217,7 +218,7 @@ public:
             *
             * @param another An rvalue reference to another message queue instance.
             */
-            MessageQueue( MessageQueue && another ) = delete;
+            MessageQueue(MessageQueue &&another) = delete;
 
             /**
             * @brief Move Assignment Operator for Message Queue
@@ -226,7 +227,7 @@ public:
             *
             * @param another An rvalue reference to another message queue instance.
             */
-            MessageQueue & operator =( MessageQueue && another ) = delete;
+            MessageQueue &operator=(MessageQueue &&another) = delete;
 
             /**
             * @brief The Put Operation
@@ -243,17 +244,17 @@ public:
             * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked or if the
             * derived message type exceeds that allowed by its internal ObjectPool instance.
             */
-            template< typename M >
-            void put( M && msg )
-            {
+            template<typename M>
+            void put(M &&msg) {
                 // Type M must be derived from MessageBase.
-                static_assert( std::is_base_of< MessageBase, M >::value, "Type M must derived from MessageQueue::BaseMessage!!!" );
+                static_assert(std::is_base_of<MessageBase, M>::value,
+                              "Type M must derived from MessageQueue::BaseMessage!!!");
 
                 // Type M must be move assignable && move construtible.
-                static_assert( std::is_move_constructible< M >::value, "Type M must be move constructible!!!");
+                static_assert(std::is_move_constructible<M>::value, "Type M must be move constructible!!!");
 
                 // Type M must be nothrow destructable
-                static_assert( std::is_nothrow_destructible< M >::value, "Type M must be no throw destructible!!!" );
+                static_assert(std::is_nothrow_destructible<M>::value, "Type M must be no throw destructible!!!");
 
 #if 0
                 // The sizeof type M must be less than or equal to the paddedMessageAllocSize
@@ -268,7 +269,7 @@ public:
                 // Now, we should be able to safely get memory from the pool without it throwing an exception.
                 // By design, it has, at a minimum, the required number of blocks to meet the internal counted semaphore guard.
                 // After the message is moved the pool memory, we'll immediately enqueue it onto the reserved put handle.
-                objectQueue.emplaceOnReserved( reservedPutHandle, objectPool.createObj< M >( std::forward< M >( msg ) ) );
+                objectQueue.emplaceOnReserved(reservedPutHandle, objectPool.createObj<M>(std::forward<M>(msg)));
             }
 
             /**
@@ -288,17 +289,17 @@ public:
             * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked or if the
             * derived message type exceeds that allowed by its internal ObjectPool instance.
             */
-            template < typename M, typename... Args >
-            void emplace( Args&&... args )
-            {
+            template<typename M, typename... Args>
+            void emplace(Args &&... args) {
                 // Type M must be derived from MessageBase.
-                static_assert( std::is_base_of< MessageBase, M >::value, "Type M must derived from MessageQueue::BaseMessage!!!" );
+                static_assert(std::is_base_of<MessageBase, M>::value,
+                              "Type M must derived from MessageQueue::BaseMessage!!!");
 
                 // Type M must be move assignable && move constructible.
-                static_assert( std::is_move_constructible< M >::value, "Type M must be move constructible!!!");
+                static_assert(std::is_move_constructible<M>::value, "Type M must be move constructible!!!");
 
                 // Type M must be nothrow destructable
-                static_assert( std::is_nothrow_destructible< M >::value, "Type M must be no throw destructable!!!" );
+                static_assert(std::is_nothrow_destructible<M>::value, "Type M must be no throw destructable!!!");
 
 #if 0
                 // The sizeof type MT must be less than or equal to the paddedMessageAllocSize
@@ -313,7 +314,7 @@ public:
                 // Now, we should be able to safely get memory from the pool without it throwing an exception.
                 // By design, it has, at a minimum, the required number of blocks to meet the internal counted semaphore guard.
                 // After the message is emplaced onto pool memory, we'll immediately enqueue it onto the reserved put handle.
-                objectQueue.emplaceOnReserved( reservedPutHandle, objectPool.createObj< M >( std::forward<Args>(args)...  ) );
+                objectQueue.emplaceOnReserved(reservedPutHandle, objectPool.createObj<M>(std::forward<Args>(args)...));
             }
 
             /**
@@ -334,7 +335,7 @@ public:
             * This type represents the signature of a function accepting no arguments and returning nothing (void).
             * It is used by the getAndDispactch operation that notifies the caller when a message is about to be dispatched.
             */
-            using WakeupCallFunctionType = std::function< void() >;
+            using WakeupCallFunctionType = std::function<void()>;
 
             /**
             * @brief The Get and Dispatch Operation with Wake-up Notification
@@ -348,7 +349,7 @@ public:
             * @param wakeupFunctor A call-able object to be invoked upon message availability.
             * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.
             */
-            void getAndDispatch( WakeupCallFunctionType wakeupFunctor );
+            void getAndDispatch(WakeupCallFunctionType wakeupFunctor);
 
             /**
             * @brief Get the Name of the Last Message Dispatched.
@@ -359,7 +360,7 @@ public:
             *
             * @return Returns the name of the last message dispatched.
             */
-            const char * getNameOfLastMessageDispatched();
+            const char *getNameOfLastMessageDispatched();
 
             /**
             * @brief The Abort Operation
@@ -377,7 +378,27 @@ public:
             */
             RunningStateStats getRunningStateStatistics() noexcept;
 
+            class AutoDispatchLock
+            {
+            private:
+                friend class MessageQueue;
+                explicit AutoDispatchLock( Details * pTheDetails );
+
+            public:
+                ~AutoDispatchLock();
+                AutoDispatchLock( AutoDispatchLock && another ) = default;
+                AutoDispatchLock & operator =( AutoDispatchLock && another ) = default;
+
+            private:
+                Details * pDetails;
+            };
+
+            ///@todo Okay test this thing.
+            AutoDispatchLock getAutoDispatchLock();
+
         private:
+            Details * pDetails;
+
             /**
             * @brief The Object Pool
             *
