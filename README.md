@@ -122,7 +122,7 @@ as follows:
       // Lock out asynchronous dispatch.
       auto dispatchLock = messageQueueInstance.getAutoDispatchLock();
    
-      // Do stuff then return;
+      // Do stuff then return
       return;
    }
    ```
