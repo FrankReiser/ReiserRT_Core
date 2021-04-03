@@ -129,6 +129,10 @@ as follows:
 When the instance of the MessageQueue::AutoDispatchLock goes out
 of scope, the dispatch lock is released.
 
+Note: It is not necessary to obtain a dispatch lock if all you are
+doing is enqueueing a message. The enqueueing of a message is in itself,
+thread safe.
+
 ## Supported Platforms
 This is a CMake project and at present, GNU Linux is
 the only supported platform. Code from this project exist
