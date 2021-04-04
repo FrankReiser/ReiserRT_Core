@@ -136,15 +136,16 @@ namespace ReiserRT
             * The operation makes use of C++11 meta-programming capabilities and a variadic template specification
             * to inline the construction using "perfect forwarding" of the arguments. Objects created are constructed
             * using an "in-place" new operation, into memory blocks retrieved from the base class implementation.
+            * @note This operation is thread safe.
             *
             * @tparam D An argument type derived from type T or type T itself.
             * It must be nothrow destructible and if type D is derived from type T,
             * then type T must specify a virtual destructor. Usage violations will be detected at compile time.
             * @tparam Args Zero or more arguments necessary to satisfy a particular type D constructor overload.
             *
-            * @param args The actual arguments to be forwarded by the compiler to the deduced constructor for type D.
+            * @param args The actual arguments to be forwarded by the compiler to the deduced constructor of type D.
             *
-            * @return This operation returns the new object constructed, wrapped within a std::unique_ptr,
+            * @return This operation returns the newly object constructed, wrapped within a std::unique_ptr,
             * associated with our custom Deleter. This unique_ptr is aliased as ObjectPtrType.
             *
             * @throw Throws std::underflow_error on memory pool exhaustion.
@@ -221,7 +222,7 @@ namespace ReiserRT
                 pRaw =  getRawBlock();
 #endif
 
-                // I could have used a unique_ptr to pull this trick off, but it isn't pretty. C-Tidy doesn't like
+                // I could have used a unique_ptr to pull this trick off, but it isn't pretty but, C-Tidy doesn't like
                 // it and this is clean and lean. So, I just rolled my own again.
                 struct RawMemoryManager {
                     RawMemoryManager( ObjectPool< T > * pThePool, void * pTheRaw ) : pP{ pThePool }, pR{ pTheRaw } {}
@@ -240,7 +241,7 @@ namespace ReiserRT
                 // Cook directly on raw and if construction doesn't throw, release managed pointer's ownership.
                 // Ownership has been successfully transferred to pCooked.
                 T * pCooked = new ( pRaw )D{ std::forward<Args>(args)... };
-                rawMemoryManager.release(); // CLang C-Tidy warns we have not stored the value returned by release. Ignore.
+                rawMemoryManager.release();
 
                 // Wrap for delivery.
                 return ObjectPtrType{ pCooked, std::move(createDeleter<T>() ) };

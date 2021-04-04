@@ -10,6 +10,10 @@
 
 #include "RingBufferSimple.hpp"
 
+#ifdef REISER_RT_HAS_PTHREADS
+#include "PriorityInheritMutex.hpp"
+#endif
+
 #include <atomic>
 #include <mutex>
 
@@ -18,7 +22,7 @@ using namespace ReiserRT::Core;
 /**
 * @brief Macro OBJECT_POOL_INITIALIZES_RAW_MEMORY
 *
-* If this macro value is defined or defined as non-zero, then the ObjectPoolBase implementation
+* If this macro value is defined, then the ObjectPoolBase implementation
 * will initialize all raw memory to zero. This would occur getting raw memory from the pool.
 */
 #define OBJECT_POOL_INITIALIZES_RAW_MEMORY 1
@@ -49,7 +53,11 @@ private:
     *
     * This is the Mutex type we will utilize protect the ring buffer from simultaneous access by multiple threads.
     */
+#ifdef REISER_RT_HAS_PTHREADS
+    using MutexType = PriorityInheritMutex;
+#else
     using MutexType = std::mutex;
+#endif
 
     /**
     * @brief Running State Basis

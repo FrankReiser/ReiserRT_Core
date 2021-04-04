@@ -187,9 +187,15 @@ namespace ReiserRT
             *
             * @param requestedNumElements The Requested Message Queue Depth
             * @param requestedMaxMessageSize The Requested Maximum Message Size for Derived Message Types.
-            * There is no default value for this parameter. You must specify your maximum, derived message size
+            * There is no default value for this parameter. You must specify your maximum, derived message size.
+            * @param enableDispatchLocking Set to true to enable the dispatch locking capability. Dispatch locking
+            * allows execution serialization between synchronous client threads and an asynchronous dispatch loop
+            * thread. By default this feature is disabled as there is a small performance penalty that a dispatch
+            * loop must pay to support it. If a client must coordinate synchronous and asynchronous activity,
+            * then a client should enable this feature. This cannot be changed after construction.
             */
-            explicit MessageQueue(size_t requestedNumElements, size_t requestedMaxMessageSize);
+            explicit MessageQueue(size_t requestedNumElements, size_t requestedMaxMessageSize,
+                bool enableDispatchLocking = false );
 
             /**
             * @brief Destructor for MessageQueue
@@ -337,7 +343,7 @@ namespace ReiserRT
             * @brief Wake-up Call Function Type
             *
             * This type represents the signature of a function accepting no arguments and returning nothing (void).
-            * It is used by the getAndDispactch operation that notifies the caller when a message is about to be dispatched.
+            * It is used by the getAndDispatch operation that notifies the caller when a message is about to be dispatched.
             */
             using WakeupCallFunctionType = std::function<void()>;
 
@@ -389,6 +395,7 @@ namespace ReiserRT
             * This class affords a client the ability to do both through a common locking mechanism,
             * thereby affording a synchronization means between asynchronous message dispatch implementations and other
             * synchronous requirements.
+            * @note To utilize dispatch locking, it must be enabled during MessageQueue construction.
             */
             class AutoDispatchLock
             {
@@ -491,6 +498,9 @@ namespace ReiserRT
             * Returns an automatic dispatch lock object. The dispatch lock is taken on construction of AutoDispatchLock.
             * When the AutoDispatchLock object is destroy, the dispatch lock is released.
             *
+            * @throw Throws std::runtime_error if dispatch locking was not enabled during MessageQueue construction.
+            * You must enable dispatch locking during construction of MessageQueue to use this feature.
+            *
             * @return Returns an instance of AutoDispatchLock.
             */
             AutoDispatchLock getAutoDispatchLock();
@@ -516,13 +526,6 @@ namespace ReiserRT
             * This attribute maintains the state of our object queue.
             */
             ObjectQueueType objectQueue;
-
-            /**
-            * @brief The Name of the Last Message Dispatched
-            *
-            * This attribute maintains the name of the last message dispatched by the MessageQueue.
-            */
-            const char * nameOfLastMessageDispatched;
         };
 
     }

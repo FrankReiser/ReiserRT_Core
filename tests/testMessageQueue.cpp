@@ -136,7 +136,7 @@ private:
 #if 0
     MessageQueueType msgQueue{ 4 };
 #else
-    MessageQueue msgQueue{ 4, sizeof( ImpleMessage ) };
+    MessageQueue msgQueue{ 4, sizeof( ImpleMessage ), true };
 #endif
 };
 
