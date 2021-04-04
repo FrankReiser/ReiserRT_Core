@@ -53,11 +53,20 @@ class MessageQueue::Details
 #endif
 
     /**
+    * @brief Mutex Pointer Type.
+    *
+    * We encapsulate our MutexType as a unique_ptr as we may or may not instantiate it.
+    * and if we do, it will take care of itself.
+    */
+    using MutexPtrType = std::unique_ptr< MutexType >;
+
+    /**
     * @brief Constructor
     *
-    * This Constructor is defaulted.
+    * This Constructor will instantiate a mutex on the heap if we are enabling dispatch locking.
+    * Otherwise, we won't pay for it. The pointer will be used as a flag as to whether or not we instantiated it.
     */
-    Details() = default;
+    Details( bool enableDispatchLocking ) : pMutex{ enableDispatchLocking ? new MutexType{} : nullptr } {}
 
     /**
     * @brief Destructor
@@ -66,29 +75,54 @@ class MessageQueue::Details
     */
     ~Details() = default;
 
+    /**
+    * @brief Get Name of Last Message Dispatched
+    *
+    * This operation returns the name of the last message dispatched in a thread safe way.
+    *
+    * @return Returns the name of the last message dispatched.
+    */
     const char * getNameOfLastMessageDispatched()
     {
         return nameOfLastMessageDispatched.load();
     }
 
+    /**
+    * @brief Dispatch a Message
+    *
+    * This wrapper operation stores the name of the message prior to dispatch. We do this in the case
+    * that should the operation throw, the name that threw is recorded.
+    * If dispatch locking has been enabled, we will lock the dispatch mutex just prior to dispatching the message.
+    *
+    * @param msgPtr
+    */
     void dispatchMessage( MessagePtrType & msgPtr )
     {
         nameOfLastMessageDispatched.store( msgPtr->name() );
-        std::lock_guard< Details::MutexType > lockGuard{ mutex };
-        msgPtr->dispatch();
+        if ( pMutex )
+        {
+            std::lock_guard< Details::MutexType > lockGuard{ *pMutex };
+            msgPtr->dispatch();
+        }
+        else
+        {
+            msgPtr->dispatch();
+        }
     }
 
     /**
     * @brief Mutex Instance
     *
-    * Our mutex instance.
+    * Our mutex instance pointer and flag. If it is a nullptr, then dispatch locking is disabled and we
+    * do not use it. Otherwise, we use it to lock while dispatching.
     */
-    MutexType mutex{};
+    MutexPtrType pMutex;
 
     /**
     * @brief The Name of the Last Message Dispatched
     *
     * This attribute maintains the name of the last message dispatched by the MessageQueue.
+    * We use an atomic pointer so that it can be fetched in a thread safe manner.
     */
     std::atomic< const char * > nameOfLastMessageDispatched{ "[NONE]" };
 };
@@ -96,12 +130,13 @@ class MessageQueue::Details
 MessageQueue::AutoDispatchLock::AutoDispatchLock( Details * pTheDetails )
   : pDetails{ pTheDetails }
 {
-    pDetails->mutex.lock();
+    // We shall not construct AutoDispatchLock with a null mutex pointer.
+    pDetails->pMutex->lock();
 }
 MessageQueue::AutoDispatchLock::~AutoDispatchLock()
 {
     if ( pDetails )
-        pDetails->mutex.unlock();
+        pDetails->pMutex->unlock();
 }
 
 const char * MessageBase::name() const
@@ -109,8 +144,8 @@ const char * MessageBase::name() const
     return "Unforgiven";
 }
 
-MessageQueue::MessageQueue( size_t requestedNumElements, size_t requestedMaxMessageSize )
-  : pDetails{ new Details }
+MessageQueue::MessageQueue( size_t requestedNumElements, size_t requestedMaxMessageSize, bool enableDispatchLocking )
+  : pDetails{ new Details{ enableDispatchLocking } }
   , objectPool{ requestedNumElements, requestedMaxMessageSize }
   , objectQueue{ requestedNumElements }
 {
@@ -183,5 +218,8 @@ MessageQueue::RunningStateStats MessageQueue::getRunningStateStatistics() noexce
 
 MessageQueue::AutoDispatchLock MessageQueue::getAutoDispatchLock()
 {
+    if ( !pDetails->pMutex )
+        throw std::runtime_error( "MessageQueue::getAutoDispatchLock() - Dispatch Locking not enabled when constructed" );
+
     return std::move( AutoDispatchLock{ pDetails } );
 }
