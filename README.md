@@ -8,9 +8,8 @@ Contents:\
    [1a.  ObjectPool](#objectpool)\
    [1b.  MessageQueue](#messagequeue)\
    [2. Supported Platforms](#supported-platforms)\
-   [3. Library Functionality](#supported-platforms)\
-   [4. Example Usage](#example-usage)\
-   [5. Building and Installation](#building-and-installation)
+   [3. Example Usage](#example-usage)\
+   [4. Building and Installation](#building-and-installation)
 ---
 
 ## Library Functionality
