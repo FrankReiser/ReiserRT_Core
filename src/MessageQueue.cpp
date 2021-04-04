@@ -14,7 +14,7 @@
 #include "PriorityInheritMutex.hpp"
 #endif
 #include <mutex>
-
+#include <atomic>
 
 using namespace ReiserRT;
 using namespace ReiserRT::Core;
@@ -66,12 +66,31 @@ class MessageQueue::Details
     */
     ~Details() = default;
 
+    const char * getNameOfLastMessageDispatched()
+    {
+        return nameOfLastMessageDispatched.load();
+    }
+
+    void dispatchMessage( MessagePtrType & msgPtr )
+    {
+        nameOfLastMessageDispatched.store( msgPtr->name() );
+        std::lock_guard< Details::MutexType > lockGuard{ mutex };
+        msgPtr->dispatch();
+    }
+
     /**
     * @brief Mutex Instance
     *
     * Our mutex instance.
     */
     MutexType mutex{};
+
+    /**
+    * @brief The Name of the Last Message Dispatched
+    *
+    * This attribute maintains the name of the last message dispatched by the MessageQueue.
+    */
+    std::atomic< const char * > nameOfLastMessageDispatched{ "[NONE]" };
 };
 
 MessageQueue::AutoDispatchLock::AutoDispatchLock( Details * pTheDetails )
@@ -94,7 +113,6 @@ MessageQueue::MessageQueue( size_t requestedNumElements, size_t requestedMaxMess
   : pDetails{ new Details }
   , objectPool{ requestedNumElements, requestedMaxMessageSize }
   , objectQueue{ requestedNumElements }
-  , nameOfLastMessageDispatched{ nullptr }
 {
 }
 
@@ -121,9 +139,7 @@ void MessageQueue::getAndDispatch()
     // Setup a lambda function for invoking the message dispatch operation.
     auto funk = [ this ]( MessagePtrType & msgPtr )
     {
-        std::lock_guard< Details::MutexType > lockGuard{ pDetails->mutex };
-        nameOfLastMessageDispatched = msgPtr->name();
-        msgPtr->dispatch();
+        pDetails->dispatchMessage( msgPtr );
     };
 
     // Get (wait) for a message and invoke our lambda via reference.
@@ -142,9 +158,7 @@ void MessageQueue::getAndDispatch( WakeupCallFunctionType wakeupFunctor )
         // It's primary usage is to record processing time and we do not desire this next
         // potential blocking on lock acquisition to not be counted in those statistics.
         wakeupFunctor();
-        std::lock_guard< Details::MutexType > lockGuard{ pDetails->mutex };
-        nameOfLastMessageDispatched = msgPtr->name();
-        msgPtr->dispatch();
+        pDetails->dispatchMessage( msgPtr );
     };
 
     // Get (wait) for a message and invoke our lambda via reference.
@@ -154,7 +168,7 @@ void MessageQueue::getAndDispatch( WakeupCallFunctionType wakeupFunctor )
 
 const char * MessageQueue::getNameOfLastMessageDispatched()
 {
-    return nameOfLastMessageDispatched;
+    return pDetails->getNameOfLastMessageDispatched();
 }
 
 void MessageQueue::abort()

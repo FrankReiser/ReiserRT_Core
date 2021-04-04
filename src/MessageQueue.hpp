@@ -516,13 +516,6 @@ namespace ReiserRT
             * This attribute maintains the state of our object queue.
             */
             ObjectQueueType objectQueue;
-
-            /**
-            * @brief The Name of the Last Message Dispatched
-            *
-            * This attribute maintains the name of the last message dispatched by the MessageQueue.
-            */
-            const char * nameOfLastMessageDispatched;
         };
 
     }
