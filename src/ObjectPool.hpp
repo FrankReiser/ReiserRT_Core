@@ -224,6 +224,7 @@ namespace ReiserRT
 
                 // I could have used a unique_ptr to pull this trick off, but it isn't pretty but, C-Tidy doesn't like
                 // it and this is clean and lean. So, I just rolled my own again.
+                ///@todo Could I have not used ObjectPoolBase pointer here? It is sort of inconsequential though.
                 struct RawMemoryManager {
                     RawMemoryManager( ObjectPool< T > * pThePool, void * pTheRaw ) : pP{ pThePool }, pR{ pTheRaw } {}
                     ~RawMemoryManager() { if ( pP && pR ) pP->returnRawBlock( pR ); }
