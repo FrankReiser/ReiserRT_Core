@@ -309,8 +309,8 @@ namespace ReiserRT
                 // Type M must be move assignable && move constructible.
                 static_assert(std::is_move_constructible<M>::value, "Type M must be move constructible!!!");
 
-                // Type M must be nothrow destructable
-                static_assert(std::is_nothrow_destructible<M>::value, "Type M must be no throw destructable!!!");
+                // Type M must be nothrow destructible
+                static_assert(std::is_nothrow_destructible<M>::value, "Type M must be no throw destructible!!!");
 
 #if 0
                 // The sizeof type MT must be less than or equal to the paddedMessageAllocSize
