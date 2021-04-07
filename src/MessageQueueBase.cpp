@@ -14,9 +14,14 @@
 #include "RingBufferGuarded.hpp"
 
 #include <cstring>
+#include <thread>
 
 using namespace ReiserRT::Core;
 
+const char * MessageBase::name() const
+{
+    return "Unforgiven";
+}
 class ReiserRT_Core_EXPORT MessageQueueBase::Imple
 {
 private:
@@ -37,7 +42,7 @@ private:
         RunningStateBasis state{ 0 };
     };
 
-    Imple( std::size_t theRequestedNumElements, std::size_t theElementSize );
+    Imple( std::size_t theRequestedNumElements, std::size_t theElementSize, bool enableDispatchLocking );
 
     ~Imple();
 
@@ -66,6 +71,13 @@ private:
 
     void rawPutAndNotify( void * pRaw );
 
+    void dispatchMessage( MessageBase * pMsg );
+
+    const char * getNameOfLastMessageDispatched()
+    {
+        return nameOfLastMessageDispatched.load();
+    }
+
     inline void flush( MessageQueueBase::FlushingFunctionType & operation )
     {
         auto funk = [ operation ]( void * pV ) noexcept { operation( pV ); };
@@ -75,25 +87,25 @@ private:
     const size_t requestedNumElements;
     const size_t elementSize;
 
+    unsigned char * arena;
+    std::atomic< const char * > nameOfLastMessageDispatched{ "[NONE]" };
+
     RingBufferType rawRingBuffer;
     RingBufferType cookedRingBuffer;
 
-    RunningStateType runningState;
+    RunningStateType runningState{};
 
-    alignas( void * ) unsigned char * arena;
-
-    std::atomic_bool aborted;
+    std::atomic_bool aborted{ false };
 
 };
 
-MessageQueueBase::Imple::Imple( std::size_t theRequestedNumElements, std::size_t theElementSize )
+MessageQueueBase::Imple::Imple( std::size_t theRequestedNumElements, std::size_t theElementSize,
+                                bool enableDispatchLocking )
   : requestedNumElements{ theRequestedNumElements }
   , elementSize{ theElementSize }
+  , arena{ new unsigned char [ theElementSize * requestedNumElements ] }
   , rawRingBuffer{ theRequestedNumElements, true }
   , cookedRingBuffer{ theRequestedNumElements }
-  , runningState{}
-  , arena{ new unsigned char [ theElementSize * requestedNumElements ] }
-  , aborted{ false }
 {
     // Prime the raw ring buffer with void pointers into our arena space. We do this with a lambda function.
     auto funk = [ this, theElementSize ]( size_t i ) noexcept { return reinterpret_cast< void * >( arena + i * theElementSize ); };
@@ -170,13 +182,26 @@ void MessageQueueBase::Imple::rawPutAndNotify( void * pRaw )
                                                    std::memory_order_seq_cst, std::memory_order_seq_cst ) );
 }
 
-MessageQueueBase::MessageQueueBase( std::size_t requestedNumElements, std::size_t elementSize )
-  : pImple{ new Imple{ requestedNumElements, elementSize } }
+void MessageQueueBase::Imple::dispatchMessage( MessageBase * pMsg )
+{
+    nameOfLastMessageDispatched.store( pMsg->name() );
+    pMsg->dispatch();
+}
+
+MessageQueueBase::MessageQueueBase( std::size_t requestedNumElements, std::size_t elementSize,
+                                    bool enableDispatchLocking )
+  : pImple{ new Imple{ requestedNumElements, elementSize, enableDispatchLocking } }
 {
 }
 
 MessageQueueBase::~MessageQueueBase()
 {
+    abort();
+    std::this_thread::sleep_for( std::chrono::milliseconds(100) );
+
+    auto funk = []( void * pV ) noexcept { MessageBase * pM = reinterpret_cast< MessageBase * >( pV ); pM->~MessageBase(); };
+    flush( std::ref( funk ) );
+
     delete pImple;
 }
 
@@ -208,6 +233,16 @@ void * MessageQueueBase::cookedWaitAndGet()
 void MessageQueueBase::rawPutAndNotify( void * pRaw )
 {
     pImple->rawPutAndNotify( pRaw );
+}
+
+void MessageQueueBase::dispatchMessage( MessageBase * pMsg )
+{
+    pImple->dispatchMessage( pMsg );
+}
+
+const char * MessageQueueBase::getNameOfLastMessageDispatched()
+{
+    return pImple->getNameOfLastMessageDispatched();
 }
 
 void MessageQueueBase::flush( FlushingFunctionType operation )

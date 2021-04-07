@@ -20,12 +20,119 @@ namespace ReiserRT
 {
     namespace Core
     {
+        /**
+        * @brief The Message Queue Abstract Message Base Class
+        *
+        * All MessageQueue message classes must be derived from this abstract base class.
+        * The core requirements for derived messages are specified by its interface functions
+        * which are documented within.
+        */
+        class ReiserRT_Core_EXPORT MessageBase
+        {
+        public:
+            /**
+            * @brief Default Constructor for MessageBase
+            *
+            * This is the default constructor for the MessageBase class. It does nothing of significance
+            * and will not throw any exceptions.
+            *
+            * @note The noexcept clause does not imply any restrictions on derived message types.
+            * It is not a requirement.
+            */
+            MessageBase() noexcept = default;
+
+            /**
+            * @brief The Destructor for MessageBase
+            *
+            * This is the destructor for MessageBase class. It does nothing of significance
+            * and will not throw any exceptions. It is declared virtual as this is an abstract base class
+            * and is a requirement of our internal ObjectPool.
+            *
+            * @note The noexcept clause does not imply any restrictions on derived message types.
+            * It is not a requirement.
+            */
+            virtual ~MessageBase() noexcept = default;
+
+            /**
+            * @brief The Copy Constructor for MessageBase
+            *
+            * This is the copy constructor for MessageBase class. It does nothing of significance
+            * and will not throw any exceptions.
+            *
+            * @note The noexcept clause does not imply any restrictions on derived message types.
+            * It is not a requirement.
+            *
+            * @param another A constant reference to another instance of MessageBase in which to copy.
+            */
+            MessageBase( const MessageBase & another ) noexcept = default;
+
+            /**
+            * @brief The Copy Assignment Operator
+            *
+            * This is the copy assignment operator for MessageBase class. It does nothing of significance
+            * and will not throw any exceptions.
+            *
+            * @note The noexcept clause does not imply any restrictions on derived message types.
+            * It is not a requirement.
+            *
+            * @param another A constant reference to another instance of MessageBase in which to copy assign from.
+            */
+            MessageBase & operator = ( const MessageBase & another ) noexcept = default;
+
+            /**
+            * @brief The Move Constructor for MessageBase
+            *
+            * This is the move constructor for MessageBase class. It does nothing of significance
+            * and will not throw any exceptions.
+            *
+            * @note The noexcept clause does not imply any restrictions on derived message types.
+            * It is not a requirement.
+            *
+            * @param another A rvalue reference to another instance of MessageBase in which to move contents from.
+            */
+            MessageBase( MessageBase && another ) noexcept = default;
+
+            /**
+            * @brief The Move Assignment Operator
+            *
+            * This is the move assignment operator for MessageBase class. It does nothing of significance
+            * and will not throw any exceptions.
+            *
+            * @note The noexcept clause does not imply any restrictions on derived message types.
+            * It is not a requirement.
+            *
+            * @param another A rvalue reference to another instance of MessageBase in which to move assign from.
+            */
+            MessageBase & operator = ( MessageBase && another ) noexcept = default;
+
+            /**
+            * @brief The Dispatch Operation
+            *
+            * This is the abstract dispatch operation. It must be overridden by a derived class to
+            * perform the dispatching of the message. It is entirely up to the client to as to what
+            * the meaning of "dispatch" is.
+            */
+            virtual void dispatch() = 0;
+
+            /**
+            * @brief The Name Function
+            *
+            * The name operation is intended to be overridden to provide meaningful information for
+            * message dispatching operations. If not overridden, an annoying default is provided.
+            *
+            * @return Intended to return the name of the message class.
+            */
+            virtual const char * name() const;
+        };
+
         class ReiserRT_Core_EXPORT MessageQueueBase
         {
         private:
             class Imple;
 
-        protected:
+        public:
+            using WakeupCallFunctionType = std::function<void()>;
+
             using CounterType = uint32_t;
 
             struct RunningStateStats
@@ -37,6 +144,7 @@ namespace ReiserRT
                 CounterType highWatermark{ 0 }; //!< The Current High Watermark Captured Atomically (snapshot)
             };
 
+        protected:
             using FlushingFunctionType = std::function< void( void * ) noexcept >;
 
             struct RawMemoryManager {
@@ -49,7 +157,17 @@ namespace ReiserRT
                 void * pR;
             };
 
-            explicit MessageQueueBase( std::size_t requestedNumElements, std::size_t elementSize );
+            struct CookedMemoryManager {
+                CookedMemoryManager( MessageQueueBase * pMQBase, MessageBase * pMBase ) : pMQB{ pMQBase }, pMsg{ pMBase } {}
+                ~CookedMemoryManager() { if ( pMQB && pMsg ) { pMsg->~MessageBase(); pMQB->rawPutAndNotify( pMsg ); } }
+
+            private:
+                MessageQueueBase * pMQB;
+                MessageBase * pMsg;
+            };
+
+            explicit MessageQueueBase( std::size_t requestedNumElements, std::size_t elementSize,
+                                       bool enableDispatchLocking );
             ~MessageQueueBase();
 
             RunningStateStats getRunningStateStatistics() noexcept;
@@ -63,6 +181,10 @@ namespace ReiserRT
             void * cookedWaitAndGet();
 
             void rawPutAndNotify( void * pRaw );
+
+            void dispatchMessage( MessageBase * pMsg );
+
+            const char * getNameOfLastMessageDispatched();
 
             void flush( FlushingFunctionType operation );
 

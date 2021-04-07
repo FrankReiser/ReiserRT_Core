@@ -7,7 +7,7 @@ set( _publicHeaders
         ObjectPool.hpp
         ObjectPoolDeleter.hpp
         ObjectPoolFwd.hpp
-        ObjectQueue.hpp
+#        ObjectQueue.hpp
         MessageQueueBase.hpp
         MessageQueue.hpp
         )
@@ -26,7 +26,7 @@ set( _privateSources
         ObjectPool.cpp
         ObjectPoolDeleter.cpp
         ObjectPoolFwd.cpp
-        ObjectQueue.cpp
+#        ObjectQueue.cpp
         MessageQueueBase.cpp
         MessageQueue.cpp
         )

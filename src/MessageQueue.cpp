@@ -19,6 +19,7 @@
 using namespace ReiserRT;
 using namespace ReiserRT::Core;
 
+#if 0
 /**
 * @brief MessageQueue Hidden Details
 *
@@ -138,26 +139,44 @@ MessageQueue::AutoDispatchLock::~AutoDispatchLock()
     if ( pDetails )
         pDetails->pMutex->unlock();
 }
-
+#endif
+#if 0
 const char * MessageBase::name() const
 {
     return "Unforgiven";
 }
+#endif
 
 MessageQueue::MessageQueue( size_t requestedNumElements, size_t requestedMaxMessageSize, bool enableDispatchLocking )
+#if 1
+  : MessageQueueBase( requestedNumElements, requestedMaxMessageSize, enableDispatchLocking )
+#else
   : pDetails{ new Details{ enableDispatchLocking } }
   , objectPool{ requestedNumElements, requestedMaxMessageSize }
   , objectQueue{ requestedNumElements }
+#endif
 {
 }
 
 MessageQueue::~MessageQueue()
 {
+#if 1
+
+#else
     objectQueue.abort();
+#endif
 };
 
 void MessageQueue::getAndDispatch()
 {
+#if 1
+    MessageBase * pM = reinterpret_cast< MessageBase * >( cookedWaitAndGet() );
+
+    CookedMemoryManager cookedMemoryManager{ this, pM };
+
+    dispatchMessage( pM );
+
+#else
     ///@note What is happening here, for numerous reasons, is as follows:
     ///1) MessagePtrType is a unique_ptr type, That is what comes from our objectQueue.
     ///   It should also be noted that ObjectQueue was specifically designed for MessageQueue,
@@ -180,10 +199,20 @@ void MessageQueue::getAndDispatch()
     // Get (wait) for a message and invoke our lambda via reference.
     // If the dispatch throws anything, it will propagate up the call stack.
     objectQueue.getAndInvoke( std::ref( funk ) );
+#endif
 }
 
 void MessageQueue::getAndDispatch( WakeupCallFunctionType wakeupFunctor )
 {
+#if 1
+    MessageBase * pM = reinterpret_cast< MessageBase * >( cookedWaitAndGet() );
+
+    wakeupFunctor();
+
+    CookedMemoryManager cookedMemoryManager{ this, pM };
+
+    dispatchMessage( pM );
+#else
     ///@note See note for getAndDispatch without the wakeupFunctor argument for discussion
 
     // Setup a lambda function for invoking the message dispatch operation.
@@ -199,23 +228,31 @@ void MessageQueue::getAndDispatch( WakeupCallFunctionType wakeupFunctor )
     // Get (wait) for a message and invoke our lambda via reference.
     // If the dispatch throws anything, it will propagate up the call stack.
     objectQueue.getAndInvoke( std::ref( funk ) );
+#endif
 }
 
+#if 0
 const char * MessageQueue::getNameOfLastMessageDispatched()
 {
     return pDetails->getNameOfLastMessageDispatched();
 }
+#endif
 
+#if 0
 void MessageQueue::abort()
 {
     objectQueue.abort();
 }
+#endif
 
-MessageQueue::RunningStateStats MessageQueue::getRunningStateStatistics() noexcept
+#if 0
+MessageQueueBase::RunningStateStats MessageQueue::getRunningStateStatistics() noexcept
 {
     return objectQueue.getRunningStateStatistics();
 }
+#endif
 
+#if 0
 MessageQueue::AutoDispatchLock MessageQueue::getAutoDispatchLock()
 {
     if ( !pDetails->pMutex )
@@ -223,3 +260,4 @@ MessageQueue::AutoDispatchLock MessageQueue::getAutoDispatchLock()
 
     return std::move( AutoDispatchLock{ pDetails } );
 }
+#endif

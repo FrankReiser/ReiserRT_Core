@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <random>
+#include <thread>
 
 using namespace std;
 using namespace ReiserRT::Core;
@@ -128,7 +129,9 @@ public:
 
     size_t getDispatchCount() { return numberImpleMessagesDispatched; }
 
+#if 0
     MessageQueue::AutoDispatchLock getAutoDispatchLock() { return std::move( msgQueue.getAutoDispatchLock() ); }
+#endif
 
 private:
     ActiveContextType messageHandlerThread{};
@@ -260,6 +263,7 @@ int main()
             pUserProcess.reset();
         }
 
+#if 0
         // Use an Active Class to test dispatch locking
         {
             // Create MessageQueueUserProcess on heap and activate it.
@@ -276,7 +280,6 @@ int main()
                 retVal = 11;
             }
 
-#if 1
             // Using scoping to hold an auto dispatch lock
             {
                 // Obtain an auto dispatch lock and send a message.
@@ -302,11 +305,11 @@ int main()
                           << pUserProcess->getDispatchCount() << ", expected " << 2 << "\n";
                 retVal = 13;
             }
-#endif
 
             // Destroy it and if it doesn't crash, we're good.
             pUserProcess.reset();
         }
+#endif
 
      } while ( false );
 

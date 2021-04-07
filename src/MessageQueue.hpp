@@ -10,8 +10,12 @@
 
 #include "ReiserRT_CoreExport.h"
 
+#if 0
 #include "ObjectPool.hpp"
 #include "ObjectQueue.hpp"
+#else
+#include "MessageQueueBase.hpp"
+#endif
 
 #include <memory>
 
@@ -19,6 +23,7 @@ namespace ReiserRT
 {
     namespace Core
     {
+#if 0   // Moving to MessageQueueBase
         /**
         * @brief The Message Queue Abstract Message Base Class
         *
@@ -123,6 +128,7 @@ namespace ReiserRT
             */
             virtual const char * name() const;
         };
+#endif
 
         /**
         * @brief A MessageQueue Class
@@ -132,7 +138,8 @@ namespace ReiserRT
         * ObjectQueue to move smart pointers of abstract messages from input to output where they are
         * dispatched by the getAndDispatch operation.
         */
-        class ReiserRT_Core_EXPORT MessageQueue {
+        class ReiserRT_Core_EXPORT MessageQueue : public MessageQueueBase {
+#if 0
             /**
             * @brief The Object Pool Type
             *
@@ -154,21 +161,25 @@ namespace ReiserRT
             * The object queue type is that of our MessagePtrType.
             */
             using ObjectQueueType = ReiserRT::Core::ObjectQueue<MessagePtrType>;
-
+#endif
         public:
+#if 0
             /**
             * @brief The Running State Statistics
             *
             * We alias our running state statistics to that our ObjectQueueType::RunningStateStats.
             */
             using RunningStateStats = typename ObjectQueueType::RunningStateStats;
-
+#endif
+#if 0
             /**
             * @brief Forward Declaration for Details Class
             *
             * The Details class contains implementation state data which is not exposed at the interface layer.
             */
+            ///@todo Can I refactor this into MessageQueueBase???
             class Details;
+#endif
 
             /**
             * @brief Default Constructor for Message Queue
@@ -267,12 +278,21 @@ namespace ReiserRT
                 // Type M must be nothrow destructable
                 static_assert(std::is_nothrow_destructible<M>::value, "Type M must be no throw destructible!!!");
 
-#if 0
-                // The sizeof type M must be less than or equal to the paddedMessageAllocSize
-                static_assert( sizeof( M ) <= paddedMessageAllocSize,
-                                "The sizeof type M must be less than or equal to the paddedMessageAllocSize, derived from requestedMaxMessageSize!!!" );
-#endif
+#if 1
+                // Wait on raw memory availabilty
+                void * pRaw = rawWaitAndGet();
 
+                // Wrap it up for safe return should we throw an exception when we cook it.
+                RawMemoryManager rawMemoryManager{ this, pRaw };
+
+                // Cook raw memory
+                M * pM = new( pRaw )M{ std::forward<M>(msg) };
+
+                // If here, raw is successfully cooked. Release RawMemoryManager from cleanup responsibility and
+                // send cooked out for delivery.
+                rawMemoryManager.release();
+                cookedPutAndNotify( pM );
+#else
                 // First, we'll reserve a put handle. This will block if the MessageQueue is full serving as a guard before we allocate
                 // from the pool which would throw if we allowed it to become exhausted.
                 auto reservedPutHandle = objectQueue.reservePutHandle();
@@ -281,6 +301,7 @@ namespace ReiserRT
                 // By design, it has, at a minimum, the required number of blocks to meet the internal counted semaphore guard.
                 // After the message is moved the pool memory, we'll immediately enqueue it onto the reserved put handle.
                 objectQueue.emplaceOnReserved(reservedPutHandle, objectPool.createObj<M>(std::forward<M>(msg)));
+#endif
             }
 
             /**
@@ -312,12 +333,21 @@ namespace ReiserRT
                 // Type M must be nothrow destructible
                 static_assert(std::is_nothrow_destructible<M>::value, "Type M must be no throw destructible!!!");
 
-#if 0
-                // The sizeof type MT must be less than or equal to the paddedMessageAllocSize
-                static_assert( sizeof( M ) <= paddedMessageAllocSize,
-                                "The sizeof type M must be less than or equal to the paddedMessageAllocSize, derived from requestedMaxMessageSize!!!" );
-#endif
+#if 1
+                // Wait on raw memory availabilty
+                void * pRaw = rawWaitAndGet();
 
+                // Wrap it up for safe return should we throw an exception when we cook it.
+                RawMemoryManager rawMemoryManager{ this, pRaw };
+
+                // Cook raw memory
+                M * pM = new( pRaw )M{ std::forward<Args>(args)... };
+
+                // If here, raw is successfully cooked. Release RawMemoryManager from cleanup responsibility and
+                // send cooked out for delivery.
+                rawMemoryManager.release();
+                cookedPutAndNotify( pM );
+#else
                 // First, we'll reserve a put handle. This will block if the MessageQueue is full serving as a guard before we allocate
                 // from the pool which would throw if we allowed it to become exhausted.
                 auto reservedPutHandle = objectQueue.reservePutHandle();
@@ -326,6 +356,7 @@ namespace ReiserRT
                 // By design, it has, at a minimum, the required number of blocks to meet the internal counted semaphore guard.
                 // After the message is emplaced onto pool memory, we'll immediately enqueue it onto the reserved put handle.
                 objectQueue.emplaceOnReserved(reservedPutHandle, objectPool.createObj<M>(std::forward<Args>(args)...));
+#endif
             }
 
             /**
@@ -339,6 +370,7 @@ namespace ReiserRT
             */
             void getAndDispatch();
 
+#if 0   // Moving to MessageQueueBase
             /**
             * @brief Wake-up Call Function Type
             *
@@ -346,7 +378,7 @@ namespace ReiserRT
             * It is used by the getAndDispatch operation that notifies the caller when a message is about to be dispatched.
             */
             using WakeupCallFunctionType = std::function<void()>;
-
+#endif
             /**
             * @brief The Get and Dispatch Operation with Wake-up Notification
             *
@@ -368,14 +400,18 @@ namespace ReiserRT
             *
             * @return Returns the name of the last message dispatched.
             */
-            const char *getNameOfLastMessageDispatched();
+            using MessageQueueBase::getNameOfLastMessageDispatched;
 
             /**
             * @brief The Abort Operation
             *
             * This operation defers to ObjectQueue::abort to abort the message queue.
             */
+#if 1
+            using MessageQueueBase::abort;
+#else
             void abort();
+#endif
 
             /**
             * @brief The Get Running State Statistics.
@@ -384,8 +420,13 @@ namespace ReiserRT
             *
             * @return Returns running state statistics.
             */
+#if 1
+            using MessageQueueBase::getRunningStateStatistics;
+#else
             RunningStateStats getRunningStateStatistics() noexcept;
+#endif
 
+#if 0
             /**
             * brief A Dispatch Lock Automatic Lock/Release Mechanism
             *
@@ -504,15 +545,17 @@ namespace ReiserRT
             * @return Returns an instance of AutoDispatchLock.
             */
             AutoDispatchLock getAutoDispatchLock();
-
+#endif
         private:
+#if 0
             /**
             * @brief MessageQueue Details Reference.
             *
             * A pointer reference to the hidden MessageQueue details.
             */
             Details * pDetails;
-
+#endif
+#if 0
             /**
             * @brief The Object Pool
             *
@@ -526,6 +569,7 @@ namespace ReiserRT
             * This attribute maintains the state of our object queue.
             */
             ObjectQueueType objectQueue;
+#endif
         };
 
     }
