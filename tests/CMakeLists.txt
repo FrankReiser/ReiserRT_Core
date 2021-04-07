@@ -37,14 +37,6 @@ target_include_directories( testObjectPool PUBLIC ../src )
 target_link_libraries( testObjectPool ReiserRT_Core )
 add_test( NAME runObjectPoolTest COMMAND $<TARGET_FILE:testObjectPool> )
 
-#[[
-add_executable( testObjectQueue "" )
-target_sources( testObjectQueue PRIVATE testObjectQueue.cpp )
-target_include_directories( testObjectQueue PUBLIC ../src )
-target_link_libraries( testObjectQueue ReiserRT_Core )
-add_test( NAME runObjectQueueTest COMMAND $<TARGET_FILE:testObjectQueue> )
-]]
-
 add_executable( testMessageQueue "" )
 target_sources( testMessageQueue PRIVATE testMessageQueue.cpp )
 target_include_directories( testMessageQueue PUBLIC ../src )

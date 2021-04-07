@@ -123,8 +123,10 @@ public:
     void onImpleMessage(unsigned int randNum, unsigned int randNumHash)
     {
         ++numberImpleMessagesDispatched;
-        if (randNumHash != (unsigned int)hasherMQ(randNum))
-            std::cout << "MessageQueueUserProcess::onImpleMessage detected invalid data!\n";
+        if (randNumHash == (unsigned int)hasherMQ(randNum))
+        {
+            ++numberOfMessagesValidated;
+        }
     }
 
     void sendImpleMessage()
@@ -133,12 +135,15 @@ public:
     }
 
     size_t getDispatchCount() { return numberImpleMessagesDispatched; }
+    size_t getValidatedCount() { return numberOfMessagesValidated; }
 
     MessageQueueBase::AutoDispatchLock getAutoDispatchLock() { return std::move( msgQueue.getAutoDispatchLock() ); }
 
 private:
     ActiveContextType messageHandlerThread{};
     size_t numberImpleMessagesDispatched{ 0 };
+    size_t numberOfMessagesValidated{ 0 };
+
     MessageQueue msgQueue{ 4, sizeof( ImpleMessage ), true };
 };
 
@@ -386,7 +391,7 @@ int main()
 
             // Invoke its send function multiple times
 //            constexpr size_t count = 1048576;
-            constexpr size_t count = 1048576 << 1;
+            constexpr size_t count = 1048576 << 2;
             for (size_t i = 0; i != count; i++)
                 pUserProcess->sendImpleMessage();
 
@@ -399,6 +404,16 @@ int main()
                 std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount after sendImpleMessage*count, got "
                           << pUserProcess->getDispatchCount() << ", expected " << count << "\n";
                 retVal = 20;
+            }
+            else
+            {
+                // Verify they were all validated
+                if ( pUserProcess->getValidatedCount() != count )
+                {
+                    std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount after sendImpleMessage*count, got "
+                              << pUserProcess->getDispatchCount() << ", expected " << count << "\n";
+                    retVal = 21;
+                }
             }
 
             // Destroy it and if it doesn't crash, we're good.
@@ -418,7 +433,7 @@ int main()
             {
                 std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount after sendImple Message, got "
                           << pUserProcess->getDispatchCount() << ", expected " << 1 << "\n";
-                retVal = 21;
+                retVal = 22;
             }
 
             // Using scoping to hold an auto dispatch lock
@@ -434,7 +449,7 @@ int main()
                 {
                     std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount blocking dispatching, got "
                               << pUserProcess->getDispatchCount() << ", expected " << 1 << "\n";
-                    retVal = 22;
+                    retVal = 23;
                 }
             }
 
@@ -444,7 +459,7 @@ int main()
             {
                 std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount blocking dispatching, got "
                           << pUserProcess->getDispatchCount() << ", expected " << 2 << "\n";
-                retVal = 23;
+                retVal = 24;
             }
 
             // Destroy it and if it doesn't crash, we're good.
