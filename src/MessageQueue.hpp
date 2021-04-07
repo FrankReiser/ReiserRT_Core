@@ -426,7 +426,9 @@ namespace ReiserRT
             RunningStateStats getRunningStateStatistics() noexcept;
 #endif
 
-#if 0
+#if 1
+            using MessageQueueBase::getAutoDispatchLock;
+#else
             /**
             * brief A Dispatch Lock Automatic Lock/Release Mechanism
             *

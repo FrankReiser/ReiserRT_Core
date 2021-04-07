@@ -12,9 +12,11 @@
 
 #include "MessageQueueBase.hpp"
 #include "RingBufferGuarded.hpp"
+#include "PriorityInheritMutex.hpp"
 
 #include <cstring>
 #include <thread>
+#include <mutex>
 
 using namespace ReiserRT::Core;
 
@@ -22,12 +24,20 @@ const char * MessageBase::name() const
 {
     return "Unforgiven";
 }
+
 class ReiserRT_Core_EXPORT MessageQueueBase::Imple
 {
 private:
     friend class MessageQueueBase;
 
     using RingBufferType = RingBufferGuarded< void * >;
+
+#ifdef REISER_RT_HAS_PTHREADS
+    using MutexType = PriorityInheritMutex;
+#else
+    using MutexType = std::mutex;
+#endif
+    using MutexPtrType = std::unique_ptr< MutexType >;
 
     using RunningStateBasis = uint64_t;
     using RunningStateType = std::atomic< RunningStateBasis >;
@@ -87,6 +97,8 @@ private:
     const size_t requestedNumElements;
     const size_t elementSize;
 
+    MutexPtrType pMutex;
+
     unsigned char * arena;
     std::atomic< const char * > nameOfLastMessageDispatched{ "[NONE]" };
 
@@ -99,10 +111,24 @@ private:
 
 };
 
+MessageQueueBase::AutoDispatchLock::AutoDispatchLock( MessageQueueBase * pTheMQB )
+        : pMQB{ pTheMQB }
+{
+    // We shall not construct AutoDispatchLock with a null mutex pointer.
+    pMQB->pImple->pMutex->lock();
+}
+
+MessageQueueBase::AutoDispatchLock::~AutoDispatchLock()
+{
+    // If we have not been "moved from", unlock. Otherwise, the "moved to" is responsible.
+    if ( pMQB ) pMQB->pImple->pMutex->unlock();
+}
+
 MessageQueueBase::Imple::Imple( std::size_t theRequestedNumElements, std::size_t theElementSize,
                                 bool enableDispatchLocking )
   : requestedNumElements{ theRequestedNumElements }
   , elementSize{ theElementSize }
+  , pMutex{ enableDispatchLocking ? new MutexType{} : nullptr }
   , arena{ new unsigned char [ theElementSize * requestedNumElements ] }
   , rawRingBuffer{ theRequestedNumElements, true }
   , cookedRingBuffer{ theRequestedNumElements }
@@ -185,7 +211,15 @@ void MessageQueueBase::Imple::rawPutAndNotify( void * pRaw )
 void MessageQueueBase::Imple::dispatchMessage( MessageBase * pMsg )
 {
     nameOfLastMessageDispatched.store( pMsg->name() );
-    pMsg->dispatch();
+    if ( pMutex )
+    {
+        std::lock_guard< MutexType > lockGuard{ *pMutex };
+        pMsg->dispatch();
+    }
+    else
+    {
+        pMsg->dispatch();
+    }
 }
 
 MessageQueueBase::MessageQueueBase( std::size_t requestedNumElements, std::size_t elementSize,
@@ -233,6 +267,14 @@ void * MessageQueueBase::cookedWaitAndGet()
 void MessageQueueBase::rawPutAndNotify( void * pRaw )
 {
     pImple->rawPutAndNotify( pRaw );
+}
+
+MessageQueueBase::AutoDispatchLock MessageQueueBase::getAutoDispatchLock()
+{
+    if ( !pImple->pMutex )
+        throw std::runtime_error( "MessageQueueBase::getAutoDispatchLock() - Dispatch Locking not enabled when constructed" );
+
+    return std::move( AutoDispatchLock{ this } );
 }
 
 void MessageQueueBase::dispatchMessage( MessageBase * pMsg )

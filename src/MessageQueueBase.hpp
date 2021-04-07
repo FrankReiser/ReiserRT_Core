@@ -144,6 +144,43 @@ namespace ReiserRT
                 CounterType highWatermark{ 0 }; //!< The Current High Watermark Captured Atomically (snapshot)
             };
 
+            class AutoDispatchLock
+            {
+            private:
+                friend class MessageQueueBase;
+
+                explicit AutoDispatchLock( MessageQueueBase * pTheMQB );
+
+            public:
+                AutoDispatchLock() = delete;
+
+                ~AutoDispatchLock();
+
+                AutoDispatchLock( const AutoDispatchLock & another ) = delete;
+
+                AutoDispatchLock & operator =( const AutoDispatchLock & another ) = delete;
+
+                AutoDispatchLock( AutoDispatchLock && another ) noexcept
+                        : pMQB{ another.pMQB }
+                {
+                    another.pMQB = nullptr;
+                }
+
+                AutoDispatchLock & operator =( AutoDispatchLock && another ) noexcept
+                {
+                    if (this != &another)
+                    {
+                        pMQB = another.pMQB;
+                        another.pMQB = nullptr;
+                    }
+                    return *this;
+                }
+
+            private:
+                MessageQueueBase * pMQB;
+            };
+
+
         protected:
             using FlushingFunctionType = std::function< void( void * ) noexcept >;
 
@@ -181,6 +218,8 @@ namespace ReiserRT
             void * cookedWaitAndGet();
 
             void rawPutAndNotify( void * pRaw );
+
+            AutoDispatchLock getAutoDispatchLock();
 
             void dispatchMessage( MessageBase * pMsg );
 
