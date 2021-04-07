@@ -16,14 +16,14 @@ Contents:\
 Currently, the library provides two primary components, 
 ObjectPool and MessageQueue. These two components are built on top
 of various subcomponents which are exported for potential reuse.
-These subcomponents are Semaphore, RingBufferSimple, RingBufferGuarded
-and ObjectQueue. In order to experience the best results, your
+These subcomponents are Semaphore, RingBufferSimple and RingBufferGuarded.
+In order to experience the best results, your
 processes should enable a realtime scheduler. Under Linux,
-my preferred scheduler is "SCHED_FIFO". Also, your
+my "go to" scheduler is "SCHED_FIFO". Additionally, your
 threads should run at a priority level appropriate for your
 application. Regardless of scheduler used, the functionality of
-the components is unaffected. The only impact the scheduler has is 
-on the level of determinism that can be achieved.
+the components is unaffected. The only impact the scheduler has is, 
+the level of determinism that can be achieved.
 
 ### ObjectPool
 Calling new and delete in a realtime application can
@@ -88,10 +88,12 @@ MessageQueue provides for object oriented
 inter-thread communication. Primarily, it provides a means
 for which a high-priority task, handling a realtime interface,
 can do necessary work and then hand off the additional work to a lesser priority
-task. In order to utilize MessageQueue, you will need to derive
-custom messages from MessageBase and override the dispatch
-function. MessageQueue makes extensive use of ObjectPool
-and ObjectQueue to accomplish its goals.
+task. Internally, it uses pre-allocated memory for it's buffering purposes
+in order to avoid system heap usage, post initialization, as does ObjectPool.
+
+In order to utilize MessageQueue, you will need to derive your own
+custom messages based off of MessageBase and override the dispatch
+function.
 
 Messages are enqueued with either the
 `MessageQueue::put< DerivedMsgType >( derivedType && )` or the
@@ -114,7 +116,7 @@ If a software component, performing asynchronous processing with
 MessageQueue, also needs to coordinate synchronous processing.
 Asynchronous processing can be temporarily blocked. Taking
 advantage of this feature allows reuse of the MessageQueue's
-internal dispatch mutex. This allows all class attributes to
+internal dispatch mutex. This allows a client's attribute data to
 be thread safe with regards to asynchronous and synchronous
 processing, operating from different threads. 
 
