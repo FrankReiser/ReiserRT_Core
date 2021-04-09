@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.17)
 
 project(
         ReiserRT_Core
-        VERSION 1.2.0
-        DESCRIPTION "Frank Reiser's Realtime Core Library")
+        VERSION 1.2.1
+        DESCRIPTION "Frank Reiser's C++11 core components for multi-threaded, realtime embedded systems.")
 
 # Set up compiler requirements
 set(CMAKE_CXX_STANDARD 11)
