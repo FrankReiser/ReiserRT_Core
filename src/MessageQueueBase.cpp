@@ -7,7 +7,7 @@
 * ObjectQueue will be eliminated in this process.
 *
 * @authors Frank Reiser
-* @date Created on Apr 6, 2015
+* @date Created on Apr 6, 2021
 */
 
 #include "MessageQueueBase.hpp"

@@ -1,5 +1,6 @@
 # Public Header files
 set( _publicHeaders
+        Exceptions.hpp
         RingBufferSimple.hpp
         Semaphore.hpp
         RingBufferGuarded.hpp
@@ -7,7 +8,6 @@ set( _publicHeaders
         ObjectPool.hpp
         ObjectPoolDeleter.hpp
         ObjectPoolFwd.hpp
-#        ObjectQueue.hpp
         MessageQueueBase.hpp
         MessageQueue.hpp
         )
@@ -19,6 +19,7 @@ set( _privateHeaders
 
 # Private Source files.
 set( _privateSources
+        Exceptions.cpp
         RingBufferSimple.cpp
         Semaphore.cpp
         RingBufferGuarded.cpp
@@ -26,7 +27,6 @@ set( _privateSources
         ObjectPool.cpp
         ObjectPoolDeleter.cpp
         ObjectPoolFwd.cpp
-#        ObjectQueue.cpp
         MessageQueueBase.cpp
         MessageQueue.cpp
         )
