@@ -1,5 +1,5 @@
 /**
-* @file Exceptions.cpp
+* @file ReiserRT_CoreExceptions.cpp
 * @brief The Implementation file for Exceptions Thrown by ReiserRT::Core components
 *
 * This file came into existence in a effort to eliminated a vulnerability with throwing standard exceptions.
@@ -8,4 +8,4 @@
 * @date Created on Apr 9, 2021
 */
 
-#include "Exceptions.hpp"
+#include "ReiserRT_CoreExceptions.hpp"

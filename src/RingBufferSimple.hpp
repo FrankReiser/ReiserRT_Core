@@ -8,7 +8,7 @@
 #ifndef REISERRT_CORE_RINGBUFFERSIMPLE_HPP
 #define REISERRT_CORE_RINGBUFFERSIMPLE_HPP
 
-#include "Exceptions.hpp"
+#include "ReiserRT_CoreExceptions.hpp"
 
 #include <type_traits>
 #include <cstdint>
@@ -112,7 +112,7 @@ namespace ReiserRT
             *
             * Template class RingBufferSimpleBase is a friend and only it can invoked our member operations.
             */
-            template< typename _ScalarType > friend class RingBufferSimpleBase;
+            template< typename ST > friend class RingBufferSimpleBase;
 
         protected:
             /**
@@ -138,7 +138,7 @@ namespace ReiserRT
             }
 
             /**
-            * @brief Destructor for RingBufferSimpeImple
+            * @brief Destructor for RingBufferSimpleImple
             *
             * The destructor returns the ring buffer element block to the standard heap.
             */
@@ -286,14 +286,6 @@ namespace ReiserRT
             static_assert( std::is_scalar< T >::value,
                     "RingBufferSimpleBase< T > must specify a scalar type (which includes pointer types)!" );
 
-            /**
-            * @brief Alias Type to RingBufferSimpleImple< T >
-            *
-            * This type provides a little "syntactic sugar" for the class.
-            */
-            using Imple = RingBufferSimpleImple< T >;
-
-
         public:
 
             /**
@@ -347,10 +339,9 @@ namespace ReiserRT
             /**
             * @brief Destructor for RingBufferSimpleBase
             *
-            * This is the destructor for RingBufferSimpleBase, I destroys and deletes the implementation instance thereby
-            * returning it to the standard heap.
+            * Default behavior for destructor of RingBufferSimpleBase is all that is required.
             */
-            ~RingBufferSimpleBase() {}
+            ~RingBufferSimpleBase() = default;
 
         protected:
             /**
@@ -407,7 +398,7 @@ namespace ReiserRT
             * This is our implementation object. It is simply aggregated. There is no need for another level of
             * indirection. The implementation already has one level.
             */
-            Imple imple;
+            RingBufferSimpleImple< T > imple;
         };
 
         /**

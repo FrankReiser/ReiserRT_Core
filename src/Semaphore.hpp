@@ -10,7 +10,6 @@
 
 #include "ReiserRT_CoreExport.h"
 
-#include <stdexcept>
 #include <functional>
 
 namespace ReiserRT
@@ -110,7 +109,7 @@ namespace ReiserRT
             * If the available count is already zero, the operation will block until available count is incremented
             * away from zero.
             *
-            * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
+            * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
             */
             void wait();
 
@@ -132,7 +131,7 @@ namespace ReiserRT
             * @warning It is expected that the function object remain valid throughout the duration of the wait invocation. Failure
             * to provide this assurance will lead to undefined behavior.
             * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
-            * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
+            * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
             * @throw The user operation may throw an exception of unknown type.
             */
             void wait( FunctionType operation );
@@ -142,7 +141,7 @@ namespace ReiserRT
             *
             * This operation increments the available count away from zero and will wake, at most, one waiting thread.
             *
-            * @throw Throws std::runtime_error if the abort operation is invoked via another thread or if we have been
+            * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread or if we have been
             * notified more times than we can count (2^32 -1).
             */
             void notify();
@@ -162,7 +161,7 @@ namespace ReiserRT
             * @warning It is expected that the function object remain valid throughout the duration of the wait invocation. Failure
             * to provide this assurance will lead to undefined behavior.
             * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
-            * @throw Throws std::runtime_error if the abort operation is invoked via another thread or if we have been
+            * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread or if we have been
             * notified more times than we can count (2^32 -1).
             */
             void notify( FunctionType operation );
@@ -181,8 +180,6 @@ namespace ReiserRT
             *
             * This is primarily an implementation validation operation. It returns a snapshot of the
             * current available count.
-            *
-            * @throw Throws std::runtime_error if the abort has been invoked.
             *
             * @return Returns a snapshot of the available count at time of invocation.
             */

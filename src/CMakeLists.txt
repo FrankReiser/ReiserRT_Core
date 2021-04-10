@@ -1,6 +1,6 @@
 # Public Header files
 set( _publicHeaders
-        Exceptions.hpp
+        ReiserRT_CoreExceptions.hpp
         RingBufferSimple.hpp
         Semaphore.hpp
         RingBufferGuarded.hpp
@@ -19,7 +19,7 @@ set( _privateHeaders
 
 # Private Source files.
 set( _privateSources
-        Exceptions.cpp
+        ReiserRT_CoreExceptions.cpp
         RingBufferSimple.cpp
         Semaphore.cpp
         RingBufferGuarded.cpp

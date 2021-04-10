@@ -13,6 +13,8 @@
 #include "PriorityInheritMutex.hpp"
 #endif
 
+#include "ReiserRT_CoreExceptions.hpp"
+
 #include <limits>
 #include <cstdint>
 #include <condition_variable>
@@ -43,7 +45,8 @@ public:
     * @brief Destructor for the Implementation
     *
     * This destructor invokes the abort operation. If the implementation is still being
-    * used by any thread when this destructor is invoked, those threads could experience runtime_error being thrown.
+    * used by any thread when this destructor is invoked, those threads could experience
+    * ReiserRT::Core::SemaphoreAborted being thrown.
     */
     ~Imple();
 
@@ -129,7 +132,7 @@ public:
     * This operation takes the mutex and invokes the _wait operation to perform the rest of the work.
     * The mutex is released upon return.
     *
-    * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
+    * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
     */
     inline void wait() { std::unique_lock< MutexType > lock{ mutex }; _wait( lock ); }
 
@@ -142,12 +145,28 @@ public:
     * The mutex is released upon return.
     *
     * @param operation This is a reference to a user provided function object to invoke during the context of the internal lock.
-    * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
+    * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
     * @throw The user operation may throw an exception of unknown type.
     */
     inline void wait( FunctionType & operation ) {
         std::unique_lock< MutexType > lock{ mutex };
         _wait( lock );
+#if 1
+        struct AvailableCountManager {
+            AvailableCountManager( AvailableCountType & theAC ) : rAC(theAC) {}
+            ~AvailableCountManager() { if ( !released ) ++rAC; }
+
+            void release() { released = true; }
+
+            AvailableCountType & rAC;
+            bool released{ false };
+        };
+
+        // Guard the available count and call user provided operation.
+        AvailableCountManager availableCountManager{ availableCount };
+        operation();
+        availableCountManager.release();
+#else
         try {
             operation();
         }
@@ -156,6 +175,7 @@ public:
             ++availableCount;
             throw;
         }
+#endif
     }
 
     /**
@@ -164,7 +184,7 @@ public:
     * This operation takes the mutex and invokes the _notify operation to perform the rest of the work.
     * The mutex is released upon return.
     *
-    * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
+    * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
     */
     inline void notify() { std::lock_guard< MutexType > lock{ mutex }; _notify(); }
 
@@ -176,7 +196,7 @@ public:
     * The mutex is released upon return.
     *
     * @param operation This is a reference to a user provided function object to invoke during the context of the internal lock.
-    * @throw Throws std::runtime_error if the abort operation is invoked via another thread.
+    * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
     */
     inline void notify( FunctionType & operation ) { std::lock_guard< MutexType > lock{ mutex }; operation(); _notify(); }
 
@@ -196,8 +216,6 @@ public:
     * current available count. The mutex is briefly taken and a copy of availableCount is returned
     * as the mutex is released.
     *
-    * @throw Throws std::runtime_error if the abortFlag has been set via the abort operation.
-    *
     * @return Returns a snapshot of the availableCount at time of invocation.
     */
     size_t getAvailableCount();
@@ -213,7 +231,7 @@ private:
     * Once notified, the mutex is re-taken, the pendingCount is decremented and we re-loop attempting to
     * decrement the availableCount towards zero once more.
     *
-    * @throw Throws std::runtime_error if the abortFlag has been set via the abort operation.
+    * @throw Throws ReiserRT::Core::SemaphoreAborted if the abortFlag has been set via the abort operation.
     */
     void _wait( std::unique_lock< MutexType > & lock );
 
@@ -224,7 +242,7 @@ private:
     * The operation increments the availableCount and if pendingCount is
     * greater than zero, invokes the conditionVar, notify_one operation to wake one waiting thread.
     *
-    * @throw Throws std::runtime_error if the abortFlag has been set via the abort operation.
+    * @throw Throws ReiserRT::Core::SemaphoreAborted if the abortFlag has been set via the abort operation.
     */
     void _notify();
 
@@ -293,7 +311,7 @@ void Semaphore::Imple::_wait( std::unique_lock< MutexType > & lock )
     for (;;)
     {
         // If the abort flag is set, throw a SemaphoreAbortedException.
-        if ( abortFlag ) throw std::runtime_error{ "Semaphore::Imple::_wait: Semaphore Aborted!" };
+        if ( abortFlag ) throw SemaphoreAborted{ "Semaphore::Imple::_wait: Semaphore Aborted!" };
 
         // If the available count is greater than zero, decrement it and and escape out.
         // We have "taken" the semaphore.  Waiting is not necessary.
@@ -316,7 +334,7 @@ void Semaphore::Imple::_notify()
 {
     // If the abort flag is set OR we have been "over notified", throw a runtime error.
     if ( abortFlag || availableCount == std::numeric_limits< AvailableCountType >::max() ) {
-        throw std::runtime_error{ abortFlag ?
+        throw SemaphoreAborted{ abortFlag ?
             "Semaphore::Imple::_notify: Semaphore Aborted!" : "Semaphore::Imple::_notify: Notification Limit Hit!" };
     }
 
