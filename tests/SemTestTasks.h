@@ -42,7 +42,7 @@ private:
 
 struct SemGiveTask2
 {
-    enum class State { constructed, waitingForGo, going, unknownExceptionDetected, aborted, overflowDetected, completed };
+    enum class State { constructed, waitingForGo, going, unknownExceptionDetected, aborted, completed };
     using StateType = std::atomic<State>;
 
     SemGiveTask2() = default;

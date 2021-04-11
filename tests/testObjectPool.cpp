@@ -3,13 +3,13 @@
 //
 
 #include "ObjectPool.hpp"
+#include "ReiserRT_CoreExceptions.hpp"
 
 #include <iostream>
 #include <forward_list>
 
 using namespace std;
 using namespace ReiserRT::Core;
-
 
 class TestClassForOP1
 {
@@ -136,7 +136,7 @@ int main()
                     retVal = 12;
                     break;
                 }
-                catch (const std::underflow_error &) {
+                catch (const RingBufferUnderflow &) {
 //                    std::cout << "Caught expected underflow_error exception, what = " << e.what() << endl;
                 }
 
@@ -258,7 +258,7 @@ int main()
             class TestClassDerivedForOP1 : public TestClassBaseForOP
             {
             public:
-                TestClassDerivedForOP1() { throw invalid_argument{ "Invalid Argument" }; }
+                TestClassDerivedForOP1() { throw std::exception{}; }
 
                 virtual int getClassID() { return 1; }
             };
@@ -271,13 +271,8 @@ int main()
                 virtual int getClassID() { return 2; }
             };
 
-#if 0
-            using TestPoolType = ObjectPool< TestClassBaseForOP, sizeof(TestClassDerivedForOP1) >;
-            using TestPtrType = TestPoolType::ObjectPtrType;
-#else
             using TestPoolType = ObjectPool< TestClassBaseForOP >;
             using TestPtrType = TestPoolType::ObjectPtrType;
-#endif
             TestPoolType testPool(4, sizeof(TestClassDerivedForOP1));
 
             // Now create an object of TestClassDerivedForOP1 which is designed to throw and verify ObjectPool invariant.
@@ -290,7 +285,7 @@ int main()
                 retVal = 20;
                 break;
             }
-            catch (const invalid_argument & )
+            catch (const exception & )
             {
                 TestPoolType::RunningStateStats runningStateStats = testPool.getRunningStateStatistics();
                 if (runningStateStats.runningCount != 4)
@@ -317,7 +312,7 @@ int main()
                         tpList.push_front(testPool.createObj< TestClassDerivedForOP2 >());
                     }
                 }
-                catch ( const std::underflow_error & )
+                catch ( const RingBufferUnderflow & )
                 {
                     // If we find ourself here, then the test failed.
                     cout << "Create of object TestClassDerivedForOP2 x4 should not have resulted in underflow!" << endl;

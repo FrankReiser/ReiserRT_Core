@@ -148,7 +148,7 @@ namespace ReiserRT
             *
             * This operation requests a block of memory from the pool.
             *
-            * @throw Throws std::underflow error if the memory pool has been exhausted.
+            * @throw Throws ReiserRT::Core::RingBufferOverflow if the memory pool has been exhausted.
             * @returns A pointer to the raw memory block.
             */
             void * getRawBlock();

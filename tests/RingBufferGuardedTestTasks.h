@@ -49,7 +49,7 @@ public:
 
     inline State getState() { return state.load(); }
 
-    void outputResults(unsigned int i);
+    void outputResults(unsigned int i) const;
 
     const char* stateStr() const
     {
@@ -73,7 +73,7 @@ private:
 struct GetTaskRBG {
 public:
     enum class State : char {
-        constructed, waitingForGo, going, underflowFailure, invalidDataDetected, nullDataDetected,
+        constructed, waitingForGo, going, invalidDataDetected, nullDataDetected,
         unknownExceptionDetected, aborted, completed
     };
     using StateType = std::atomic<State>;
@@ -86,7 +86,7 @@ public:
 
     inline State getState() { return state.load(); }
 
-    void outputResults(unsigned int i);
+    void outputResults(unsigned int i) const;
 
     const char* stateStr() const
     {
@@ -95,7 +95,6 @@ public:
             case State::constructed: return "constructed";
             case State::waitingForGo: return "waitingForGo";
             case State::going: return "going";
-            case State::underflowFailure: return "underflowFailure";
             case State::invalidDataDetected: return "invalidDataDetected";
             case State::nullDataDetected: return "nullDataDetected";
             case State::unknownExceptionDetected: return "unknownExceptionDetected";

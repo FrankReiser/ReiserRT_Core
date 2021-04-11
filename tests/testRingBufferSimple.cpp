@@ -32,7 +32,7 @@ int main()
             retVal = 2;
             break;
         }
-        catch (underflow_error&)
+        catch (RingBufferUnderflow&)
         {
             // If we make it here, it passed.
         }
@@ -45,7 +45,7 @@ int main()
             {
                 ringBuffer.put(i);
             }
-            catch (overflow_error&)
+            catch (RingBufferOverflow&)
             {
                 break;
             }
@@ -70,7 +70,7 @@ int main()
                     break;
                 }
             }
-            catch (underflow_error&)
+            catch (RingBufferUnderflow&)
             {
                 break;
             }

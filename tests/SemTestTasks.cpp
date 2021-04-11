@@ -6,10 +6,12 @@
 
 #include "SemTestTasks.h"
 #include "StartingGun.h"
+#include "ReiserRT_CoreExceptions.hpp"
 
-#include <mutex>
-#include <condition_variable>
+//#include <mutex>
+//#include <condition_variable>
 #include <iostream>
+#include <thread>
 
 using namespace ReiserRT::Core;
 using namespace std;
@@ -29,7 +31,7 @@ void SemTakeTask2::operator()(StartingGun* startingGun, ReiserRT::Core::Semaphor
             theSem->wait();
             ++takeCount;
         }
-        catch (runtime_error&)
+        catch (SemaphoreAborted&)
         {
             state = State::aborted;
             return;
@@ -60,7 +62,7 @@ const char* SemTakeTask2::stateStr() const
 
 void SemTakeTask2::outputResults(unsigned int i)
 {
-    cout << "SemTakeTask(" << i << ") takeCount=" << takeCount
+    cout << "SemTakeTask2(" << i << ") takeCount=" << takeCount
          << ", state=" << stateStr()
          << "\n";
 }
@@ -78,16 +80,11 @@ void SemGiveTask2::operator()(StartingGun* startingGun, ReiserRT::Core::Semaphor
             try
             {
                 theSem->notify();
+                this_thread::yield();   // Do not allow any one thread to pound the notify key.
                 ++giveCount;
                 break;
             }
-            catch (overflow_error&)   // Should never happen in this test.
-            {
-                state = State::overflowDetected;
-                theSem->abort();
-                return;
-            }
-            catch (runtime_error&)
+            catch (SemaphoreAborted&)
             {
                 state = State::aborted;
                 return;
@@ -112,7 +109,6 @@ const char* SemGiveTask2::stateStr() const
         case State::going: return "going";
         case State::unknownExceptionDetected: return "unknownExceptionDetected";
         case State::aborted: return "aborted";
-        case State::overflowDetected: return "overflowDetected";
         case State::completed: return "completed";
         default: return "unknown";
     }
@@ -120,7 +116,7 @@ const char* SemGiveTask2::stateStr() const
 
 void SemGiveTask2::outputResults(unsigned int i)
 {
-    cout << "SemGiveTask(" << i << ") giveCount=" << giveCount
+    cout << "SemGiveTask2(" << i << ") giveCount=" << giveCount
          << ", state=" << stateStr()
          << "\n";
 }

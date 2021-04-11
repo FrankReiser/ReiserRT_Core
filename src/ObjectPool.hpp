@@ -10,6 +10,7 @@
 
 #include "ObjectPoolBase.hpp"
 #include "ObjectPoolFwd.hpp"
+#include "ReiserRT_CoreExceptions.hpp"
 
 #ifndef REISERRT_CORE_OBJECTPOOL_HPP
 #define REISERRT_CORE_OBJECTPOOL_HPP
@@ -148,8 +149,9 @@ namespace ReiserRT
             * @return This operation returns the newly object constructed, wrapped within a std::unique_ptr,
             * associated with our custom Deleter. This unique_ptr is aliased as ObjectPtrType.
             *
-            * @throw Throws std::underflow_error on memory pool exhaustion.
-            * @throw Throws std::runtime_error if the size of type D exceeds the size of elements managed by the ObjectPool.
+            * @throw Throws ReiserRT::Core::RingBufferOverflow on memory pool exhaustion.
+            * @throw Throws ReiserRT::Core::ObjectPoolElementSizeError if the size of type D exceeds
+            * the size of elements managed by the ObjectPool.
             * The element size is that requested during ObjectPoolConstruction with the minTypeSizeAlloc parameter
             * plus any alignment padding added by the implementation.
             * @note May throw other exceptions if the constructor of type D throws an exception.
@@ -170,61 +172,17 @@ namespace ReiserRT
 
                 // Get raw buffer from ring. This could throw underflow if pool is exhausted.
                 void * pRaw;
-///@todo I have to rethink this whole thing. Played around with throw_with_nested but that was for the Windows specific.
-///I am not going to try and accomplish this right now. It is somewhat borked and may not last the test of time.
-#if 0
-                try
-                {
-                    pRaw =  getRawBlock();
-                }
-                catch ( const std::underflow_error & e )
-                {
-                    // Throw more informative underflow_error exception.
-                    ///@todo This is Windows specific! I need what I did for GCC here and platform specific.
-                    ///Also, figure out what is common between the two and maybe put this in a cpp file to invoke.
-                    ///GNU C requires the inclusion of cxxabi.h for this to work. Can I make this platform specific
-                    ///within an implementation file.
-#if 0
-                    int status;
-                    char * pTypeName = abi::__cxa_demangle( typeid( T ).name(), 0, 0, &status );
-                    char * pDerivedName = abi::__cxa_demangle( typeid( D ).name(), 0, 0, &status );
-                    std::string typeName{ pTypeName };
-                    std::string derivedName{ pDerivedName };
-                    free( pTypeName );
-                    free( pDerivedName );
-                    std::string exceptionText{ "ObjectPool< " };
-                    exceptionText += typeName;
-                    exceptionText += ", ";
-                    exceptionText += std::to_string( minTypeAllocSize );
-                    exceptionText += " >::createObj< ";
-                    exceptionText += derivedName;
-                    exceptionText += " >( Args&&... args ) - Pool Exhausted!";
-#else
-                    const char * pTypeName = typeid( T ).name();
-                    const char * pDerivedName = typeid( D ).name();
-                    std::string exceptionText{ "ObjectPool< " };
-                    exceptionText += pTypeName;
-                    exceptionText += ", ";
-                    exceptionText += std::to_string( minTypeAllocSize );
-                    exceptionText += " >::createObj< ";
-                    exceptionText += pDerivedName;
-                    exceptionText += " >( Args&&... args ) - Pool Exhausted!";
-#endif
-                    std::throw_with_nested( std::underflow_error( exceptionText ) );
-                }
-#else
+
                 // Before we even bother getting a raw block of memory, we will validate that
                 // the type being created will fit in the block.
                 if ( getElementSize() < sizeof( D ) )
-                    throw std::runtime_error( "ObjectPool::createObj: The size of type D exceeds maximum element size" );
+                    throw ObjectPoolElementSizeError( "ObjectPool::createObj: The size of type D exceeds maximum element size" );
 
                 // Obtain a raw block of memory to cook.
                 pRaw =  getRawBlock();
-#endif
 
                 // I could have used a unique_ptr to pull this trick off, but it isn't pretty but, C-Tidy doesn't like
                 // it and this is clean and lean. So, I just rolled my own again.
-                ///@todo Could I have not used ObjectPoolBase pointer here? It is sort of inconsequential though.
                 struct RawMemoryManager {
                     RawMemoryManager( ObjectPool< T > * pThePool, void * pTheRaw ) : pP{ pThePool }, pR{ pTheRaw } {}
                     ~RawMemoryManager() { if ( pP && pR ) pP->returnRawBlock( pR ); }

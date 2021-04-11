@@ -54,13 +54,13 @@ PutTaskRBG::operator()(StartingGun* startingGun, RingBufferGuarded< const Thread
 
                 break;
             }
-            catch (const overflow_error&)
+            catch (const RingBufferOverflow&)
             {
                 // Overflows are currently allowed by the design of RingBufferGuarded. It should be the case that
                 // clients of RingBufferGuarded have provided other means of ensuring that this does not occur.
                 // However, this test does not have any such coordination with getters. Therefore, we will work around
                 // this by putting our task to sleep for a very short period of time and come back around.
-                this_thread::sleep_for(chrono::milliseconds(1000));
+                this_thread::sleep_for(chrono::milliseconds(100));
                 continue;
             }
             catch (...)
@@ -74,7 +74,7 @@ PutTaskRBG::operator()(StartingGun* startingGun, RingBufferGuarded< const Thread
     state = State::completed;
 }
 
-void PutTaskRBG::outputResults(unsigned int i)
+void PutTaskRBG::outputResults(unsigned int i) const
 {
     cout << "PutTaskRB(" << i << ") completionCount=" << completionCount
          << ", state=" << stateStr()
@@ -122,12 +122,6 @@ void GetTaskRBG::operator()(StartingGun* startingGun, RingBufferGuarded< const T
 
                 break;
             }
-            catch (const underflow_error&)
-            {
-                state = State::underflowFailure;
-                startingGun->abort();
-                return;
-            }
             catch (...)
             {
                 state = State::unknownExceptionDetected;
@@ -139,7 +133,7 @@ void GetTaskRBG::operator()(StartingGun* startingGun, RingBufferGuarded< const T
     state = State::completed;
 }
 
-void GetTaskRBG::outputResults(unsigned int i)
+void GetTaskRBG::outputResults(unsigned int i) const
 {
     cout << "GetTaskRB(" << i << ") completionCount=" << completionCount
          << ", state=" << stateStr()

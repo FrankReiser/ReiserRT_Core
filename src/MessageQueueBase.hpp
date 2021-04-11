@@ -7,8 +7,11 @@
 * ObjectQueue is being eliminated in this process.
 *
 * @authors Frank Reiser
-* @date Created on Apr 6, 2015
+* @date Created on Apr 6, 2021
 */
+
+#ifndef REISERRT_CORE_MESSAGEQUEUEBASE_HPP
+#define REISERRT_CORE_MESSAGEQUEUEBASE_HPP
 
 #include "ReiserRT_CoreExport.h"
 
@@ -471,7 +474,7 @@ namespace ReiserRT
             *
             * This operation is invoked to obtain raw memory from the raw implementation.
             *
-            * @throw Throws std::runtime_error if the "raw" ring buffer becomes aborted.
+            * @throw Throws ReiserRT::Core::SemaphoreAborted if the "raw" ring buffer becomes aborted.
             *
             * @return Returns a void pointer to raw memory from the implementation.
             */
@@ -484,7 +487,7 @@ namespace ReiserRT
             *
             * @param pCooked A pointer to an abstract MessageBase object.
             *
-            * @throw Throws std::runtime_error if the "cooked" ring buffer becomes aborted.
+            * @throw Throws ReiserRT::Core::SemaphoreAborted if the "cooked" ring buffer becomes aborted.
             */
             void cookedPutAndNotify( MessageBase * pCooked );
 
@@ -493,7 +496,7 @@ namespace ReiserRT
             *
             * This operation is invoked to obtain cooked memory from the implementation.
             *
-            * @throw Throws std::runtime_error if the "cooked" ring buffer becomes aborted.
+            * @throw Throws ReiserRT::Core::SemaphoreAborted if the "cooked" ring buffer becomes aborted.
             *
             * @return Returns a pointer to an abstract MessageBase object from the implementation.
             */
@@ -507,7 +510,7 @@ namespace ReiserRT
             *
             * @param pRaw A pointer to raw memory that is to be made available for cooking.
             *
-            * @throw Throws std::runtime_error if the "raw" ring buffer becomes aborted.
+            * @throw Throws ReiserRT::Core::SemaphoreAborted if the "raw" ring buffer becomes aborted.
             */
             void rawPutAndNotify( void * pRaw );
 
@@ -517,7 +520,7 @@ namespace ReiserRT
             * Returns an AutoDispatchLock object. The dispatch lock is taken on construction of AutoDispatchLock.
             * When the AutoDispatchLock object is destroy, the dispatch lock is released.
             *
-            * @throw Throws std::runtime_error if dispatch locking was not enabled during MessageQueue construction.
+            * @throw Throws ReiserRT::Core::SemaphoreAborted if dispatch locking was not enabled during MessageQueue construction.
             * You must enable dispatch locking during construction of MessageQueue to use this feature.
             *
             * @return Returns an instance of AutoDispatchLock.
@@ -561,7 +564,7 @@ namespace ReiserRT
             * (i.e., a nonempty function object). It will be invoked once per remaining object in the "cooked" ring buffer.
             *
             * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
-            * @throw Throws std::logic_error if the "cooked" ring buffer is not in the terminal state.
+            * @throw Throws ReiserRT::Core::RingBufferStateError if the "cooked" ring buffer is not in the terminal state.
             */
             void flush( FlushingFunctionType operation );
 
@@ -584,8 +587,5 @@ namespace ReiserRT
         };
     }
 }
-
-#ifndef REISERRT_CORE_MESSAGEQUEUEBASE_HPP
-#define REISERRT_CORE_MESSAGEQUEUEBASE_HPP
 
 #endif //REISERRT_CORE_MESSAGEQUEUEBASE_HPP
