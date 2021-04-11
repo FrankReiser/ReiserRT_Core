@@ -11,8 +11,6 @@
 using namespace std;
 using namespace ReiserRT::Core;
 
-///@todo Test is failing, probably because I changed exception types being thrown. Fix it.
-
 class TestClassForOP1
 {
 public:
@@ -273,13 +271,8 @@ int main()
                 virtual int getClassID() { return 2; }
             };
 
-#if 0
-            using TestPoolType = ObjectPool< TestClassBaseForOP, sizeof(TestClassDerivedForOP1) >;
-            using TestPtrType = TestPoolType::ObjectPtrType;
-#else
             using TestPoolType = ObjectPool< TestClassBaseForOP >;
             using TestPtrType = TestPoolType::ObjectPtrType;
-#endif
             TestPoolType testPool(4, sizeof(TestClassDerivedForOP1));
 
             // Now create an object of TestClassDerivedForOP1 which is designed to throw and verify ObjectPool invariant.

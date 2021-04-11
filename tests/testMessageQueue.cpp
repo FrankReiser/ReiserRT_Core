@@ -64,7 +64,7 @@ private:
     public:
         ImpleMessage() = delete;
 
-        ImpleMessage(MessageQueueUserProcess* pImple)
+        explicit ImpleMessage(MessageQueueUserProcess* pImple)
                 : MessageBase{}
                 , _pImple{ pImple }
                 , randNum{ uniformDistributionMQ(randEngineMQ) }
@@ -90,7 +90,7 @@ private:
     };
 
 public:
-    MessageQueueUserProcess() {}
+    MessageQueueUserProcess() = default;
 
     ~MessageQueueUserProcess()
     {
@@ -114,9 +114,9 @@ public:
                 msgQueue.getAndDispatch();
             }
         }
-            ///@todo Catch other exceptions and also report what was caught?
-        catch (const std::runtime_error&)
+        catch (const std::exception& e)
         {
+            cout << "Caught unexpected exception: " << e.what() << endl;
         }
     }
 
@@ -134,8 +134,8 @@ public:
         msgQueue.emplace< ImpleMessage >(this);
     }
 
-    size_t getDispatchCount() { return numberImpleMessagesDispatched; }
-    size_t getValidatedCount() { return numberOfMessagesValidated; }
+    size_t getDispatchCount() const { return numberImpleMessagesDispatched; }
+    size_t getValidatedCount() const { return numberOfMessagesValidated; }
 
     MessageQueueBase::AutoDispatchLock getAutoDispatchLock() { return std::move( msgQueue.getAutoDispatchLock() ); }
 
@@ -263,7 +263,7 @@ int main()
             class MessageThrowOnConstruct : public MessageBase
             {
             public:
-                MessageThrowOnConstruct()  { throw std::runtime_error{ "This Message Throws On Construction!" }; }
+                MessageThrowOnConstruct()  { throw std::exception{}; }
 
                 virtual ~MessageThrowOnConstruct() noexcept = default;
 
@@ -281,7 +281,7 @@ int main()
             try {
                 msgQueue.emplace< MessageThrowOnConstruct >( );
             }
-            catch ( const std::runtime_error & )
+            catch ( const std::exception & )
             {
 //                cout << "CAUGHT EXPECTED EXCEPTION" << endl;
                 testFailed = false;
@@ -324,7 +324,7 @@ int main()
                 using MessageBase::MessageBase;
 
             protected:
-                virtual void dispatch() { throw std::runtime_error{ "This Message Throws On Construction!"}; }
+                virtual void dispatch() { throw std::exception{}; }
             };
 
             MessageQueue msgQueue{ 3, sizeof( MessageThrowOnDispatch ) };
@@ -350,7 +350,7 @@ int main()
             try {
                 msgQueue.getAndDispatch();
             }
-            catch ( const std::runtime_error & ){
+            catch ( const std::exception & ){
                 testFailed = false;
             }
 

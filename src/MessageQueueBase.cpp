@@ -394,7 +394,7 @@ void * MessageQueueBase::Imple::rawWaitAndGet()
     void * pRaw = rawRingBuffer.get();
 
     // Manage running count and high water mark.
-    ///@todo Shouldn't we leverage the rawRingBuffer for this information.
+    ///@todo Couldn't we leverage the rawRingBuffer for this information?
     InternalRunningStateStats runningStats;
     InternalRunningStateStats runningStatsNew;
     runningStats.state = runningState.load( std::memory_order_seq_cst );
@@ -421,7 +421,7 @@ void MessageQueueBase::Imple::rawPutAndNotify( void * pRaw )
     rawRingBuffer.put( pRaw );
 
     // Manage running count.
-    ///@todo Shouldn't we leverage the rawRingBuffer for this information.
+    ///@todo Couldn't we leverage the rawRingBuffer for this information?
     InternalRunningStateStats runningStats;
     InternalRunningStateStats runningStatsNew;
     runningStats.state = runningState.load( std::memory_order_seq_cst );
