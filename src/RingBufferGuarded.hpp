@@ -21,8 +21,10 @@ namespace ReiserRT
         * @brief RingBufferGuardedBase Class
         *
         * This template class provides a base for more specialized types.
-        * It employs a counted semaphore object which block get operations on a low or empty ring buffer and
-        * put operations on a near full or full ring buffer.
+        * It employs a counted semaphore object which block get operations on a low or empty ring buffer.
+        * @note The is no blocking on a full condition. Doing so was not a requirement, nor design goal
+        * for ReiserRT::Core. Providing such a capability at this level would impact performance and if needed
+        * can be layered on top.
         *
         * @tparam T The ring buffer element type.
         * @note Must be a scalar type (e.g., char, int, float or void pointer).
@@ -53,15 +55,14 @@ namespace ReiserRT
             /**
             * @brief The Ring Buffer State
             *
-            * Our guarded ring buffer provides numerous operation that should only be invoked when in the approriate
+            * Our guarded ring buffer provides numerous operation that should only be invoked when in the appropriate
             * state. For instance, it would be inappropriate to call get when the ring buffer is in the "Terminal" state.
             * There are other preconditions which will be discussed within the various operation documentation.
             */
             enum class State : uint8_t
             {
-                Unknown=0,          //!< We don't know yet. This is an invalid state.
-                NeedsPriming,       //!< The ring buffer was constructed with a non-zero willPrime argument value.
-                Ready,              //!< The ring bufer is ready for regular operational usage (e.g., get and put)
+                NeedsPriming=0,     //!< The ring buffer was constructed with a non-zero willPrime argument value.
+                Ready,              //!< The ring buffer is ready for regular operational usage (e.g., get and put)
                 Terminal,           //!< The ring buffer is in the "Terminal" state. This is a final state.
             };
 
@@ -129,8 +130,8 @@ namespace ReiserRT
             * @pre The ring buffer is expected to be in the "Ready" state to invoke this operation. Violations will result in an exception
             * being thrown.
             *
-            * @throw Throws std::logic_error if not in the "Ready" state.
-            * @throw Throws Semaphore::AbortedException if the semaphore is aborted.
+            * @throw Throws ReiserRT::Core::RingBufferStateError if not in the "Ready" state.
+            * @throw Throws ReiserRT::Core::SemaphoreAborted if the semaphore is aborted.
             *
             * @return Returns a value of T retrieved from the implementation.
             */
@@ -139,7 +140,7 @@ namespace ReiserRT
                 // We have to be in the "Ready" state, or we will throw a logic error.
                 if ( state != State::Ready )
                 {
-                    throw std::logic_error{ "RingBufferGuarded::get invoked while not in the Ready state!" };
+                    throw RingBufferStateError{ "RingBufferGuarded::get invoked while not in the Ready state!" };
                 }
 
                 // Instantiate return variable and setup a lambda to be invoked in the context of the semaphore's internal lock.
@@ -169,8 +170,9 @@ namespace ReiserRT
             * @pre The ring buffer is expected to be in the "Ready" state to invoke this operation. Violations will result in an exception
             * being thrown.
             *
-            * @throw Throws std::logic_error if not in the "Ready" state.
-            * @throw Throws std::overflow exception if our base class is in a "Full" state. No value is made available for subsequent retrieval.
+            * @throw Throws ReiserRT::Core::RingBufferStateError if not in the "Ready" state.
+            * @throw Throws ReiserRT::Core::RingBufferOverflow if our base class is in a "Full" state. No value is made available for subsequent retrieval.
+            * @throw Throws ReiserRT::Core::SemaphoreAborted if the semaphore is aborted.
             *
             * @param p val A value to be put into the ring buffer implementation.
             */
@@ -182,17 +184,12 @@ namespace ReiserRT
                 // We have to be in the "Ready" state, or we will throw a logic error.
                 if ( state != State::Ready )
                 {
-                    throw std::logic_error{ "RingBufferGuarded::put invoked while not in the Ready state!" };
+                    throw RingBufferStateError{ "RingBufferGuarded::put invoked while not in the Ready state!" };
                 }
 
                 // Setup a lambda to be invoked in the context of the semaphore's internal lock.
                 // There is no guarding of overflow here. If it throws, the RingBuffer is not being serviced adequately.
-                // It is up to the client to manage and mitigate this possibility.
-                ///@todo Document the fact that this does not "Guard" against put overflows but rather, guards against
-                ///concurrent access and pends on the bottom. Or, Alternatively, consider the implications of making
-                ///notify wait? I like this better but I do not know if I can make it happen easily.
-                ///note also that my test code accommodates the throw because I've fixed it to do so. That should be
-                ///addressed in addition to this.
+                // It is up to the client to manage and/or mitigate this possibility.
                 auto putFunk = [ this, val ]() { this->Base::put( val ); };
                 semaphore.notify( std::ref( putFunk ) );
             }
@@ -218,17 +215,15 @@ namespace ReiserRT
             * @pre The ring buffer is expected to be in the "Ready" state to invoke this operation. Violations will result in an exception
             * being thrown.
             *
-            * @throw Throws std::logic_error if the RingBufferGuardedBase is not in the "NeedsPriming" state.
+            * @throw Throws ReiserRT::Core::RingBufferStateError if the RingBufferGuardedBase is not in the "NeedsPriming" state.
             * @throw Throws std::bad_function_call if the operation passed in has no target (i.e., an empty function object).
-            * @throw Throws std::overflow exception if the ring buffer becomes exhausted. Seeing this would indicate an internal
-            * implementation error.
             */
             void prime( PrimingFunctionType operation )
             {
                 // We have to be in the "NeedsPriming" state, or we will throw a logic error.
                 if ( state != State::NeedsPriming )
                 {
-                    throw std::logic_error{ "RingBufferGuarded::prime invoked while not in the NeedsPriming state!" };
+                    throw RingBufferStateError{ "RingBufferGuarded::prime invoked while not in the NeedsPriming state!" };
                 }
 
                 // We allow for priming only the original number of requested elements. Not the ring buffer size,
@@ -271,7 +266,7 @@ namespace ReiserRT
             * @pre The ring buffer is expected to be in the "Terminal" state to invoke this operation. Violations will result in an exception
             * being thrown.
             *
-            * @throw Throws std::logic_error if the RingBufferGuardedBase is not in the "Terminal" state.
+            * @throw Throws ReiserRT::Core::RingBufferStateError if the RingBufferGuardedBase is not in the "Terminal" state.
             * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
             */
             void flush( FlushingFunctionType operation )
@@ -279,7 +274,7 @@ namespace ReiserRT
                 // We have to be in the "Terminal" state, or we will throw a logic error.
                 if ( state != State::Terminal )
                 {
-                    throw std::logic_error{ "RingBufferGuarded::flush invoked while not in the Terminal state!" };
+                    throw RingBufferStateError{ "RingBufferGuarded::flush invoked while not in the Terminal state!" };
                 }
 
                 const size_t count = semaphore.getAvailableCount();
@@ -326,8 +321,6 @@ namespace ReiserRT
 
         /**
         * @brief RingBufferGuarded Class
-        *
-        * @todo I really am not sure what I gain by using this intermediate other than making the interface public and defined a base type
         *
         * This template class provides a template for simple scalar types (not pointer types). It is derived from
         * RingBufferGuardedBase of the same template argument type which own an implementation instance.
@@ -562,7 +555,8 @@ namespace ReiserRT
             * The value is compile time converted to a pointer of the specified templated type. Thereby,
             * adding no run-time penalty.
             *
-            * @throw Throws std::underflow exception if there is no element available to fulfill the request (empty).
+            * @throw Throws ReiserRT::Core::RingBufferStateError if not in the "Ready" state.
+            * @throw Throws ReiserRT::Core::SemaphoreAborted if the semaphore is aborted.
             *
             * @return Returns a pointer to an object of type T retrieved from the implementation.
             */
@@ -575,7 +569,8 @@ namespace ReiserRT
             * Any constant specification is removed and the typed pointer is implicitly converted to a
             * void pointer at compile time yielding no run-time penalty.
             *
-            * @throw Throws std::overflow exception if there is no room left to fulfill the request (full).
+            * @throw Throws ReiserRT::Core::RingBufferStateError if not in the "Ready" state.
+            * @throw Throws ReiserRT::Core::RingBufferOverflow if there is no room left to fulfill the request (full).
             *
             * @param p A pointer to the object to be put into the ring buffer implementation.
             */

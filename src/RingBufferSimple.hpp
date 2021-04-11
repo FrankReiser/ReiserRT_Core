@@ -8,7 +8,7 @@
 #ifndef REISERRT_CORE_RINGBUFFERSIMPLE_HPP
 #define REISERRT_CORE_RINGBUFFERSIMPLE_HPP
 
-#include "ReiserRT_CoreExport.h"
+#include "ReiserRT_CoreExceptions.hpp"
 
 #include <type_traits>
 #include <cstdint>
@@ -112,7 +112,7 @@ namespace ReiserRT
             *
             * Template class RingBufferSimpleBase is a friend and only it can invoked our member operations.
             */
-            template< typename _ScalarType > friend class RingBufferSimpleBase;
+            template< typename ST > friend class RingBufferSimpleBase;
 
         protected:
             /**
@@ -138,7 +138,7 @@ namespace ReiserRT
             }
 
             /**
-            * @brief Destructor for RingBufferSimpeImple
+            * @brief Destructor for RingBufferSimpleImple
             *
             * The destructor returns the ring buffer element block to the standard heap.
             */
@@ -151,7 +151,7 @@ namespace ReiserRT
             * @brief Get an Element From The RingBufferSimpleImple
             *
             * This operation attempts to get an element from the RingBufferImple and advance the getState.
-            * @throw Throws std::underflow exception if there is no element available to fulfill the request.
+            * @throw Throws ReiserRT::Core::RingBufferUnderflow if there is no element available to fulfill the request.
             *
             * @return Returns an element from the RingBufferSimpleImple.
             */
@@ -161,7 +161,7 @@ namespace ReiserRT
                 // we are empty and will throw underflow.
                 if ( ( getCount - putCount + numElements ) > numElementsMask )
                 {
-                    throw std::underflow_error{ "RingBufferSimpleImple::get() would result in underflow!" };
+                    throw RingBufferUnderflow{ "RingBufferSimpleImple::get() would result in underflow!" };
                 }
 
                 // If here, we were not empty. Incrementing the getCount,
@@ -173,7 +173,7 @@ namespace ReiserRT
             * @brief Put an Element Into The RingBufferSimpleImple
             *
             * This operation attempts to put an element into the RingBufferImple and advance the putState.
-            * @throw Throws std::overflow exception if there is no room left to fulfill the request.
+            * @throw Throws ReiserRT::Core::RingBufferOverflow if there is no room left to fulfill the request.
             */
             void put( ScalarType val )
             {
@@ -182,7 +182,7 @@ namespace ReiserRT
                 // (number of elements less 1), then we are full and may throw overflow.
                 if ( ( putCount - getCount ) > numElementsMask )
                 {
-                    throw std::overflow_error{ "RingBufferSimpleImple::put() would result in overflow!" };
+                    throw RingBufferOverflow{ "RingBufferSimpleImple::put() would result in overflow!" };
                 }
 
                 // If here, we were not full. Load the value we are putting while incrementing the putCount.
@@ -286,14 +286,6 @@ namespace ReiserRT
             static_assert( std::is_scalar< T >::value,
                     "RingBufferSimpleBase< T > must specify a scalar type (which includes pointer types)!" );
 
-            /**
-            * @brief Alias Type to RingBufferSimpleImple< T >
-            *
-            * This type provides a little "syntactic sugar" for the class.
-            */
-            using Imple = RingBufferSimpleImple< T >;
-
-
         public:
 
             /**
@@ -347,10 +339,9 @@ namespace ReiserRT
             /**
             * @brief Destructor for RingBufferSimpleBase
             *
-            * This is the destructor for RingBufferSimpleBase, I destroys and deletes the implementation instance thereby
-            * returning it to the standard heap.
+            * Default behavior for destructor of RingBufferSimpleBase is all that is required.
             */
-            ~RingBufferSimpleBase() {}
+            ~RingBufferSimpleBase() = default;
 
         protected:
             /**
@@ -407,7 +398,7 @@ namespace ReiserRT
             * This is our implementation object. It is simply aggregated. There is no need for another level of
             * indirection. The implementation already has one level.
             */
-            Imple imple;
+            RingBufferSimpleImple< T > imple;
         };
 
         /**
@@ -583,7 +574,7 @@ namespace ReiserRT
             * The value is compile time converted to a pointer of the specified template type. Thereby,
             * adding no run-time penalty.
             *
-            * @throw Throws std::underflow exception if there is no element available to fulfill the request (empty).
+            * @throw Throws ReiserRT::Core::RingBufferUnderflow if there is no element available to fulfill the request (empty).
             *
             * @return Returns a pointer to an object of type T retrieved from the implementation.
             */
@@ -596,7 +587,7 @@ namespace ReiserRT
             * Any constant specification is removed and the typed pointer is implicitly converted to a
             * void pointer at compile time yielding no run-time penalty.
             *
-            * @throw Throws std::overflow exception if there is no room left to fulfill the request (full).
+            * @throw Throws ReiserRT::Core::RingBufferOverflow if there is no room left to fulfill the request (full).
             *
             * @param p A pointer to the object to be put into the ring buffer implementation.
             */

@@ -24,9 +24,6 @@ using namespace std;
 int main() {
     auto retVal = 0;
 
-    ///@todo Test the new functionality of wait with function object where the available count is restored if an exception
-    ///is thrown by the user provided function object.
-
     do {
         // Construction, no-wait wait testing.
         // We will not wait or notify within this block as that could hang the test if
@@ -42,7 +39,81 @@ int main() {
             }
         }
 
-        // Simple pending and abort testing with one take thread running alongside this thread.
+        // Test the new functionality of wait with function object where the available count is restored if an exception
+        // is thrown by the user provided function object.
+        {
+            Semaphore sem{ 4 };
+
+            // Call wait with callback functor.
+            {
+                bool failed = true;
+                auto funk = [](){ throw std::exception{}; };
+                try {
+                    sem.wait( std::ref( funk ) );
+                }
+                catch( std::exception &) {
+                    failed = false;
+                }
+                if ( failed ) {
+                    cout << "Expected an exception!" << endl;
+                    retVal = 2;
+                    break;
+                }
+                else {
+                    // The available count should still be 4.
+                    if (sem.getAvailableCount() != 4)
+                    {
+                        cout << "Semaphore should have reported an available count of 4 when callback throws and reported " << sem.getAvailableCount() << "!" << endl;
+                        retVal = 3;
+                        break;
+                    }
+                }
+            }
+
+            // Repeat test with a callback that does not throw
+            {
+                size_t callbackCount = 0;
+                auto funk = [&callbackCount]() { ++callbackCount; };
+                sem.wait(std::ref(funk));
+
+                // Verify the callback was invoked.
+                if (1 != callbackCount)
+                {
+                    cout << "Semaphore callback not invoked!" << endl;
+                    retVal = 4;
+                    break;
+                }
+
+                // The available count should now be three.
+                if (sem.getAvailableCount() != 3)
+                {
+                    cout << "Semaphore should have reported an available count of 3 after wait and reported " << sem.getAvailableCount() << "!" << endl;
+                    retVal = 5;
+                    break;
+                }
+
+                // Perform a notify
+                sem.notify( std::ref( funk ) );
+
+                // Verify the callback was invoked
+                if (2 != callbackCount)
+                {
+                    cout << "Semaphore callback not invoked!" << endl;
+                    retVal = 6;
+                    break;
+                }
+
+                // Verify that the available count returns to 4.
+                if (sem.getAvailableCount() != 4)
+                {
+                    cout << "Semaphore should have reported an available count of 4 after notify and reported " << sem.getAvailableCount() << "!" << endl;
+                    retVal = 7;
+                    break;
+                }
+            }
+        }
+
+        // Simple pending/abort testing with one take thread running alongside this thread.
         {
             Semaphore sem{0};  // Initially empty
 
@@ -59,7 +130,7 @@ int main() {
             takeThread.reset(new thread{ ref(takeTask), &startingGun, &sem, 1 });
 
             // We have launched a thread. We should not short circuit our joining of it.
-            // This do once structure helps ensure that we do not fail to join each thread should we bail out.
+            // This do once structure helps ensure that we do not fail to join the thread should we bail out.
             do {
                 // Wait for it to get to the waitingForGo state.  This should be relatively quick.
                 unsigned int n = 0;
@@ -73,7 +144,7 @@ int main() {
                 if (n == 10)
                 {
                     cout << "SemTakeTask failed to reach the waitingForGo state!\n";
-                    retVal = 2;
+                    retVal = 8;
                     break;
                 }
 
@@ -92,7 +163,7 @@ int main() {
                 {
                     cout << "SemTakeTask failed to reach the going state!\n";
                     takeTask.outputResults(0);
-                    retVal = 3;
+                    retVal = 9;
                     break;
                 }
 
@@ -111,7 +182,7 @@ int main() {
                 if (n == 10)
                 {
                     cout << "SemTakeTask failed to reach the aborted state!\n";
-                    retVal = 4;
+                    retVal = 10;
                     break;
                 }
 
@@ -134,32 +205,34 @@ int main() {
         // Multi-threaded contention testing
         {
             // Fake this as 8. VisualStudio compiler insist on a constexpr for array dimension.
-            // So I can't initialize it at runtime with hardware_concurrency call.
-            constexpr unsigned int numCores = 8;
+            // So I can't initialize it easily at runtime with hardware_concurrency call.
+            // There is a fix, but it involves a LUT and I don't feel like implementing it right now.
+            // All this does is control the number of threads and I would like to ensure some overlap.
+            constexpr unsigned int numCPUs = 8;
 
             // Our Semaphore Initial Count
             constexpr unsigned int count = 524288 >> 1;
             Semaphore sem{ 0 };  // Initially empty
 
             // Put and Get Task Functors, which can return state information when the runs are complete.
-            SemTakeTask2 takeTasks[numCores];
-            SemGiveTask2 giveTasks[numCores];
+            SemTakeTask2 takeTasks[numCPUs];
+            SemGiveTask2 giveTasks[numCPUs];
 
             // Give and Take Threads
-            unique_ptr< thread > takeThreads[numCores];
-            unique_ptr< thread > giveThreads[numCores];
+            unique_ptr< thread > takeThreads[numCPUs];
+            unique_ptr< thread > giveThreads[numCPUs];
 
             // Instantiate the starting gun
             StartingGun startingGun;
 
             // Spawn the take task threads
-            for (unsigned int i = 0; i != numCores; ++i)
+            for (unsigned int i = 0; i != numCPUs; ++i)
             {
                 takeThreads[i].reset(new thread{ ref(takeTasks[i]), &startingGun, &sem, count });
             }
 
             // Spawn the give task threads
-            for (unsigned int i = 0; i != numCores; ++i)
+            for (unsigned int i = 0; i != numCPUs; ++i)
             {
                 giveThreads[i].reset(new thread{ ref(giveTasks[i]), &startingGun, &sem, count });
             }
@@ -172,14 +245,14 @@ int main() {
                 for (; n != 10; ++n)
                 {
                     unsigned int i = 0;
-                    for (; i != numCores; ++i)
+                    for (; i != numCPUs; ++i)
                     {
                         if (takeTasks[i].getState() != SemTakeTask2::State::waitingForGo) {
                             this_thread::sleep_for(chrono::milliseconds(10));
                             break;
                         }
                     }
-                    if (numCores==i)
+                    if (numCPUs == i)
                     {
                         break;
                     }
@@ -187,7 +260,7 @@ int main() {
                 if (n == 10)
                 {
                     cout << "SemTakeTask2 failed to reach the waitingForGo state!\n";
-                    retVal = 5;
+                    retVal = 11;
                     break;
                 }
 
@@ -198,14 +271,14 @@ int main() {
                 for (n = 0; n != 10; ++n)
                 {
                     unsigned int i = 0;
-                    for (; i != numCores; ++i)
+                    for (; i != numCPUs; ++i)
                     {
                         if (giveTasks[i].getState() != SemGiveTask2::State::going) {
                             this_thread::sleep_for(chrono::milliseconds(10));
                             break;
                         }
                     }
-                    if (numCores==i)
+                    if (numCPUs == i)
                     {
                         break;
                     }
@@ -213,7 +286,7 @@ int main() {
                 if (n == 10)
                 {
                     cout << "SemGiveTask2 failed to reach the going state!\n";
-                    retVal = 6;
+                    retVal = 12;
                     break;
                 }
 
@@ -224,7 +297,7 @@ int main() {
                 for (n = 0; n != maxLoops; ++n) {
                     this_thread::sleep_for(chrono::milliseconds(1000));
                     unsigned int numCompleted = 0;
-                    for (unsigned int j = 0; j != numCores; ++j) {
+                    for (unsigned int j = 0; j != numCPUs; ++j) {
                         SemTakeTask2::State tState = takeTasks[j].getState();
                         if (SemTakeTask2::State::going != tState && SemTakeTask2::State::completed != tState) {
                             failed = true;
@@ -233,14 +306,14 @@ int main() {
                         if ( tState == SemTakeTask2::State::completed ) ++numCompleted;
                     }
                     // If we failed or numCompleted is the number of get threads we've spun, then all is done
-                    if (failed || numCompleted == numCores)
+                    if (failed || numCompleted == numCPUs)
                         break;
                 }
 
                 // If failed set return value and break out.
                 if ( failed ) {
                     cout << "FAILED" << endl;
-                    retVal = 7;
+                    retVal = 13;
                     break;
                 }
 
@@ -252,7 +325,7 @@ int main() {
             // The abort is inconsequential if all threads (take and give) completed.
             sem.abort();
             startingGun.reload();
-            for (unsigned int i = 0; i != numCores; ++i)
+            for (unsigned int i = 0; i != numCPUs; ++i)
             {
                 takeThreads[i]->join();
                 giveThreads[i]->join();
@@ -263,13 +336,13 @@ int main() {
             {
                 // If we make it here, it failed.
                 cout << "Semaphore should have reported an available count of zero after threads do initial takes!\n";
-                retVal = 8;
+                retVal = 14;
             }
 
             // If failure detected, then output the task status of each.
             if (0 != retVal)
             {
-                for (unsigned int i = 0; i != numCores; ++i)
+                for (unsigned int i = 0; i != numCPUs; ++i)
                 {
                     takeTasks[i].outputResults(i);
                     giveTasks[i].outputResults(i);
