@@ -10,7 +10,7 @@
 #include "Semaphore.hpp"
 
 #ifdef REISER_RT_HAS_PTHREADS
-#include "PriorityInheritMutex.hpp"
+#include "CoreMutex.hpp"
 #endif
 
 #include "ReiserRT_CoreExceptions.hpp"

@@ -1,11 +1,11 @@
 /**
-* @file PriorityInheritMutex.cpp
-* @brief The Specification for PriorityInheritMutex Utility
+* @file CoreMutex.cpp
+* @brief The Specification for CoreMutex Utility
 * @authors: Frank Reiser
 * @date Created on Jul 17, 2017
 */
 
-#include "PriorityInheritMutex.hpp"
+#include "CoreMutex.hpp"
 
 #ifdef REISER_RT_HAS_PTHREADS
 

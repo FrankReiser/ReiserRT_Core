@@ -1,14 +1,13 @@
 /**
-* @file PriorityInheritMutex.hpp
-* @brief The Specification for PriorityInheritMutex Utility
+* @file CoreMutex.hpp
+* @brief The Specification for CoreMutex Utility
 * @authors: Frank Reiser
 * @date Created on Jul 17, 2017
 */
 
-#ifndef REISERRT_CORE_PRIORITYINHERITMUTEX_HPP
-#define REISERRT_CORE_PRIORITYINHERITMUTEX_HPP
+#ifndef REISERRT_CORE_COREMUTEX_HPP
+#define REISERRT_CORE_COREMUTEX_HPP
 
-//#include "ProjectConfigure.h"
 #ifdef REISER_RT_HAS_PTHREADS
 
 #include <pthread.h>
@@ -57,14 +56,14 @@ namespace ReiserRT
 
         public:
             /**
-            * @brief Qualified Constructor for PriorityInheritMutex
+            * @brief Qualified Constructor for CoreMutex
             *
-            * This operation constructs a PriorityInheritMutex with the PTHREAD_PRIO_INHERIT mutex protocol.
+            * This operation constructs a CoreMutex with the PTHREAD_PRIO_INHERIT mutex protocol.
             */
             PriorityInheritMutex();
 
             /**
-            * @brief Destructor for the PriorityInheritMutex
+            * @brief Destructor for the CoreMutex
             *
             * This destructor destroys the encapsulated pthread_mutex_t native mutex instance.
             * Any waiters on a destroyed mutex will almost certainly experience system_error exceptions.
@@ -72,38 +71,38 @@ namespace ReiserRT
             ~PriorityInheritMutex();
 
             /**
-            * @brief Copy Constructor for PriorityInheritMutex
+            * @brief Copy Constructor for CoreMutex
             *
-            * Copying PriorityInheritMutex is disallowed. Hence, this operation has been deleted.
+            * Copying CoreMutex is disallowed. Hence, this operation has been deleted.
             *
-            * @param another Another instance of a PriorityInheritMutex.
+            * @param another Another instance of a CoreMutex.
             */
             PriorityInheritMutex( const PriorityInheritMutex & another ) = delete;
 
             /**
-            * @brief Copy Assignment Operation for PriorityInheritMutex
+            * @brief Copy Assignment Operation for CoreMutex
             *
-            * Copying PriorityInheritMutex is disallowed. Hence, this operation has been deleted.
+            * Copying CoreMutex is disallowed. Hence, this operation has been deleted.
             *
-            * @param another Another instance of a PriorityInheritMutex.
+            * @param another Another instance of a CoreMutex.
             */
             PriorityInheritMutex & operator=( const PriorityInheritMutex & another ) = delete;
 
             /**
-            * @brief Move Constructor for PriorityInheritMutex
+            * @brief Move Constructor for CoreMutex
             *
-            * Moving PriorityInheritMutex is disallowed. Hence, this operation has been deleted.
+            * Moving CoreMutex is disallowed. Hence, this operation has been deleted.
             *
-            * @param another An rvalue reference to another instance of a PriorityInheritMutex.
+            * @param another An rvalue reference to another instance of a CoreMutex.
             */
             PriorityInheritMutex( PriorityInheritMutex && another ) = delete;
 
             /**
-            * @brief Move Assignment Operation for PriorityInheritMutex
+            * @brief Move Assignment Operation for CoreMutex
             *
-            * Moving PriorityInheritMutex is disallowed. Hence, this operation has been deleted.
+            * Moving CoreMutex is disallowed. Hence, this operation has been deleted.
             *
-            * @param another An rvalue reference to another instance of a PriorityInheritMutex.
+            * @param another An rvalue reference to another instance of a CoreMutex.
             */
             PriorityInheritMutex & operator=( PriorityInheritMutex && another ) = delete;
 
@@ -179,4 +178,4 @@ namespace ReiserRT
 
 #endif // REISER_RT_GCC
 
-#endif /* REISERRT_CORE_PRIORITYINHERITMUTEX_HPP */
+#endif /* REISERRT_CORE_COREMUTEX_HPP */

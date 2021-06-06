@@ -45,9 +45,10 @@ if(CMAKE_USE_PTHREADS_INIT)
     set( _REISER_RT_HAS_PTHREADS ON)
 endif()
 
+# TODO: This will no longer be dependent on PTHREADS with the semaphoreRework branch. Also, the header will not be private.
 if(_REISER_RT_HAS_PTHREADS)
-    list( APPEND _privateHeaders ${CMAKE_CURRENT_LIST_DIR}/PriorityInheritMutex.hpp )
-    list( APPEND _privateSources ${CMAKE_CURRENT_LIST_DIR}/PriorityInheritMutex.cpp )
+    list( APPEND _privateHeaders ${CMAKE_CURRENT_LIST_DIR}/CoreMutex.hpp)
+    list( APPEND _privateSources ${CMAKE_CURRENT_LIST_DIR}/CoreMutex.cpp)
 endif()
 
 #[[
@@ -55,7 +56,6 @@ endif()
 find_package(PkgConfig QUIET)
 message( STATUS "PKG_CONFIG_FOUND: ${CMAKE_USE_PTHREADS_INIT}" )
 ]]
-
 
 # Now the entire Library, currently SHARED by default. Could make an option though.
 add_library( ReiserRT_Core SHARED "" )
@@ -89,7 +89,7 @@ target_compile_definitions(ReiserRT_Core
 # We do not actually link Threads::Threads at this time but, this creates a requirement that will eventually have to be satisfied.
 # Anything that links to 'Us', needs Threads::Threads also.
 # Rationale: Our tests will need Threads to do adequate testing. Any client would most certainly be using threads also.
-# If PriorityInheritMutex compiles under REISER_RT_HAS_PTHREADS then, it is needed by any client without doubt.
+# If CoreMutex compiles under REISER_RT_HAS_PTHREADS then, it is needed by any client without doubt.
 target_link_libraries(ReiserRT_Core PUBLIC Threads::Threads)
 
 # Specify our target interfaces for external clients

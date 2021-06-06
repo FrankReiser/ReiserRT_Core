@@ -12,7 +12,7 @@
 
 #include "MessageQueueBase.hpp"
 #include "RingBufferGuarded.hpp"
-#include "PriorityInheritMutex.hpp"
+#include "CoreMutex.hpp"
 
 #include <cstring>
 #include <thread>
