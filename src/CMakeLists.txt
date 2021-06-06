@@ -47,8 +47,8 @@ endif()
 
 # TODO: This will no longer be dependent on PTHREADS with the semaphoreRework branch. Also, the header will not be private.
 if(_REISER_RT_HAS_PTHREADS)
-    list( APPEND _privateHeaders ${CMAKE_CURRENT_LIST_DIR}/CoreMutex.hpp)
-    list( APPEND _privateSources ${CMAKE_CURRENT_LIST_DIR}/CoreMutex.cpp)
+    list( APPEND _privateHeaders ${CMAKE_CURRENT_LIST_DIR}/Mutex.hpp)
+    list( APPEND _privateSources ${CMAKE_CURRENT_LIST_DIR}/Mutex.cpp)
 endif()
 
 #[[

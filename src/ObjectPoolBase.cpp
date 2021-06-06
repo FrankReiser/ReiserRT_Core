@@ -11,7 +11,7 @@
 #include "RingBufferSimple.hpp"
 
 #ifdef REISER_RT_HAS_PTHREADS
-#include "CoreMutex.hpp"
+#include "Mutex.hpp"
 #endif
 
 #include <atomic>
@@ -54,7 +54,7 @@ private:
     * This is the Mutex type we will utilize protect the ring buffer from simultaneous access by multiple threads.
     */
 #ifdef REISER_RT_HAS_PTHREADS
-    using MutexType = PriorityInheritMutex;
+    using MutexType = Mutex;
 #else
     using MutexType = std::mutex;
 #endif

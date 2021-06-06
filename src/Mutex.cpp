@@ -5,13 +5,13 @@
 * @date Created on Jul 17, 2017
 */
 
-#include "CoreMutex.hpp"
+#include "Mutex.hpp"
 
 #ifdef REISER_RT_HAS_PTHREADS
 
 using namespace ReiserRT::Core;
 
-PriorityInheritMutex::PriorityInheritMutex()
+Mutex::Mutex()
 {
     // Initialize a mutex attribute
     pthread_mutexattr_t attr;
@@ -32,7 +32,7 @@ PriorityInheritMutex::PriorityInheritMutex()
     pthread_mutexattr_destroy( &attr );
 }
 
-PriorityInheritMutex::~PriorityInheritMutex()
+Mutex::~Mutex()
 {
     // Destroy the mutex
     pthread_mutex_destroy( &nativeType );

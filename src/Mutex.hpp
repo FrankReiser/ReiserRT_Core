@@ -5,8 +5,8 @@
 * @date Created on Jul 17, 2017
 */
 
-#ifndef REISERRT_CORE_COREMUTEX_HPP
-#define REISERRT_CORE_COREMUTEX_HPP
+#ifndef REISERRT_MUTEX_HPP
+#define REISERRT_MUTEX_HPP
 
 #ifdef REISER_RT_HAS_PTHREADS
 
@@ -37,7 +37,7 @@ namespace ReiserRT
         * "Duck Typing" in order to be utilized as a direct std::mutex replacement. It is currently employed
         * within ReiserRT::Core::Semaphore::Imple when compiled under GCC C++11.
         */
-        class PriorityInheritMutex
+        class Mutex
         {
         public:
             /**
@@ -56,55 +56,55 @@ namespace ReiserRT
 
         public:
             /**
-            * @brief Qualified Constructor for CoreMutex
+            * @brief Qualified Constructor for Mutex
             *
-            * This operation constructs a CoreMutex with the PTHREAD_PRIO_INHERIT mutex protocol.
+            * This operation constructs a Mutex with the PTHREAD_PRIO_INHERIT mutex protocol.
             */
-            PriorityInheritMutex();
+            Mutex();
 
             /**
-            * @brief Destructor for the CoreMutex
+            * @brief Destructor for the Mutex
             *
             * This destructor destroys the encapsulated pthread_mutex_t native mutex instance.
             * Any waiters on a destroyed mutex will almost certainly experience system_error exceptions.
             */
-            ~PriorityInheritMutex();
+            ~Mutex();
 
             /**
-            * @brief Copy Constructor for CoreMutex
+            * @brief Copy Constructor for Mutex
             *
-            * Copying CoreMutex is disallowed. Hence, this operation has been deleted.
+            * Copying Mutex is disallowed. Hence, this operation has been deleted.
             *
-            * @param another Another instance of a CoreMutex.
+            * @param another Another instance of a Mutex.
             */
-            PriorityInheritMutex( const PriorityInheritMutex & another ) = delete;
+            Mutex( const Mutex & another ) = delete;
 
             /**
-            * @brief Copy Assignment Operation for CoreMutex
+            * @brief Copy Assignment Operation for Mutex
             *
-            * Copying CoreMutex is disallowed. Hence, this operation has been deleted.
+            * Copying Mutex is disallowed. Hence, this operation has been deleted.
             *
-            * @param another Another instance of a CoreMutex.
+            * @param another Another instance of a Mutex.
             */
-            PriorityInheritMutex & operator=( const PriorityInheritMutex & another ) = delete;
+            Mutex & operator=( const Mutex & another ) = delete;
 
             /**
-            * @brief Move Constructor for CoreMutex
+            * @brief Move Constructor for Mutex
             *
-            * Moving CoreMutex is disallowed. Hence, this operation has been deleted.
+            * Moving Mutex is disallowed. Hence, this operation has been deleted.
             *
-            * @param another An rvalue reference to another instance of a CoreMutex.
+            * @param another An rvalue reference to another instance of a Mutex.
             */
-            PriorityInheritMutex( PriorityInheritMutex && another ) = delete;
+            Mutex( Mutex && another ) = delete;
 
             /**
-            * @brief Move Assignment Operation for CoreMutex
+            * @brief Move Assignment Operation for Mutex
             *
-            * Moving CoreMutex is disallowed. Hence, this operation has been deleted.
+            * Moving Mutex is disallowed. Hence, this operation has been deleted.
             *
-            * @param another An rvalue reference to another instance of a CoreMutex.
+            * @param another An rvalue reference to another instance of a Mutex.
             */
-            PriorityInheritMutex & operator=( PriorityInheritMutex && another ) = delete;
+            Mutex & operator=( Mutex && another ) = delete;
 
             /**
             * @brief The Lock Operation
@@ -178,4 +178,4 @@ namespace ReiserRT
 
 #endif // REISER_RT_GCC
 
-#endif /* REISERRT_CORE_COREMUTEX_HPP */
+#endif /* REISERRT_MUTEX_HPP */

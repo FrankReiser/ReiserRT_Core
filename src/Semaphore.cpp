@@ -10,7 +10,7 @@
 #include "Semaphore.hpp"
 
 #ifdef REISER_RT_HAS_PTHREADS
-#include "CoreMutex.hpp"
+#include "Mutex.hpp"
 #endif
 
 #include "ReiserRT_CoreExceptions.hpp"
@@ -120,7 +120,7 @@ public:
     * This type provides a little "syntactic sugar" for the class.
     */
 #ifdef REISER_RT_HAS_PTHREADS
-    using MutexType = PriorityInheritMutex;
+    using MutexType = Mutex;
 #else
     using MutexType = std::mutex;
 #endif

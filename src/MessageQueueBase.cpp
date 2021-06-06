@@ -12,7 +12,7 @@
 
 #include "MessageQueueBase.hpp"
 #include "RingBufferGuarded.hpp"
-#include "CoreMutex.hpp"
+#include "Mutex.hpp"
 
 #include <cstring>
 #include <thread>
@@ -56,7 +56,7 @@ private:
     * The mutex type we will use.
     */
 #ifdef REISER_RT_HAS_PTHREADS
-    using MutexType = PriorityInheritMutex;
+    using MutexType = Mutex;
 #else
     using MutexType = std::mutex;
 #endif
