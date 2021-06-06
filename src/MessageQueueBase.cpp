@@ -51,22 +51,11 @@ private:
     using CookedRingBufferType = RingBufferGuarded< MessageBase * >;
 
     /**
-    * @brief Mutex Type Declaration
-    *
-    * The mutex type we will use.
-    */
-#ifdef REISER_RT_HAS_PTHREADS
-    using MutexType = Mutex;
-#else
-    using MutexType = std::mutex;
-#endif
-
-    /**
     * @brief Mutex Pointer Type Declaration
     *
     * The mutex pointer type we will use.
     */
-    using MutexPtrType = std::unique_ptr< MutexType >;
+    using MutexPtrType = std::unique_ptr< Mutex >;
 
     /**
     * @brief Running State Basis
@@ -356,7 +345,7 @@ MessageQueueBase::Imple::Imple( std::size_t theRequestedNumElements, std::size_t
                                 bool enableDispatchLocking )
   : requestedNumElements{ theRequestedNumElements }
   , elementSize{ theElementSize }
-  , pMutex{ enableDispatchLocking ? new MutexType{} : nullptr }
+  , pMutex{ enableDispatchLocking ? new Mutex{} : nullptr }
   , arena{ new unsigned char [ theElementSize * requestedNumElements ] }
   , rawRingBuffer{ theRequestedNumElements, true }
   , cookedRingBuffer{ theRequestedNumElements }
@@ -441,7 +430,7 @@ void MessageQueueBase::Imple::dispatchMessage( MessageBase * pMsg )
     nameOfLastMessageDispatched.store( pMsg->name() );
     if ( pMutex )
     {
-        std::lock_guard< MutexType > lockGuard{ *pMutex };
+        std::lock_guard< Mutex > lockGuard{ *pMutex };
         pMsg->dispatch();
     }
     else

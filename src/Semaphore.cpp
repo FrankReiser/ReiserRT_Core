@@ -9,9 +9,7 @@
 
 #include "Semaphore.hpp"
 
-#ifdef REISER_RT_HAS_PTHREADS
 #include "Mutex.hpp"
-#endif
 
 #include "ReiserRT_CoreExceptions.hpp"
 
@@ -108,22 +106,7 @@ public:
     *
     * This type provides a little "syntactic sugar" for the class.
     */
-#ifdef REISER_RT_HAS_PTHREADS
     using ConditionVarType = std::condition_variable_any;
-#else
-    using ConditionVarType = std::condition_variable;
-#endif
-
-    /**
-    * @brief Mutex Type
-    *
-    * This type provides a little "syntactic sugar" for the class.
-    */
-#ifdef REISER_RT_HAS_PTHREADS
-    using MutexType = Mutex;
-#else
-    using MutexType = std::mutex;
-#endif
 
 public:
     /**
@@ -134,7 +117,7 @@ public:
     *
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
     */
-    inline void wait() { std::unique_lock< MutexType > lock{ mutex }; _wait( lock ); }
+    inline void wait() { std::unique_lock< Mutex > lock{ mutex }; _wait( lock ); }
 
     /**
     * @brief The Wait Operation
@@ -149,7 +132,7 @@ public:
     * @throw The user operation may throw an exception of unknown type.
     */
     inline void wait( FunctionType & operation ) {
-        std::unique_lock< MutexType > lock{ mutex };
+        std::unique_lock< Mutex > lock{ mutex };
         _wait( lock );
 #if 1
         struct AvailableCountManager {
@@ -186,7 +169,7 @@ public:
     *
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
     */
-    inline void notify() { std::lock_guard< MutexType > lock{ mutex }; _notify(); }
+    inline void notify() { std::lock_guard< Mutex > lock{ mutex }; _notify(); }
 
     /**
     * @brief The Notify Operation with Functor Interface
@@ -198,7 +181,7 @@ public:
     * @param operation This is a reference to a user provided function object to invoke during the context of the internal lock.
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
     */
-    inline void notify( FunctionType & operation ) { std::lock_guard< MutexType > lock{ mutex }; operation(); _notify(); }
+    inline void notify( FunctionType & operation ) { std::lock_guard< Mutex > lock{ mutex }; operation(); _notify(); }
 
     /**
     * @brief The Abort Operation
@@ -233,7 +216,7 @@ private:
     *
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abortFlag has been set via the abort operation.
     */
-    void _wait( std::unique_lock< MutexType > & lock );
+    void _wait( std::unique_lock< Mutex > & lock );
 
     /**
     * @brief The Notify Operation Internals
@@ -263,7 +246,7 @@ private:
     * Mutexes are designed to provide mutual exclusion around sections of code to ensure coherency
     * of data accessed in multi-threaded environments.
     */
-    MutexType mutex;
+    Mutex mutex;
 
     /**
     * @brief The Available Count
@@ -306,7 +289,7 @@ Semaphore::Imple::~Imple()
 }
 
 
-void Semaphore::Imple::_wait( std::unique_lock< MutexType > & lock )
+void Semaphore::Imple::_wait( std::unique_lock< Mutex > & lock )
 {
     for (;;)
     {
@@ -345,7 +328,7 @@ void Semaphore::Imple::_notify()
 
 void Semaphore::Imple::abort()
 {
-    std::lock_guard< MutexType > lock( mutex );
+    std::lock_guard< Mutex > lock( mutex );
 
     // If the abort flag is set, quietly get out of the way.
     if ( abortFlag ) return;
@@ -357,7 +340,7 @@ void Semaphore::Imple::abort()
 
 size_t Semaphore::Imple::getAvailableCount()
 {
-    std::lock_guard< MutexType > lock( mutex );
+    std::lock_guard< Mutex > lock( mutex );
 
     return availableCount;
 }

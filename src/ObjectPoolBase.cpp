@@ -10,9 +10,7 @@
 
 #include "RingBufferSimple.hpp"
 
-#ifdef REISER_RT_HAS_PTHREADS
 #include "Mutex.hpp"
-#endif
 
 #include <atomic>
 #include <mutex>
@@ -47,17 +45,6 @@ private:
     * This is the RingBuffer type we will utilize to store raw memory blocks from the memory arena.
     */
     using RingBufferType = RingBufferSimple< void * >;
-
-    /**
-    * @brief Mutex Type
-    *
-    * This is the Mutex type we will utilize protect the ring buffer from simultaneous access by multiple threads.
-    */
-#ifdef REISER_RT_HAS_PTHREADS
-    using MutexType = Mutex;
-#else
-    using MutexType = std::mutex;
-#endif
 
     /**
     * @brief Running State Basis
@@ -218,7 +205,7 @@ private:
     * Mutexes are designed to provide mutual exclusion around sections of code to ensure coherency
     * of data accessed in multi-threaded environments.
     */
-    MutexType mutex;
+    Mutex mutex;
 
 #if defined( OBJECT_POOL_INITIALIZES_RAW_MEMORY) && ( OBJECT_POOL_INITIALIZES_RAW_MEMORY != 0 )
     /**
@@ -284,7 +271,7 @@ void * ObjectPoolBase::Imple::getRawBlock()
     void * pRaw = nullptr;
     {
         // Take lock RAII style
-        std::lock_guard< MutexType > lock( mutex );
+        std::lock_guard< Mutex > lock( mutex );
 
         // Get raw memory
         pRaw = ringBuffer.get();
@@ -319,7 +306,7 @@ void ObjectPoolBase::Imple::returnRawBlock( void * pRaw ) noexcept
     // Utilize small block scoping for mutex lock to minimize lock time.
     {
         // Take lock RAII style
-        std::lock_guard< MutexType > lock( mutex );
+        std::lock_guard< Mutex > lock( mutex );
 
         // Return raw memory back to the pool.
         ringBuffer.put( pRaw );
