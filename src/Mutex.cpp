@@ -7,12 +7,20 @@
 
 #include "Mutex.hpp"
 
-#ifdef REISER_RT_HAS_PTHREADS
+#include <pthread.h>
+#include <system_error>
 
 using namespace ReiserRT::Core;
 
 Mutex::Mutex()
+#ifdef REISER_RT_HAS_PTHREADS
+  : nativeHandle{new pthread_mutex_t }
+#else
+  : stdMutex{}
+  , nativeHandle{ stdMutex.native_handle() }
+#endif
 {
+#ifdef REISER_RT_HAS_PTHREADS
     // Initialize a mutex attribute
     pthread_mutexattr_t attr;
     pthread_mutexattr_init( &attr );
@@ -26,44 +34,59 @@ Mutex::Mutex()
     }
 
     // Initialize our native type (pthread_mutex_t) with our modified attribute.
-    pthread_mutex_init( &nativeType, &attr );
+    nativeHandle = new( pthread_mutex_t );
+    pthread_mutex_init( nativeHandle, &attr );
 
     // Destroy the attribute, we are done with it.
     pthread_mutexattr_destroy( &attr );
+#endif
 }
 
 Mutex::~Mutex()
 {
-    // Destroy the mutex
-    pthread_mutex_destroy( &nativeType );
+#ifdef REISER_RT_HAS_PTHREADS
+    // Destroy the mutex and delete nativeHandle allocated during construction.
+    pthread_mutex_destroy( nativeHandle );
+    delete nativeHandle;
+#endif
 }
 
 void Mutex::lock()
 {
-    int e = pthread_mutex_lock( &nativeType );
+#ifdef REISER_RT_HAS_PTHREADS
+    int e = pthread_mutex_lock( nativeHandle );
 
     // EINVAL, EAGAIN, EBUSY, EINVAL and EDEADLK(maybe)
     if ( e ) throw std::system_error{ e, std::system_category() };
+#else
+    stdMutex.lock();
+#endif
 }
 
 bool Mutex::try_lock()
 {
-    int e = pthread_mutex_trylock( &nativeType );
+#ifdef REISER_RT_HAS_PTHREADS
+    int e = pthread_mutex_trylock( nativeHandle );
 
     // EBUSY means it's already locked and we cannot acquire it. Anything else is an error.
     if ( e != 0 && e != EBUSY ) throw std::system_error{ e, std::system_category() };
 
     return e == 0;
+#else
+    return stdMutex.try_lock();
+#endif
 }
 
 void Mutex::unlock()
 {
-    int e = pthread_mutex_unlock( &nativeType );
+#ifdef REISER_RT_HAS_PTHREADS
+    int e = pthread_mutex_unlock( nativeHandle );
 
     // EINVAL, EAGAIN and  EPERM potentially.
     if ( e ) throw std::system_error{ e, std::system_category() };
-}
-
+#else
+    stdMutex.unlock();
 #endif
+}
 
 

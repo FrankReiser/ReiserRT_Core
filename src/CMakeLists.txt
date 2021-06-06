@@ -2,6 +2,7 @@
 set( _publicHeaders
         ReiserRT_CoreExceptions.hpp
         RingBufferSimple.hpp
+        Mutex.hpp
         Semaphore.hpp
         RingBufferGuarded.hpp
         ObjectPoolBase.hpp
@@ -21,6 +22,7 @@ set( _privateHeaders
 set( _privateSources
         ReiserRT_CoreExceptions.cpp
         RingBufferSimple.cpp
+        Mutex.cpp
         Semaphore.cpp
         RingBufferGuarded.cpp
         ObjectPoolBase.cpp
@@ -45,11 +47,14 @@ if(CMAKE_USE_PTHREADS_INIT)
     set( _REISER_RT_HAS_PTHREADS ON)
 endif()
 
-# TODO: This will no longer be dependent on PTHREADS with the semaphoreRework branch. Also, the header will not be private.
+#[[
+# These are no longer private. However, I'm leaving this snippet in place as an example of how to append
+# to an existing list.
 if(_REISER_RT_HAS_PTHREADS)
     list( APPEND _privateHeaders ${CMAKE_CURRENT_LIST_DIR}/Mutex.hpp)
     list( APPEND _privateSources ${CMAKE_CURRENT_LIST_DIR}/Mutex.cpp)
 endif()
+]]
 
 #[[
 # Just an experiment
@@ -160,4 +165,3 @@ install(
         DESTINATION
             ${INSTALL_CMAKEDIR}
 )
-

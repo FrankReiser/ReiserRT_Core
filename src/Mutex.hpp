@@ -8,10 +8,9 @@
 #ifndef REISERRT_MUTEX_HPP
 #define REISERRT_MUTEX_HPP
 
-#ifdef REISER_RT_HAS_PTHREADS
+#include <mutex>
 
-#include <pthread.h>
-#include <system_error>
+#include "ReiserRT_CoreExport.h"
 
 namespace ReiserRT
 {
@@ -28,15 +27,21 @@ namespace ReiserRT
         * users could modify a threading object post construction using the "native APIs" available on the
         * target platform.
         *
-        * Where it comes to mutexes and the actual standard is employing POSIX pthread_mutex_t,
+        * Where it comes to mutexes and the actual type being employed is a POSIX pthread_mutex_t,
         * we have a problem with applications running under real time constraints. Specifically, we want to
         * avoid a phenomena known as priority inversion. The native_handle interface of a mutex object
         * cannot be used to modify the contained pthread_mutex_t object post construction. You must specify
         * the pthread_mutex_t policy attributes at time of pthread_mutex_t construction and these attributes are copied
         * into the mutex. These policy attributes are immutable once the mutex is constructed. This class provides
-        * the necessary "Duck Typing" in order to be utilized as a direct std::mutex replacement.
+        * the necessary "Duck Typing" in order to be utilized as a direct std::mutex replacement with lock_guard and
+        * unique_lock. However, to utilize C++11 condition variables with this type of mutex,
+        * the less efficient std::condition_variable_any must be used. A raw POSIX availability can bypass that
+        * overhead.
         */
-        class Mutex
+        ///@todo We are not using custom exception types within Mutex.
+        ///@todo Clean up documentation regarding POSIX in member operations.
+        ///@todo The non-POSIX fallback implementation has NOT BEEN TESTED!
+        class ReiserRT_Core_EXPORT Mutex
         {
         public:
             /**
@@ -44,14 +49,7 @@ namespace ReiserRT
             *
             * This is simply an alias for our native type.
             */
-            using NativeType = pthread_mutex_t;
-
-            /**
-            * @brief Alias for Native Handle Type
-            *
-            * This is simply an alias for our native handle type.
-            */
-            using NativeHandleType = NativeType *;
+            using NativeHandleType = std::mutex::native_handle_type;
 
         public:
             /**
@@ -142,19 +140,27 @@ namespace ReiserRT
             *
             * @return Returns the address of our encapsulated native mutex object.
             */
-            inline NativeHandleType native_handle() { return &nativeType; }
+            inline NativeHandleType native_handle() { return nativeHandle; }
 
         private:
+// If we do not have pthreads at our disposal, we will fall back onto a default C++11 std::mutex usage
+#ifndef REISER_RT_HAS_PTHREADS
+            /**
+            * @brief The Mutex
+            *
+            * This is the non-pthreads default C++11 std::mutex wrapped by this class
+            */
+            std::mutex stdMutex;
+#endif
+
             /**
             * @brief The Native Type
             *
             * This is our native mutex object type.
             */
-            NativeType nativeType;
+            NativeHandleType nativeHandle;
         };
     }
 }
-
-#endif // REISER_RT_GCC
 
 #endif /* REISERRT_MUTEX_HPP */
