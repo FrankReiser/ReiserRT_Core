@@ -38,6 +38,32 @@ Mutex::~Mutex()
     pthread_mutex_destroy( &nativeType );
 }
 
+void Mutex::lock()
+{
+    int e = pthread_mutex_lock( &nativeType );
+
+    // EINVAL, EAGAIN, EBUSY, EINVAL and EDEADLK(maybe)
+    if ( e ) throw std::system_error{ e, std::system_category() };
+}
+
+bool Mutex::try_lock()
+{
+    int e = pthread_mutex_trylock( &nativeType );
+
+    // EBUSY means it's already locked and we cannot acquire it. Anything else is an error.
+    if ( e != 0 && e != EBUSY ) throw std::system_error{ e, std::system_category() };
+
+    return e == 0;
+}
+
+void Mutex::unlock()
+{
+    int e = pthread_mutex_unlock( &nativeType );
+
+    // EINVAL, EAGAIN and  EPERM potentially.
+    if ( e ) throw std::system_error{ e, std::system_category() };
+}
+
 #endif
 
 

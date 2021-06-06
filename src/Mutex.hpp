@@ -18,7 +18,7 @@ namespace ReiserRT
     namespace Core
     {
         /**
-        * @brief A Priority Inherit Mutex Class
+        * @brief A Custom Mutex Class
         *
         * This class exists primarily to overcome an issue that affects real time performance of C++11
         * processes. With the ratification of the C++11 standard, the C++ language gained portable, native thread support.
@@ -32,10 +32,9 @@ namespace ReiserRT
         * we have a problem with applications running under real time constraints. Specifically, we want to
         * avoid a phenomena known as priority inversion. The native_handle interface of a mutex object
         * cannot be used to modify the contained pthread_mutex_t object post construction. You must specify
-        * the pthread_mutex_t attributes at time of pthread_mutex_t construction and these attributes are copied
-        * into the mutex. They are immutable once the mutex is constructed. This class provides the necessary
-        * "Duck Typing" in order to be utilized as a direct std::mutex replacement. It is currently employed
-        * within ReiserRT::Core::Semaphore::Imple when compiled under GCC C++11.
+        * the pthread_mutex_t policy attributes at time of pthread_mutex_t construction and these attributes are copied
+        * into the mutex. These policy attributes are immutable once the mutex is constructed. This class provides
+        * the necessary "Duck Typing" in order to be utilized as a direct std::mutex replacement.
         */
         class Mutex
         {
@@ -113,13 +112,7 @@ namespace ReiserRT
             *
             * @throw Throws std::system_error should an failure occur attempting to take the lock.
             */
-            inline void lock()
-            {
-                int e = pthread_mutex_lock( &nativeType );
-
-                // EINVAL, EAGAIN, EBUSY, EINVAL and EDEADLK(maybe)
-                if ( e ) throw std::system_error{ e, std::system_category() };
-            }
+            void lock();
 
             /**
             * @brief The Try Lock Operation
@@ -130,15 +123,7 @@ namespace ReiserRT
             *
             * @return Returns true if the mutex was successfully locked and false otherwise.
             */
-            inline bool try_lock()
-            {
-                int e = pthread_mutex_trylock( &nativeType );
-
-                // EBUSY means it's already locked and we cannot acquire it. Anything else is an error.
-                if ( e != 0 && e != EBUSY ) throw std::system_error{ e, std::system_category() };
-
-                return e == 0;
-            }
+            bool try_lock();
 
             /**
             * @brief The Lock Operation
@@ -148,13 +133,7 @@ namespace ReiserRT
             *
             * @throw Throws std::system_error should an failure occur attempting to unlock the mutex.
             */
-            inline void unlock()
-            {
-                int e = pthread_mutex_unlock( &nativeType );
-
-                // EINVAL, EAGAIN and  EPERM potentially.
-                if ( e ) throw std::system_error{ e, std::system_category() };
-            }
+            void unlock();
 
             /**
             * @brief The Native Handle Operation
