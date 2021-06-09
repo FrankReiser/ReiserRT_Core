@@ -46,13 +46,6 @@ namespace ReiserRT
             using Base = RingBufferSimple< T >;
 
             /**
-            * @brief Semaphore Type
-            *
-            * This type is used to used to wait when nothing left is available to get.
-            */
-            using SemaphoreType = ReiserRT::Core::Semaphore;
-
-            /**
             * @brief The Ring Buffer State
             *
             * Our guarded ring buffer provides numerous operation that should only be invoked when in the appropriate
@@ -309,7 +302,7 @@ namespace ReiserRT
             * This object encapsulates and fulfills all the necessary requirements to make this object a "pendable"
             * thread safe, ring buffer.
             */
-            SemaphoreType semaphore;
+            Semaphore semaphore;
 
             /**
             * @brief Our Atomic State Variable

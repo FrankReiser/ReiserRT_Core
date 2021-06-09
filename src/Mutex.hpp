@@ -1,5 +1,5 @@
 /**
-* @file CoreMutex.hpp
+* @file Mutex.hpp
 * @brief The Specification for CoreMutex Utility
 * @authors: Frank Reiser
 * @date Created on Jul 17, 2017
