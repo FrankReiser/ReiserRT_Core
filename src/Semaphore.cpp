@@ -15,8 +15,11 @@
 
 #include <limits>
 #include <cstdint>
+#ifndef REISER_RT_HAS_PTHREADS
 #include <condition_variable>
+#endif
 #include <mutex>
+#include <thread>
 
 
 using namespace ReiserRT::Core;
@@ -104,9 +107,13 @@ public:
     /**
     * @brief Condition Variable Type
     *
-    * This type provides a little "syntactic sugar" for the class.
+    * The type of condition variable we are using.
     */
+#ifdef REISER_RT_HAS_PTHREADS
+    using ConditionVarType = pthread_cond_t;
+#else
     using ConditionVarType = std::condition_variable_any;
+#endif
 
 public:
     /**
@@ -281,16 +288,39 @@ Semaphore::Imple::Imple( size_t theInitialCount )
     , pendingCount{ 0 }
     , abortFlag{ false }
 {
+#ifdef REISER_RT_HAS_PTHREADS
+    // Initialize a condition variable attribute
+    pthread_condattr_t attr;
+    pthread_condattr_init( &attr );
+
+    // Initialize condition variable
+    pthread_cond_init( &conditionVar, &attr );
+
+    // Destroy attribute, we are done with it.
+    pthread_condattr_destroy( &attr );
+#endif
 }
 
 Semaphore::Imple::~Imple()
 {
     abort();
-}
 
+    // Sleep a small amount to allow waiters to get out of the way.
+    std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
+
+#ifdef REISER_RT_HAS_PTHREADS
+    // Destroy the condition variable.
+    pthread_cond_destroy( &conditionVar );
+#endif
+}
 
 void Semaphore::Imple::_wait( std::unique_lock< Mutex > & lock )
 {
+#ifdef REISER_RT_HAS_PTHREADS
+    // The code involved with obtaining this native handle is largely or completely inlined
+    // and then significantly optimized away.
+    auto mutexNativeHandle = lock.mutex()->native_handle();
+#endif
     for (;;)
     {
         // If the abort flag is set, throw a SemaphoreAbortedException.
@@ -306,8 +336,11 @@ void Semaphore::Imple::_wait( std::unique_lock< Mutex > & lock )
 
         // Else we must wait for a notification.
         ++pendingCount;
+#ifdef REISER_RT_HAS_PTHREADS
+        pthread_cond_wait( &conditionVar, mutexNativeHandle );
+#else
         conditionVar.wait( lock, [ this ]{ return abortFlag || availableCount > 0; } );
-
+#endif
         // Awakened with test returning true.
         --pendingCount;
     }
@@ -323,7 +356,11 @@ void Semaphore::Imple::_notify()
 
     ++availableCount;
 
+#ifdef REISER_RT_HAS_PTHREADS
+    pthread_cond_signal( &conditionVar );
+#else
     conditionVar.notify_one();
+#endif
 }
 
 void Semaphore::Imple::abort()
@@ -335,7 +372,11 @@ void Semaphore::Imple::abort()
 
     abortFlag = true;
     if ( pendingCount != 0 )
+#ifdef REISER_RT_HAS_PTHREADS
+        pthread_cond_broadcast( &conditionVar );
+#else
         conditionVar.notify_all();
+#endif
 }
 
 size_t Semaphore::Imple::getAvailableCount()
