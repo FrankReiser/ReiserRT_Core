@@ -14,7 +14,7 @@ using namespace ReiserRT::Core;
 
 Mutex::Mutex()
 #ifdef REISER_RT_HAS_PTHREADS
-  : nativeHandle{new pthread_mutex_t }
+  : nativeHandle{ new pthread_mutex_t }
 #else
   : stdMutex{}
   , nativeHandle{ stdMutex.native_handle() }

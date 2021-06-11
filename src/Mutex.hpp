@@ -143,7 +143,6 @@ namespace ReiserRT
             inline NativeHandleType native_handle() { return nativeHandle; }
 
         private:
-// If we do not have pthreads at our disposal, we will fall back onto a default C++11 std::mutex usage
 #ifndef REISER_RT_HAS_PTHREADS
             /**
             * @brief The Mutex

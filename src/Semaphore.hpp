@@ -24,7 +24,6 @@ namespace ReiserRT
         * They are designed to efficiently manage resource availability, until resources are exhausted (count of zero)
         * at which point, a client must wait (block) until resources are released and made available for reuse.
         *
-        * @todo Support move semantics.
         * @todo Support timed wait and test wait?
         */
         class ReiserRT_Core_EXPORT Semaphore
