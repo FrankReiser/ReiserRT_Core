@@ -52,10 +52,13 @@ namespace ReiserRT
             *
             * This operation constructs a Semaphore.
             *
-            * @param theInitialCount The initial Semaphore count, defaults to zero and is clamped to
-            * std::numeric_limits< uint32_t >::max() or slightly more than 4 billion (2^32 -1).
+            * @param theInitialCount The initial Semaphore count. This is typically zero for an initially unavailable
+            * Semaphore. It is clamped at std::numeric_limits< uint32_t >::max() which is roughly 4 billion (2^32-1).
+            * @param theMaxAvailableCount The maximum Semaphore count. Default to zero which indicates that the Semaphore
+            * is essentially unbounded. It is clamped at std::numeric_limits< uint32_t >::max() which is roughly
+            * 4 billion (2^32-1).
             */
-            explicit Semaphore( size_t theInitialCount = 0 );
+            explicit Semaphore( size_t theInitialCount, size_t theMaxAvailableCount = 0 );
 
             /**
             * @brief Destructor for the Semaphore

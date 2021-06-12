@@ -37,15 +37,22 @@ public:
     *
     * This operation constructs the Implementation.
     *
-    * @param theInitialCount The initial Semaphore count, defaults to zero and is clamped to
-    * std::numeric_limits< AvailableCountType>::max() or slightly more than 4 billion.
+    * @param theInitialCount The initial Semaphore count. This is typically zero for an initially unavailable
+    * Semaphore. It is clamped at std::numeric_limits< uint32_t >::max() which is roughly 4 billion (2^32-1).
+    * @param theMaxAvailableCount The maximum Semaphore count. Zero indicates that the Semaphore
+    * is essentially unbounded. It is clamped at std::numeric_limits< uint32_t >::max() which is roughly
+    * 4 billion (2^32-1).
     */
-    explicit Imple( size_t theInitialCount = 0 )
+    explicit Imple( size_t theInitialCount, size_t theMaxAvailableCount )
         : takeConditionVar{}
+        , giveConditionVar{}
         , mutex{}
         , availableCount{ theInitialCount > std::numeric_limits< AvailableCountType >::max() ?
-                          std::numeric_limits< AvailableCountType >::max() : AvailableCountType( theInitialCount ) }
-        , takePendingCount{0 }
+            std::numeric_limits< AvailableCountType >::max() : AvailableCountType( theInitialCount ) }
+        , maxAvailableCount{ theMaxAvailableCount > std::numeric_limits< AvailableCountType >::max() ?
+            std::numeric_limits< AvailableCountType >::max() : AvailableCountType( theMaxAvailableCount ) }
+        , takePendingCount{ 0 }
+        , givePendingCount{ 0 }
         , abortFlag{ false }
     {
 #ifdef REISER_RT_HAS_PTHREADS
@@ -53,8 +60,11 @@ public:
         pthread_condattr_t attr;
         pthread_condattr_init( &attr );
 
-        // Initialize condition variable
-        pthread_cond_init(&takeConditionVar, &attr );
+        // Initialize take condition variable
+        pthread_cond_init( &takeConditionVar, &attr );
+
+        // Initialize give condition variable
+        pthread_cond_init( &giveConditionVar, &attr );
 
         // Destroy attribute, we are done with it.
         pthread_condattr_destroy( &attr );
@@ -78,6 +88,9 @@ public:
 #ifdef REISER_RT_HAS_PTHREADS
         // Destroy the condition variable.
         pthread_cond_destroy( &takeConditionVar );
+
+        // Destroy the condition variable.
+        pthread_cond_destroy( &giveConditionVar );
 #endif
     }
 
@@ -116,34 +129,6 @@ public:
     * @param another An rvalue reference to another instance of the implementation.
     */
     Imple & operator =( Imple && another ) = delete;
-
-    /**
-    * @brief Available 32bit Count Type
-    *
-    * We use a signed 32bit unsigned integer for our available counter. This is large enough
-    * to track over four billion of whatever resource.
-    */
-    using AvailableCountType = uint32_t;
-
-    /**
-    * @brief Pending 16bit Count Type
-    *
-    * We use a signed 16bit integer for our pending counter. There can only be as
-    * many pending clients as there are threads entering the take operation
-    * and actually waiting.
-    */
-    using PendingCountType = uint16_t;
-
-    /**
-    * @brief Condition Variable Type
-    *
-    * The type of condition variable we are using.
-    */
-#ifdef REISER_RT_HAS_PTHREADS
-    using ConditionVarType = pthread_cond_t;
-#else
-    using ConditionVarType = std::condition_variable_any;
-#endif
 
 public:
     /**
@@ -326,11 +311,46 @@ private:
     }
 
     /**
+    * @brief Available 32bit Count Type
+    *
+    * We use a signed 32bit unsigned integer for our available counter. This is large enough
+    * to track over four billion of whatever resource.
+    */
+    using AvailableCountType = uint32_t;
+
+    /**
+    * @brief Pending 16bit Count Type
+    *
+    * We use a signed 16bit integer for our pending counter. There can only be as
+    * many pending clients as there are threads entering the take operation
+    * and actually waiting.
+    */
+    using PendingCountType = uint16_t;
+
+    /**
+    * @brief Condition Variable Type
+    *
+    * The type of condition variable we are using.
+    */
+#ifdef REISER_RT_HAS_PTHREADS
+    using ConditionVarType = pthread_cond_t;
+#else
+    using ConditionVarType = std::condition_variable_any;
+#endif
+
+    /**
     * @brief The Take Condition Variable
     *
     * This is our take condition variable that we can block on should the available count be zero.
     */
     ConditionVarType takeConditionVar;
+
+    /**
+    * @brief The Give Condition Variable
+    *
+    * This is our give condition variable that we can block on should the available count be at maximum.
+    */
+    ConditionVarType giveConditionVar;
 
     /**
     * @brief The Mutex
@@ -349,11 +369,27 @@ private:
     AvailableCountType availableCount;
 
     /**
+    * @brief The Available Count
+    *
+    * Our available count is an indication of how many times the take operation can be invoked without
+    * blocking, in lieu of any give invocations. The take operation decrements it and the give operation
+    * increments it. Once it reaches zero, take operations will block.
+    */
+    AvailableCountType maxAvailableCount;
+
+    /**
     * @brief The Take Pending Count
     *
     * This attribute indicates how many threads are pending on our condition variable takeConditionVar
     */
     PendingCountType takePendingCount;
+
+    /**
+    * @brief The Give Pending Count
+    *
+    * This attribute indicates how many threads are pending on our condition variable giveConditionVar
+    */
+    PendingCountType givePendingCount;
 
     /**
     * @brief The Abort Flag
@@ -363,8 +399,8 @@ private:
     bool abortFlag;
 };
 
-Semaphore::Semaphore( size_t theInitialCount )
-    : pImple{ new Semaphore::Imple{ theInitialCount } }
+Semaphore::Semaphore( size_t theInitialCount, size_t theMaxAvailableCount )
+    : pImple{ new Semaphore::Imple{ theInitialCount, theMaxAvailableCount } }
 {
 }
 
