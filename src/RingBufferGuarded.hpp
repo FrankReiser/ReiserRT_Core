@@ -25,6 +25,7 @@ namespace ReiserRT
         * @note The is no blocking on a full condition. Doing so was not a requirement, nor design goal
         * for ReiserRT::Core. Providing such a capability at this level would impact performance and if needed
         * can be layered on top.
+        * @todo The above should no longer be true. We should now block on full condition. This requires testing of course.
         *
         * @tparam T The ring buffer element type.
         * @note Must be a scalar type (e.g., char, int, float or void pointer).
@@ -83,7 +84,7 @@ namespace ReiserRT
             */
             explicit RingBufferGuardedBase( size_t theRequestedNumElements, bool willPrime = false )
                 : Base{ theRequestedNumElements }
-                , semaphore{ willPrime ? theRequestedNumElements : 0 }
+                , semaphore{ willPrime ? theRequestedNumElements : 0, theRequestedNumElements }
                 , state{ willPrime ? State::NeedsPriming : State::Ready }
             {
             }

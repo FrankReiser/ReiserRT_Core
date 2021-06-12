@@ -49,7 +49,7 @@ public:
         , mutex{}
         , availableCount{ theInitialCount > std::numeric_limits< AvailableCountType >::max() ?
             std::numeric_limits< AvailableCountType >::max() : AvailableCountType( theInitialCount ) }
-        , maxAvailableCount{ theMaxAvailableCount > std::numeric_limits< AvailableCountType >::max() ?
+        , maxAvailableCount{ theMaxAvailableCount == 0 ?    // If zero, force to maximum available.
             std::numeric_limits< AvailableCountType >::max() : AvailableCountType( theMaxAvailableCount ) }
         , takePendingCount{ 0 }
         , givePendingCount{ 0 }
@@ -60,10 +60,8 @@ public:
         pthread_condattr_t attr;
         pthread_condattr_init( &attr );
 
-        // Initialize take condition variable
+        // Initialize the condition variables
         pthread_cond_init( &takeConditionVar, &attr );
-
-        // Initialize give condition variable
         pthread_cond_init( &giveConditionVar, &attr );
 
         // Destroy attribute, we are done with it.
@@ -82,15 +80,13 @@ public:
     {
         abort();
 
-        // Sleep a small amount to allow waiters to get out of the way.
+        // Sleep a small amount to allow waiters on conditions to get out of the way.
         std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
 
 #ifdef REISER_RT_HAS_PTHREADS
-        // Destroy the condition variable.
-        pthread_cond_destroy( &takeConditionVar );
-
-        // Destroy the condition variable.
+        // Destroy the condition variables.
         pthread_cond_destroy( &giveConditionVar );
+        pthread_cond_destroy( &takeConditionVar );
 #endif
     }
 
@@ -139,8 +135,12 @@ public:
     *
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
     */
-    inline void take() { std::unique_lock< Mutex > lock{mutex };
-        _take(lock); }
+    inline void take()
+    {
+        std::unique_lock< Mutex > lock{mutex };
+        _take(lock);
+        _takeNotify();
+    }
 
     /**
     * @brief The Take Operation with Functor Interface
@@ -172,6 +172,9 @@ public:
         AvailableCountManager availableCountManager{ availableCount };
         operation();
         availableCountManager.release();
+
+        // Notify potential takers that could be waiting.
+        _takeNotify();
     }
 
     /**
@@ -182,8 +185,12 @@ public:
     *
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
     */
-    inline void give() { std::lock_guard< Mutex > lock{mutex };
-        _give(); }
+    inline void give()
+    {
+        std::unique_lock< Mutex > lock{mutex };
+        _giveWait( lock );
+        _give();
+    }
 
     /**
     * @brief The Give Operation with Functor Interface
@@ -195,8 +202,13 @@ public:
     * @param operation This is a reference to a user provided function object to invoke during the context of the internal lock.
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
     */
-    inline void give(FunctionType & operation ) { std::lock_guard< Mutex > lock{mutex }; operation();
-        _give(); }
+    inline void give(FunctionType & operation )
+    {
+        std::unique_lock< Mutex > lock{mutex };
+        _giveWait( lock );
+        operation();
+        _give();
+    }
 
     /**
     * @brief The Abort Operation
@@ -212,8 +224,11 @@ public:
         // If the abort flag is set, quietly get out of the way.
         if ( abortFlag ) return;
 
+        // Set abort flag and wake up any and all waiters,
         abortFlag = true;
-        if (takePendingCount != 0 )
+        if ( givePendingCount )
+            pthread_cond_broadcast( &giveConditionVar );
+        if ( takePendingCount )
 #ifdef REISER_RT_HAS_PTHREADS
             pthread_cond_broadcast( &takeConditionVar );
 #else
@@ -238,6 +253,25 @@ public:
     }
 
 private:
+
+    /**
+    * @brief The Take Notify Internals
+    *
+    * @todo Document Take Notify Internals
+    */
+    inline void _takeNotify()
+    {
+        // If we have any pending "givers", we must notify them.
+        if ( givePendingCount )
+        {
+#ifdef REISER_RT_HAS_PTHREADS
+            pthread_cond_signal( &giveConditionVar );
+#else
+            giveConditionVar.notify_one();
+#endif
+        }
+    }
+
     /**
     * @brief The Take Operation Internals
     *
@@ -251,7 +285,7 @@ private:
     *
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abortFlag has been set via the abort operation.
     */
-    void _take(std::unique_lock< Mutex > & lock )
+    void _take( std::unique_lock< Mutex > & lock )
     {
 #ifdef REISER_RT_HAS_PTHREADS
         // The code involved with obtaining this native handle is largely or completely inlined
@@ -260,7 +294,7 @@ private:
 #endif
         for (;;)
         {
-            // If the abort flag is set, throw a SemaphoreAbortedException.
+            // If the abort flag is set, throw a SemaphoreAborted exception.
             if ( abortFlag ) throw SemaphoreAborted{ "Semaphore::Imple::_take: Semaphore Aborted!" };
 
             // If the available count is greater than zero, decrement it and and escape out.
@@ -268,10 +302,10 @@ private:
             if ( availableCount > 0 )
             {
                 --availableCount;
-                return;
+                break;
             }
 
-            // Else we must take for a notification.
+            // Else we must wait for a notification.
             ++takePendingCount;
 #ifdef REISER_RT_HAS_PTHREADS
             pthread_cond_wait(&takeConditionVar, mutexNativeHandle );
@@ -280,6 +314,45 @@ private:
 #endif
             // Awakened with test returning true.
             --takePendingCount;
+        }
+    }
+
+    /**
+    * @brief The Give Wait Internals
+    *
+    * @todo Document Give Wait Internals
+    */
+    void _giveWait( std::unique_lock< Mutex > & lock )
+    {
+#ifdef REISER_RT_HAS_PTHREADS
+        // The code involved with obtaining this native handle is largely or completely inlined
+        // and then significantly optimized away.
+        auto mutexNativeHandle = lock.mutex()->native_handle();
+#endif
+        for (;;)
+        {
+            // If the abort flag is set, throw a SemaphoreAborted exception.
+            if ( abortFlag ) throw SemaphoreAborted{ "Semaphore::Imple::_giveWait: Semaphore Aborted!" };
+
+            // If we have already hit the numeric limits for available count, we cannot give anymore.
+            // We will throw an exception.
+            ///@todo Make a new exception for this!
+            if ( std::numeric_limits< AvailableCountType >::max() == availableCount )
+                    throw SemaphoreAborted{ "Semaphore::Imple::_giveWait: Absolute Available Count Limit Hit!" };
+
+            // If we can avert a wait, we will do so.
+            if ( maxAvailableCount > availableCount )
+                break;
+
+            // If here, we have to wait until we can "give" the Semaphore
+            ++givePendingCount;
+
+#ifdef REISER_RT_HAS_PTHREADS
+            pthread_cond_wait( &giveConditionVar, mutexNativeHandle );
+#else
+            giveConditionVar.take( lock, [ this ]{ return abortFlag || availableCount > 0; } );
+#endif
+            --givePendingCount;
         }
     }
 
@@ -295,11 +368,8 @@ private:
     */
     void _give()
     {
-        // If the abort flag is set OR we have been "over notified", throw a runtime error.
-        if ( abortFlag || availableCount == std::numeric_limits< AvailableCountType >::max() ) {
-            throw SemaphoreAborted{ abortFlag ? "Semaphore::Imple::_give: Semaphore Aborted!" :
-                "Semaphore::Imple::_give: Notification Limit Hit!" };
-        }
+        // If the abort flag is set, throw a SemaphoreAborted exception.
+        if ( abortFlag ) throw SemaphoreAborted{ "Semaphore::Imple::_giveWait: Semaphore Aborted!" };
 
         ++availableCount;
 
@@ -375,7 +445,7 @@ private:
     * blocking, in lieu of any give invocations. The take operation decrements it and the give operation
     * increments it. Once it reaches zero, take operations will block.
     */
-    AvailableCountType maxAvailableCount;
+    const AvailableCountType maxAvailableCount;
 
     /**
     * @brief The Take Pending Count
