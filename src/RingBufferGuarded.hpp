@@ -115,8 +115,8 @@ namespace ReiserRT
             * is a very lean implementation.
             *
             * Of interest here is how we wrap the actual get operation within a "lambda" and pass a reference wrapper to this lambda
-            * into the semaphore wait operation. This essentially allows it to loop back into our stack frame while in the context
-            * of its lock to invoke the get operation and set our return value. The wait operation has no idea of what is actually
+            * into the semaphore take operation. This essentially allows it to loop back into our stack frame while in the context
+            * of its lock to invoke the get operation and set our return value. The take operation has no idea of what is actually
             * being accomplished. The use of the reference wrapper ensures the temporary Semaphore::FunctorType does not need to
             * access the heap for its internals.
             *
@@ -142,8 +142,8 @@ namespace ReiserRT
                 T retVal;
                 auto getFunk = [ this, &retVal ]() { retVal = this->Base::get(); };
 
-                // Invoke semaphore wait passing our lambda and return the result.
-                semaphore.wait( std::ref( getFunk ) );
+                // Invoke semaphore take passing our lambda and return the result.
+                semaphore.take(std::ref(getFunk));
                 return retVal;
             }
 
@@ -155,8 +155,8 @@ namespace ReiserRT
             * is a very lean implementation.
             *
             * Of interest here is how we wrap the actual put operation within a "lambda" and pass a reference wrapper to this lambda
-            * into the semaphore notify operation. This essentially allows it to loop back into our stack frame while in the context
-            * of its lock to invoke the put operation and load our value. The notify operation has no idea of what is actually
+            * into the semaphore give operation. This essentially allows it to loop back into our stack frame while in the context
+            * of its lock to invoke the put operation and load our value. The give operation has no idea of what is actually
             * being accomplished. The use of the reference wrapper ensures the temporary Semaphore::FunctorType does not need to
             * access the heap for its internals.
             *
@@ -184,7 +184,7 @@ namespace ReiserRT
                 // There is no guarding of overflow here. If it throws, the RingBuffer is not being serviced adequately.
                 // It is up to the client to manage and/or mitigate this possibility.
                 auto putFunk = [ this, val ]() { this->Base::put( val ); };
-                semaphore.notify( std::ref( putFunk ) );
+                semaphore.give(std::ref(putFunk));
             }
 
             /**

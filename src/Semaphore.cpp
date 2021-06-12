@@ -41,11 +41,11 @@ public:
     * std::numeric_limits< AvailableCountType>::max() or slightly more than 4 billion.
     */
     explicit Imple( size_t theInitialCount = 0 )
-        : waitConditionVar{}
+        : takeConditionVar{}
         , mutex{}
         , availableCount{ theInitialCount > std::numeric_limits< AvailableCountType >::max() ?
                           std::numeric_limits< AvailableCountType >::max() : AvailableCountType( theInitialCount ) }
-        , waitPendingCount{0 }
+        , takePendingCount{0 }
         , abortFlag{ false }
     {
 #ifdef REISER_RT_HAS_PTHREADS
@@ -54,7 +54,7 @@ public:
         pthread_condattr_init( &attr );
 
         // Initialize condition variable
-        pthread_cond_init(&waitConditionVar, &attr );
+        pthread_cond_init(&takeConditionVar, &attr );
 
         // Destroy attribute, we are done with it.
         pthread_condattr_destroy( &attr );
@@ -77,7 +77,7 @@ public:
 
 #ifdef REISER_RT_HAS_PTHREADS
         // Destroy the condition variable.
-        pthread_cond_destroy( &waitConditionVar );
+        pthread_cond_destroy( &takeConditionVar );
 #endif
     }
 
@@ -129,7 +129,7 @@ public:
     * @brief Pending 16bit Count Type
     *
     * We use a signed 16bit integer for our pending counter. There can only be as
-    * many pending clients as there are threads entering the wait operation
+    * many pending clients as there are threads entering the take operation
     * and actually waiting.
     */
     using PendingCountType = uint16_t;
@@ -147,30 +147,31 @@ public:
 
 public:
     /**
-    * @brief The Wait Operation
+    * @brief The Take Operation
     *
-    * This operation takes the mutex and invokes the _wait operation to perform the rest of the work.
+    * This operation locks the mutex and invokes the _take operation to perform the rest of the work.
     * The mutex is released upon return.
     *
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
     */
-    inline void wait() { std::unique_lock< Mutex > lock{ mutex }; _wait( lock ); }
+    inline void take() { std::unique_lock< Mutex > lock{mutex };
+        _take(lock); }
 
     /**
-    * @brief The Wait Operation
+    * @brief The Take Operation with Functor Interface
     *
-    * This operation takes the mutex and invokes the _wait operation to perform the rest of the waiting work.
-    * After the wait work has been done, it attempts to invokes the user provide function object.
+    * This operation locks our mutex and invokes the _take operation to perform the rest of the work.
+    * After the additional work has been done, it attempts to invokes the user provide function object.
     * If the user function object should throw an exception, the available count is restored to its former state.
-    * The mutex is released upon return.
+    * The mutex is unlocked upon return.
     *
     * @param operation This is a reference to a user provided function object to invoke during the context of the internal lock.
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
-    * @throw The user operation may throw an exception of unknown type.
+    * @throw The user operation may throw exceptions of unspecified type.
     */
-    inline void wait( FunctionType & operation ) {
+    inline void take(FunctionType & operation ) {
         std::unique_lock< Mutex > lock{ mutex };
-        _wait( lock );
+        _take(lock);
 
         struct AvailableCountManager {
             explicit AvailableCountManager( AvailableCountType & theAC ) noexcept : rAC(theAC)  {}
@@ -189,26 +190,28 @@ public:
     }
 
     /**
-    * @brief The Notify Operation
+    * @brief The Give Operation
     *
-    * This operation takes the mutex and invokes the _notify operation to perform the rest of the work.
-    * The mutex is released upon return.
+    * This operation locks the mutex and invokes the _give operation to perform the rest of the work.
+    * The mutex is unlocked upon return.
     *
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
     */
-    inline void notify() { std::lock_guard< Mutex > lock{ mutex }; _notify(); }
+    inline void give() { std::lock_guard< Mutex > lock{mutex };
+        _give(); }
 
     /**
-    * @brief The Notify Operation with Functor Interface
+    * @brief The Give Operation with Functor Interface
     *
-    * This operation takes the mutex and invokes the user provide function object prior to invoking the _notify operation
+    * This operation locks the mutex and invokes the user provide function object prior to invoking the _give operation
     * to perform the rest of the work.
-    * The mutex is released upon return.
+    * The mutex is unlocked upon return.
     *
     * @param operation This is a reference to a user provided function object to invoke during the context of the internal lock.
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
     */
-    inline void notify( FunctionType & operation ) { std::lock_guard< Mutex > lock{ mutex }; operation(); _notify(); }
+    inline void give(FunctionType & operation ) { std::lock_guard< Mutex > lock{mutex }; operation();
+        _give(); }
 
     /**
     * @brief The Abort Operation
@@ -225,11 +228,11 @@ public:
         if ( abortFlag ) return;
 
         abortFlag = true;
-        if (waitPendingCount != 0 )
+        if (takePendingCount != 0 )
 #ifdef REISER_RT_HAS_PTHREADS
-            pthread_cond_broadcast( &waitConditionVar );
+            pthread_cond_broadcast( &takeConditionVar );
 #else
-        waitConditionVar.notify_all();
+        takeConditionVar.notify_all();
 #endif
     }
 
@@ -251,19 +254,19 @@ public:
 
 private:
     /**
-    * @brief The Wait Operation Internals
+    * @brief The Take Operation Internals
     *
-    * This operation is for internal use by the outer "wait" operations.
+    * This operation is for internal use by the outer "take" operations.
     * It expects that our mutex has been acquired prior to invocation.
     * The operation attempts to decrement the availableCount towards zero and then returns.
-    * If the availableCount is zero, the waitPendingCount is incremented and then the call blocks on our waitConditionVar simultaneously
-    * unlocking the mutex until notified to unblock.
-    * Once notified, the mutex is re-taken, the waitPendingCount is decremented and we re-loop attempting to
+    * If the availableCount is zero, the takePendingCount is incremented and then the call blocks on our
+    * takeConditionVar simultaneously unlocking the mutex until notified to unblock.
+    * Once notified, the mutex is re-locked, the takePendingCount is decremented and we re-loop attempting to
     * decrement the availableCount towards zero once more.
     *
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abortFlag has been set via the abort operation.
     */
-    void _wait( std::unique_lock< Mutex > & lock )
+    void _take(std::unique_lock< Mutex > & lock )
     {
 #ifdef REISER_RT_HAS_PTHREADS
         // The code involved with obtaining this native handle is largely or completely inlined
@@ -273,7 +276,7 @@ private:
         for (;;)
         {
             // If the abort flag is set, throw a SemaphoreAbortedException.
-            if ( abortFlag ) throw SemaphoreAborted{ "Semaphore::Imple::_wait: Semaphore Aborted!" };
+            if ( abortFlag ) throw SemaphoreAborted{ "Semaphore::Imple::_take: Semaphore Aborted!" };
 
             // If the available count is greater than zero, decrement it and and escape out.
             // We have "taken" the semaphore.  Waiting is not necessary.
@@ -283,51 +286,51 @@ private:
                 return;
             }
 
-            // Else we must wait for a notification.
-            ++waitPendingCount;
+            // Else we must take for a notification.
+            ++takePendingCount;
 #ifdef REISER_RT_HAS_PTHREADS
-            pthread_cond_wait(&waitConditionVar, mutexNativeHandle );
+            pthread_cond_wait(&takeConditionVar, mutexNativeHandle );
 #else
-            waitConditionVar.wait( lock, [ this ]{ return abortFlag || availableCount > 0; } );
+            takeConditionVar.take( lock, [ this ]{ return abortFlag || availableCount > 0; } );
 #endif
             // Awakened with test returning true.
-            --waitPendingCount;
+            --takePendingCount;
         }
     }
 
     /**
-    * @brief The Notify Operation Internals
+    * @brief The Give Operation Internals
     *
-    * This operation is for internal use by the outer "notify" operations.
+    * This operation is for internal use by the outer "give" operations.
     * It expects that our mutex has been acquired prior to invocation.
-    * The operation increments the availableCount and if waitPendingCount is
-    * greater than zero, invokes the waitConditionVar, notify_one operation to wake one waiting thread.
+    * The operation increments the availableCount and if takePendingCount is
+    * greater than zero, invokes the takeConditionVar, notify_one operation to wake one waiting thread.
     *
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abortFlag has been set via the abort operation.
     */
-    void _notify()
+    void _give()
     {
         // If the abort flag is set OR we have been "over notified", throw a runtime error.
         if ( abortFlag || availableCount == std::numeric_limits< AvailableCountType >::max() ) {
-            throw SemaphoreAborted{ abortFlag ? "Semaphore::Imple::_notify: Semaphore Aborted!" :
-                "Semaphore::Imple::_notify: Notification Limit Hit!" };
+            throw SemaphoreAborted{ abortFlag ? "Semaphore::Imple::_give: Semaphore Aborted!" :
+                "Semaphore::Imple::_give: Notification Limit Hit!" };
         }
 
         ++availableCount;
 
 #ifdef REISER_RT_HAS_PTHREADS
-        pthread_cond_signal( &waitConditionVar );
+        pthread_cond_signal( &takeConditionVar );
 #else
-        waitConditionVar.notify_one();
+        takeConditionVar.notify_one();
 #endif
     }
 
     /**
-    * @brief The Wait Condition Variable
+    * @brief The Take Condition Variable
     *
-    * This is our wait condition variable that we can block on should the available count be zero.
+    * This is our take condition variable that we can block on should the available count be zero.
     */
-    ConditionVarType waitConditionVar;
+    ConditionVarType takeConditionVar;
 
     /**
     * @brief The Mutex
@@ -339,18 +342,18 @@ private:
     /**
     * @brief The Available Count
     *
-    * Our available count is an indication of how many times the wait operation can be invoked without
-    * blocking, in lieu of any notify invocations. The wait operation decrements it and the notify operation
-    * increments it. Once it reaches zero, wait operations will block.
+    * Our available count is an indication of how many times the take operation can be invoked without
+    * blocking, in lieu of any give invocations. The take operation decrements it and the give operation
+    * increments it. Once it reaches zero, take operations will block.
     */
     AvailableCountType availableCount;
 
     /**
-    * @brief The Pending Wait Count
+    * @brief The Take Pending Count
     *
-    * This attribute indicates how many threads are pending on our condition variable waitConditionVar
+    * This attribute indicates how many threads are pending on our condition variable takeConditionVar
     */
-    PendingCountType waitPendingCount;
+    PendingCountType takePendingCount;
 
     /**
     * @brief The Abort Flag
@@ -370,24 +373,24 @@ Semaphore::~Semaphore()
     delete pImple;
 }
 
-void Semaphore::wait()
+void Semaphore::take()
 {
-    pImple->wait();
+    pImple->take();
 }
 
-void Semaphore::wait( FunctionType operation )
+void Semaphore::take(FunctionType operation )
 {
-    pImple->wait( operation );
+    pImple->take(operation);
 }
 
-void Semaphore::notify( )
+void Semaphore::give( )
 {
-    pImple->notify();
+    pImple->give();
 }
 
-void Semaphore::notify( FunctionType operation )
+void Semaphore::give(FunctionType operation )
 {
-    pImple->notify( operation );
+    pImple->give(operation);
 }
 
 void Semaphore::abort()

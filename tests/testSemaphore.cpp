@@ -25,8 +25,8 @@ int main() {
     auto retVal = 0;
 
     do {
-        // Construction, no-wait wait testing.
-        // We will not wait or notify within this block as that could hang the test if
+        // Construction, no-wait take testing.
+        // We will not take or give within this block as that could hang the test if
         // semaphore is defective. We will put those potential issues off on to other tasks later
         // on down.
         {
@@ -39,17 +39,17 @@ int main() {
             }
         }
 
-        // Test the new functionality of wait with function object where the available count is restored if an exception
+        // Test the new functionality of take with function object where the available count is restored if an exception
         // is thrown by the user provided function object.
         {
             Semaphore sem{ 4 };
 
-            // Call wait with callback functor.
+            // Call take with callback functor.
             {
                 bool failed = true;
                 auto funk = [](){ throw std::exception{}; };
                 try {
-                    sem.wait( std::ref( funk ) );
+                    sem.take(std::ref(funk));
                 }
                 catch( std::exception &) {
                     failed = false;
@@ -74,7 +74,7 @@ int main() {
             {
                 size_t callbackCount = 0;
                 auto funk = [&callbackCount]() { ++callbackCount; };
-                sem.wait(std::ref(funk));
+                sem.take(std::ref(funk));
 
                 // Verify the callback was invoked.
                 if (1 != callbackCount)
@@ -87,13 +87,13 @@ int main() {
                 // The available count should now be three.
                 if (sem.getAvailableCount() != 3)
                 {
-                    cout << "Semaphore should have reported an available count of 3 after wait and reported " << sem.getAvailableCount() << "!" << endl;
+                    cout << "Semaphore should have reported an available count of 3 after take and reported " << sem.getAvailableCount() << "!" << endl;
                     retVal = 5;
                     break;
                 }
 
-                // Perform a notify
-                sem.notify( std::ref( funk ) );
+                // Perform a give
+                sem.give(std::ref(funk));
 
                 // Verify the callback was invoked
                 if (2 != callbackCount)
@@ -106,7 +106,7 @@ int main() {
                 // Verify that the available count returns to 4.
                 if (sem.getAvailableCount() != 4)
                 {
-                    cout << "Semaphore should have reported an available count of 4 after notify and reported " << sem.getAvailableCount() << "!" << endl;
+                    cout << "Semaphore should have reported an available count of 4 after give and reported " << sem.getAvailableCount() << "!" << endl;
                     retVal = 7;
                     break;
                 }

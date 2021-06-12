@@ -28,7 +28,7 @@ void SemTakeTask2::operator()(StartingGun* startingGun, ReiserRT::Core::Semaphor
     {
         try
         {
-            theSem->wait();
+            theSem->take();
             ++takeCount;
         }
         catch (SemaphoreAborted&)
@@ -79,8 +79,8 @@ void SemGiveTask2::operator()(StartingGun* startingGun, ReiserRT::Core::Semaphor
         {
             try
             {
-                theSem->notify();
-                this_thread::yield();   // Do not allow any one thread to pound the notify key.
+                theSem->give();
+                this_thread::yield();   // Do not allow any one thread to pound the give key.
                 ++giveCount;
                 break;
             }

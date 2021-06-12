@@ -187,7 +187,7 @@ private:
     */
     inline MessageBase * cookedWaitAndGet()
     {
-        // Get cooked memory from the cooked ring buffer. The guarded ring buffer performs the wait.
+        // Get cooked memory from the cooked ring buffer.
         return cookedRingBuffer.get();
     }
 
@@ -379,7 +379,7 @@ MessageQueueBase::RunningStateStats MessageQueueBase::Imple::getRunningStateStat
 
 void * MessageQueueBase::Imple::rawWaitAndGet()
 {
-    // Get raw memory from the raw ring buffer. The guarded ring buffer performs the wait.
+    // Get raw memory from the raw ring buffer.
     void * pRaw = rawRingBuffer.get();
 
     // Manage running count and high water mark.
@@ -406,7 +406,7 @@ void * MessageQueueBase::Imple::rawWaitAndGet()
 
 void MessageQueueBase::Imple::rawPutAndNotify( void * pRaw )
 {
-    // Put formerly cooked memory into the cooked ring buffer. The guarded ring buffer performs the notify.
+    // Put formerly cooked memory into the cooked ring buffer.
     rawRingBuffer.put( pRaw );
 
     // Manage running count.

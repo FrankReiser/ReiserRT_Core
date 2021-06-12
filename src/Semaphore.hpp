@@ -19,12 +19,12 @@ namespace ReiserRT
         /**
         * @brief A Counted, Wait-able Semaphore Class
         *
-        * This class provides a implementation of a thread-safe, wait-able counted semaphore similar to Unix System V
+        * This class provides a implementation of a thread-safe, take-able counted semaphore similar to Unix System V
         * semaphores which are not part of the POSIX standard. Counted Semaphores are a resource management tool.
         * They are designed to efficiently manage resource availability, until resources are exhausted (count of zero)
-        * at which point, a client must wait (block) until resources are released and made available for reuse.
+        * at which point, a client must take (block) until resources are released and made available for reuse.
         *
-        * @todo Support timed wait and test wait?
+        * @todo Support timed take and test take?
         */
         class ReiserRT_Core_EXPORT Semaphore
         {
@@ -40,9 +40,9 @@ namespace ReiserRT
             /**
             * @brief The Function Type for Wait and Notify with Functor Interface
             *
-            * This is the type of Functor expected for using wait or notify operations
+            * This is the type of Functor expected for using take or give operations
             * taking a user provided functor to invoke while a lock is held. This should be a relatively simple operation
-            * in order to keep lock duration period to a minimum. See wait and notify that accept functor arguments for additional
+            * in order to keep lock duration period to a minimum. See take and give that accept functor arguments for additional
             * details.
             */
             using FunctionType = std::function< void() >;
@@ -102,7 +102,7 @@ namespace ReiserRT
             Semaphore & operator =( Semaphore && another ) = delete;
 
             /**
-            * @brief The Wait Operation
+            * @brief The Take Operation
             *
             * This operation attempts to decrement the available count towards zero.
             * If the available count is already zero, the operation will block until available count is incremented
@@ -110,14 +110,14 @@ namespace ReiserRT
             *
             * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
             */
-            void wait();
+            void take();
 
             /**
-            * @brief The Wait Operation with Functor Interface
+            * @brief The Take Operation with Functor Interface
             *
             * This operation attempts to decrement the availableCount towards zero.
             * If the available count is already zero, the operation will block until availableCount is incremented
-            * away from zero via a notify operation. When the wait has successfully taken an available count,
+            * away from zero. When the take has successfully decremented the available count,
             * the user provided function object is invoked while an internal lock is held.
             * This provides affords the client an opportunity to do bookkeeping under mutual exclusion without having to
             * take a separate lock.
@@ -126,27 +126,27 @@ namespace ReiserRT
             * The user operation is invoked while an internal lock is held. The function object may be wrapped with std::ref to avert overhead
             * in making a copy.
             * @warning Should the user operation throw an exception, the available count will be restored to its former state as if
-            * the wait call was never invoked.
-            * @warning It is expected that the function object remain valid throughout the duration of the wait invocation. Failure
+            * the take call was never invoked.
+            * @warning It is expected that the function object remain valid throughout the duration of the take invocation. Failure
             * to provide this assurance will lead to undefined behavior.
             * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
             * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
             * @throw The user operation may throw an exception of unknown type.
             */
-            void wait( FunctionType operation );
+            void take(FunctionType operation );
 
             /**
-            * @brief The Notify Operation
+            * @brief The Give Operation
             *
             * This operation increments the available count away from zero and will wake, at most, one waiting thread.
             *
             * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread or if we have been
             * notified more times than we can count (2^32 -1).
             */
-            void notify();
+            void give();
 
             /**
-            * @brief The Notify Operation with Functor Interface
+            * @brief The Give Operation with Functor Interface
             *
             * This operation invokes a user provided function object while an internal lock is held.
             * It then increments the availableCount away from zero and will wake, at most, one waiting thread.
@@ -155,15 +155,16 @@ namespace ReiserRT
             *
             * @param operation This is a value (copy) of a user provided function object to be invoked prior during prior
             * to the available count being incremented. The user operation is invoked while an internal lock is held.
+            * It may be a std::ref wrapped function object which results in only a reference being copied for efficiency.
             * @warning Should the user provided operation throw an exception, the availableCount is not incremented and no thread
             * is awakened.
-            * @warning It is expected that the function object remain valid throughout the duration of the wait invocation. Failure
+            * @warning It is expected that the function object remain valid throughout the duration of the take invocation. Failure
             * to provide this assurance will lead to undefined behavior.
             * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
             * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread or if we have been
             * notified more times than we can count (2^32 -1).
             */
-            void notify( FunctionType operation );
+            void give(FunctionType operation );
 
             /**
             * @brief The Abort Operation
