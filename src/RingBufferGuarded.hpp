@@ -21,10 +21,8 @@ namespace ReiserRT
         * @brief RingBufferGuardedBase Class
         *
         * This template class provides a base for more specialized types.
-        * It employs a counted semaphore object which block get operations on a low or empty ring buffer.
-        * @note The is no blocking on a full condition. Doing so was not a requirement, nor design goal
-        * for ReiserRT::Core. Providing such a capability at this level would impact performance and if needed
-        * can be layered on top.
+        * It employs a counted semaphore object which will block get operations on an empty ring buffer.
+        * It will also block  put operations on a full ring buffer.
         *
         * @tparam T The ring buffer element type.
         * @note Must be a scalar type (e.g., char, int, float or void pointer).
@@ -44,13 +42,6 @@ namespace ReiserRT
             * This type provides a little "syntactic sugar" for the class.
             */
             using Base = RingBufferSimple< T >;
-
-            /**
-            * @brief Semaphore Type
-            *
-            * This type is used to used to wait when nothing left is available to get.
-            */
-            using SemaphoreType = ReiserRT::Core::Semaphore;
 
             /**
             * @brief The Ring Buffer State
@@ -85,12 +76,12 @@ namespace ReiserRT
             *
             * @param requestedNumElements The requested number of elements. This is always rounded up to the next power of two for
             * the ring buffer itself, but not for the semaphore available count.
-            * @param willPrime If non-zero,the ring buffer must be subsequently primed by invoking the prime operation.
+            * @param willPrime If non-zero, the ring buffer must be subsequently primed by invoking the prime operation.
             * @warning Failure to prime the instance will result in exceptions being thrown via get and put operations.
             */
             explicit RingBufferGuardedBase( size_t theRequestedNumElements, bool willPrime = false )
                 : Base{ theRequestedNumElements }
-                , semaphore{ willPrime ? theRequestedNumElements : 0 }
+                , semaphore{ willPrime ? theRequestedNumElements : 0, theRequestedNumElements }
                 , state{ willPrime ? State::NeedsPriming : State::Ready }
             {
             }
@@ -108,8 +99,8 @@ namespace ReiserRT
             /**
             * @brief The Abort Operation
             *
-            * This operation aborts the counted semaphore which will wake all pending get threads.  Such threads
-            * will experience a Semaphore::AbortedException.
+            * This operation aborts the counted semaphore which will wake all pending get threads. Such threads
+            * will experience a SemaphoreAborted exception.
             */
             inline void abort() { state = State::Terminal; semaphore.abort(); }
 
@@ -122,8 +113,8 @@ namespace ReiserRT
             * is a very lean implementation.
             *
             * Of interest here is how we wrap the actual get operation within a "lambda" and pass a reference wrapper to this lambda
-            * into the semaphore wait operation. This essentially allows it to loop back into our stack frame while in the context
-            * of its lock to invoke the get operation and set our return value. The wait operation has no idea of what is actually
+            * into the semaphore take operation. This essentially allows it to loop back into our stack frame while in the context
+            * of its lock to invoke the get operation and set our return value. The take operation has no idea of what is actually
             * being accomplished. The use of the reference wrapper ensures the temporary Semaphore::FunctorType does not need to
             * access the heap for its internals.
             *
@@ -149,21 +140,23 @@ namespace ReiserRT
                 T retVal;
                 auto getFunk = [ this, &retVal ]() { retVal = this->Base::get(); };
 
-                // Invoke semaphore wait passing our lambda and return the result.
-                semaphore.wait( std::ref( getFunk ) );
+                // Invoke semaphore take passing our lambda and return the result.
+                semaphore.take(std::ref(getFunk));
                 return retVal;
             }
 
             /**
             * @brief The Put Operation
             *
-            * This operation will put a value into the base implementation. The base class "put" functionality is invoked while in the context
+            * This operation will put a value into the base implementation. If the base is in an full condition, it
+            * will block until a slot becomes available.
+            * The base class "put" functionality is invoked while in the context
             * of our counted semaphore's internal lock. This is why we can employ the "simple" ring buffer as our base, which
             * is a very lean implementation.
             *
             * Of interest here is how we wrap the actual put operation within a "lambda" and pass a reference wrapper to this lambda
-            * into the semaphore notify operation. This essentially allows it to loop back into our stack frame while in the context
-            * of its lock to invoke the put operation and load our value. The notify operation has no idea of what is actually
+            * into the semaphore give operation. This essentially allows it to loop back into our stack frame while in the context
+            * of its lock to invoke the put operation and load our value. The give operation has no idea of what is actually
             * being accomplished. The use of the reference wrapper ensures the temporary Semaphore::FunctorType does not need to
             * access the heap for its internals.
             *
@@ -171,7 +164,6 @@ namespace ReiserRT
             * being thrown.
             *
             * @throw Throws ReiserRT::Core::RingBufferStateError if not in the "Ready" state.
-            * @throw Throws ReiserRT::Core::RingBufferOverflow if our base class is in a "Full" state. No value is made available for subsequent retrieval.
             * @throw Throws ReiserRT::Core::SemaphoreAborted if the semaphore is aborted.
             *
             * @param p val A value to be put into the ring buffer implementation.
@@ -191,7 +183,7 @@ namespace ReiserRT
                 // There is no guarding of overflow here. If it throws, the RingBuffer is not being serviced adequately.
                 // It is up to the client to manage and/or mitigate this possibility.
                 auto putFunk = [ this, val ]() { this->Base::put( val ); };
-                semaphore.notify( std::ref( putFunk ) );
+                semaphore.give(std::ref(putFunk));
             }
 
             /**
@@ -309,7 +301,7 @@ namespace ReiserRT
             * This object encapsulates and fulfills all the necessary requirements to make this object a "pendable"
             * thread safe, ring buffer.
             */
-            SemaphoreType semaphore;
+            Semaphore semaphore;
 
             /**
             * @brief Our Atomic State Variable

@@ -37,7 +37,7 @@ private:
 class PutTaskRBG {
 public:
     enum class State : char {
-        constructed, waitingForGo, going, unknownExceptionDetected, aborted, completed
+        constructed, waitingForGo, going, overflowDetected, unknownExceptionDetected, aborted, completed
     };
     using StateType = std::atomic<State>;
 
@@ -58,6 +58,7 @@ public:
             case State::constructed: return "constructed";
             case State::waitingForGo: return "waitingForGo";
             case State::going: return "going";
+            case State::overflowDetected: return "overflowDetected";
             case State::unknownExceptionDetected: return "unknownExceptionDetected";
             case State::aborted: return "aborted";
             case State::completed: return "completed";

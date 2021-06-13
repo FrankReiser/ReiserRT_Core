@@ -12,7 +12,7 @@
 
 #include "MessageQueueBase.hpp"
 #include "RingBufferGuarded.hpp"
-#include "PriorityInheritMutex.hpp"
+#include "Mutex.hpp"
 
 #include <cstring>
 #include <thread>
@@ -51,22 +51,11 @@ private:
     using CookedRingBufferType = RingBufferGuarded< MessageBase * >;
 
     /**
-    * @brief Mutex Type Declaration
-    *
-    * The mutex type we will use.
-    */
-#ifdef REISER_RT_HAS_PTHREADS
-    using MutexType = PriorityInheritMutex;
-#else
-    using MutexType = std::mutex;
-#endif
-
-    /**
     * @brief Mutex Pointer Type Declaration
     *
     * The mutex pointer type we will use.
     */
-    using MutexPtrType = std::unique_ptr< MutexType >;
+    using MutexPtrType = std::unique_ptr< Mutex >;
 
     /**
     * @brief Running State Basis
@@ -198,7 +187,7 @@ private:
     */
     inline MessageBase * cookedWaitAndGet()
     {
-        // Get cooked memory from the cooked ring buffer. The guarded ring buffer performs the wait.
+        // Get cooked memory from the cooked ring buffer.
         return cookedRingBuffer.get();
     }
 
@@ -356,7 +345,7 @@ MessageQueueBase::Imple::Imple( std::size_t theRequestedNumElements, std::size_t
                                 bool enableDispatchLocking )
   : requestedNumElements{ theRequestedNumElements }
   , elementSize{ theElementSize }
-  , pMutex{ enableDispatchLocking ? new MutexType{} : nullptr }
+  , pMutex{ enableDispatchLocking ? new Mutex{} : nullptr }
   , arena{ new unsigned char [ theElementSize * requestedNumElements ] }
   , rawRingBuffer{ theRequestedNumElements, true }
   , cookedRingBuffer{ theRequestedNumElements }
@@ -390,7 +379,7 @@ MessageQueueBase::RunningStateStats MessageQueueBase::Imple::getRunningStateStat
 
 void * MessageQueueBase::Imple::rawWaitAndGet()
 {
-    // Get raw memory from the raw ring buffer. The guarded ring buffer performs the wait.
+    // Get raw memory from the raw ring buffer.
     void * pRaw = rawRingBuffer.get();
 
     // Manage running count and high water mark.
@@ -417,7 +406,7 @@ void * MessageQueueBase::Imple::rawWaitAndGet()
 
 void MessageQueueBase::Imple::rawPutAndNotify( void * pRaw )
 {
-    // Put formerly cooked memory into the cooked ring buffer. The guarded ring buffer performs the notify.
+    // Put formerly cooked memory into the cooked ring buffer.
     rawRingBuffer.put( pRaw );
 
     // Manage running count.
@@ -441,7 +430,7 @@ void MessageQueueBase::Imple::dispatchMessage( MessageBase * pMsg )
     nameOfLastMessageDispatched.store( pMsg->name() );
     if ( pMutex )
     {
-        std::lock_guard< MutexType > lockGuard{ *pMutex };
+        std::lock_guard< Mutex > lockGuard{ *pMutex };
         pMsg->dispatch();
     }
     else
