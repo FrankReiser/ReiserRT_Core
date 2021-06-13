@@ -40,8 +40,8 @@ public:
     * @param theInitialCount The initial Semaphore count. This is typically zero for an initially unavailable
     * Semaphore. It is clamped at std::numeric_limits< uint32_t >::max() which is roughly 4 billion (2^32-1).
     * @param theMaxAvailableCount The maximum Semaphore count. Zero indicates that the Semaphore
-    * is essentially unbounded. It is clamped at std::numeric_limits< uint32_t >::max() which is roughly
-    * 4 billion (2^32-1).
+    * is essentially unbounded up to a maximum of (2^32-1). If non-zero, it is clamped to be no less than that
+    * of the clamped initial count.
     */
     explicit Imple( size_t theInitialCount, size_t theMaxAvailableCount )
         : takeConditionVar{}
@@ -49,8 +49,7 @@ public:
         , mutex{}
         , availableCount{ theInitialCount > std::numeric_limits< AvailableCountType >::max() ?
             std::numeric_limits< AvailableCountType >::max() : AvailableCountType( theInitialCount ) }
-        , maxAvailableCount{ theMaxAvailableCount == 0 || theMaxAvailableCount > std::numeric_limits< AvailableCountType >::max() ?
-            std::numeric_limits< AvailableCountType >::max() : AvailableCountType( theMaxAvailableCount ) }
+        , maxAvailableCount{ doctorMaxAvailableCount( theMaxAvailableCount, availableCount ) }
         , takePendingCount{ 0 }
         , givePendingCount{ 0 }
         , abortFlag{ false }
@@ -130,7 +129,8 @@ public:
     /**
     * @brief The Take Operation
     *
-    * This operation locks the mutex and invokes the _take operation to perform the rest of the work.
+    * This operation locks the mutex and invokes the _take operation to perform some of the work
+    * followed by invoking the _takeNotify operation to wake any potential waiters on the give operation.
     * The mutex is released upon return.
     *
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
@@ -145,9 +145,10 @@ public:
     /**
     * @brief The Take Operation with Functor Interface
     *
-    * This operation locks our mutex and invokes the _take operation to perform the rest of the work.
-    * After the additional work has been done, it attempts to invokes the user provide function object.
+    * This operation locks the mutex and invokes the _take operation to perform some of the work
+    * Afterwards, it attempts to invoke the user provide function object.
     * If the user function object should throw an exception, the available count is restored to its former state.
+    * Lastly, it invokes the _takeNotify operation to wake any potential waiters on the give operation.
     * The mutex is unlocked upon return.
     *
     * @param operation This is a reference to a user provided function object to invoke during the context of the internal lock.
@@ -180,7 +181,8 @@ public:
     /**
     * @brief The Give Operation
     *
-    * This operation locks the mutex and invokes the _give operation to perform the rest of the work.
+    * This operation locks the mutex and invokes the _giveWait operation which may block if the maxAvailableCount
+    * would be exceeded. Afterwards, it invokes the _give operation to perform the rest of the work.
     * The mutex is unlocked upon return.
     *
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
@@ -195,9 +197,11 @@ public:
     /**
     * @brief The Give Operation with Functor Interface
     *
-    * This operation locks the mutex and invokes the user provide function object prior to invoking the _give operation
-    * to perform the rest of the work.
-    * The mutex is unlocked upon return.
+    * This operation locks the mutex and invokes the _giveWait operation which may block if the maxAvailableCount
+    * would be exceeded. Afterwards, it invokes the user provide operation. Should the user operation throw an exception
+    * the available count does not get incremented. Only after successfully invoking the user provided operation
+    * is the _give operation invoked. The mutex is unlocked upon return or if exception is thrown by the user provide
+    * operation.
     *
     * @param operation This is a reference to a user provided function object to invoke during the context of the internal lock.
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
@@ -254,7 +258,6 @@ public:
     }
 
 private:
-
     /**
     * @brief The Take Notify Internals
     *
@@ -397,6 +400,29 @@ private:
     * and actually waiting.
     */
     using PendingCountType = uint16_t;
+
+    /**
+    * @brief The Static Doctor Max Available Count Operation
+    *
+    * This operation is provided to assist construction of the Semaphore maxAvailableCount attribute
+    * as it was a bit out of hand for simple ternary type logic. It's purpose is to clamp the maxAvailableCount
+    * to the absolute maximum limit of (2^32-1) in unbounded mode (input as zero). If non-zero, then to clamp
+    * it to be no less than that of the already clamped initialCount value.
+    *
+    * @param theMaxAvailableCount The maximum available count provided to the Semaphore constructor.
+    * @param clampedInitialCount The clamped initial count value determined by the Semaphore constructor.
+    *
+    * @return The "doctored" maximum available count.
+    */
+    static AvailableCountType doctorMaxAvailableCount( size_t theMaxAvailableCount,
+        AvailableCountType clampedInitialCount )
+    {
+        if ( theMaxAvailableCount == 0 ) return std::numeric_limits< AvailableCountType >::max();
+        if ( theMaxAvailableCount < clampedInitialCount ) return clampedInitialCount;
+
+        // If here, neither of the above were true, return the maximum available count as is.
+        return theMaxAvailableCount;
+    }
 
     /**
     * @brief Condition Variable Type

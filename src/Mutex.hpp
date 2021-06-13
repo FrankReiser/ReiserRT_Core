@@ -32,22 +32,29 @@ namespace ReiserRT
         * avoid a phenomena known as priority inversion. The native_handle interface of a mutex object
         * cannot be used to modify the contained pthread_mutex_t object post construction. You must specify
         * the pthread_mutex_t policy attributes at time of pthread_mutex_t construction and these attributes are copied
-        * into the mutex. These policy attributes are immutable once the mutex is constructed. This class provides
+        * into the mutex. These policy attributes are immutable once the mutex is constructed.
+        *
+        * This class provides
         * the necessary "Duck Typing" in order to be utilized as a direct std::mutex replacement with lock_guard and
         * unique_lock. However, to utilize C++11 condition variables with this type of mutex,
-        * the less efficient std::condition_variable_any must be used. A raw POSIX availability can bypass that
-        * overhead.
+        * the less efficient std::condition_variable_any must be used. However, with PTHREADS availability,
+        * a raw pthread_cond_t can bypass the overhead of using std::condition_variable_any.
+        *
+        * @note the lock, try_lock and unlock may throw std::system_error if incorrectly allocated or used.
+        * This is regardless of whether operating under a POSIX PTHREAD environment or not.
+        * Normally, ReiserRT_Core throws only custom exceptions based off of std::runtime_error.
+        * However, we do not want to throw one type of exception under POSIX PTHREAD and another under standard C++.
+        *
+        * @todo The non-POSIX fallback implementation has NOT BEEN TESTED since last significant rework!
         */
-        ///@todo We are not using custom exception types within Mutex.
-        ///@todo Clean up documentation regarding POSIX in member operations.
-        ///@todo The non-POSIX fallback implementation has NOT BEEN TESTED!
         class ReiserRT_Core_EXPORT Mutex
         {
         public:
             /**
             * @brief Alias for Native Type
             *
-            * This is simply an alias for our native type.
+            * This is simply an alias for our native type. If we are operating under POSIX PTHREADS, this
+            * is a pthread_mutex_t pointer.
             */
             using NativeHandleType = std::mutex::native_handle_type;
 
@@ -55,15 +62,16 @@ namespace ReiserRT
             /**
             * @brief Qualified Constructor for Mutex
             *
-            * This operation constructs a Mutex with the PTHREAD_PRIO_INHERIT mutex protocol.
+            * This operation constructs a Mutex with the PTHREAD_PRIO_INHERIT mutex protocol under POSIX PTHREADS.
+            * Otherwise, it constructs an encapsulated std::mutex.
             */
             Mutex();
 
             /**
             * @brief Destructor for the Mutex
             *
-            * This destructor destroys the encapsulated pthread_mutex_t native mutex instance.
-            * Any waiters on a destroyed mutex will almost certainly experience system_error exceptions.
+            * This destructor destroys the encapsulated mutex instance.
+            * Any waiters on a destroyed mutex will almost certainly experience exceptions.
             */
             ~Mutex();
 

@@ -20,11 +20,17 @@ namespace ReiserRT
         * @brief A Counted, Wait-able Semaphore Class
         *
         * This class provides a implementation of a thread-safe, take-able counted semaphore similar to Unix System V
-        * semaphores which are not part of the POSIX standard. Counted Semaphores are a resource management tool.
+        * semaphores which are not part of the C++11 pr POSIX standards. Counted Semaphores are a resource management tool.
         * They are designed to efficiently manage resource availability, until resources are exhausted (count of zero)
         * at which point, a client must take (block) until resources are released and made available for reuse.
         *
-        * @todo Support timed take and test take?
+        * Our Semaphore supports two modes of operation. This is determined at construction time.
+        * The first mode is that of unbounded give operations up to an absolute limit of 2^32-1 at which point an
+        * exception is thrown. The second mode is that of bounded give operations up to a specified maximum at which
+        * point blocking occurs until a take is initiated. This second mode is referred to a bipolar operation.
+        * This is perhaps unnatural but turns out to be extremely useful in producer/consumer patterns.
+        *
+        * @todo Support timed give and take operations? Maybe some day.
         */
         class ReiserRT_Core_EXPORT Semaphore
         {
@@ -38,12 +44,13 @@ namespace ReiserRT
 
         public:
             /**
-            * @brief The Function Type for Wait and Notify with Functor Interface
+            * @brief The Function Type for give and take operations that accept a functor interface.
             *
-            * This is the type of Functor expected for using take or give operations
-            * taking a user provided functor to invoke while a lock is held. This should be a relatively simple operation
-            * in order to keep lock duration period to a minimum. See take and give that accept functor arguments for additional
-            * details.
+            * This is the type of functor expected when using give or take operations
+            * that accept a user provided functor to invoke while a lock is held. This should be a relatively
+            * simple operation in order to keep lock duration period to a minimum. These should be non-blocking
+            * operations. See give and take documentation for the operations that accept functor arguments for
+            * additional details.
             */
             using FunctionType = std::function< void() >;
 
@@ -54,9 +61,11 @@ namespace ReiserRT
             *
             * @param theInitialCount The initial Semaphore count. This is typically zero for an initially unavailable
             * Semaphore. It is clamped at std::numeric_limits< uint32_t >::max() which is roughly 4 billion (2^32-1).
-            * @param theMaxAvailableCount The maximum Semaphore count. Default to zero which indicates that the Semaphore
-            * is essentially unbounded. It is clamped at std::numeric_limits< uint32_t >::max() which is roughly
-            * 4 billion (2^32-1).
+            * @param theMaxAvailableCount The maximum Semaphore count. Zero indicates that the Semaphore
+            * is essentially unbounded up to a maximum of (2^32-1). If non-zero, it is clamped to be no less than that
+            * of the clamped initial count.
+            * @note A non-zero value of theMaxAvailableCount specifies that the Semaphore operate in bipolar mode.
+            * In essence, give operations will block if the available count would exceed the maximum specified.
             */
             explicit Semaphore( size_t theInitialCount, size_t theMaxAvailableCount = 0 );
 
@@ -142,6 +151,8 @@ namespace ReiserRT
             * @brief The Give Operation
             *
             * This operation increments the available count away from zero and will wake, at most, one waiting thread.
+            * It may block if operating in bipolar mode and the clamped maximum available count would be exceeded
+            * prior to incrementing the available count and waking of a thread.
             *
             * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread or if we have been
             * notified more times than we can count (2^32 -1).
@@ -151,8 +162,10 @@ namespace ReiserRT
             /**
             * @brief The Give Operation with Functor Interface
             *
-            * This operation invokes a user provided function object while an internal lock is held.
-            * It then increments the availableCount away from zero and will wake, at most, one waiting thread.
+            * This operation increments the available count away from zero and will wake, at most, one waiting thread.
+            * It may block if operating in bipolar mode and the clamped maximum available count would be exceeded
+            * prior to incrementing the available count and waking of a thread.
+            * The user provided function object is invoke prior to incrementing the available count.
             * This provides affords the client an opportunity to do bookkeeping under mutual exclusion without having to
             * take a separate lock.
             *
