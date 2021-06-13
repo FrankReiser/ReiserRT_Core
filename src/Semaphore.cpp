@@ -49,7 +49,7 @@ public:
         , mutex{}
         , availableCount{ theInitialCount > std::numeric_limits< AvailableCountType >::max() ?
             std::numeric_limits< AvailableCountType >::max() : AvailableCountType( theInitialCount ) }
-        , maxAvailableCount{ theMaxAvailableCount == 0 ?    // If zero, force to maximum available.
+        , maxAvailableCount{ theMaxAvailableCount == 0 || theMaxAvailableCount > std::numeric_limits< AvailableCountType >::max() ?
             std::numeric_limits< AvailableCountType >::max() : AvailableCountType( theMaxAvailableCount ) }
         , takePendingCount{ 0 }
         , givePendingCount{ 0 }
@@ -232,6 +232,7 @@ public:
 #ifdef REISER_RT_HAS_PTHREADS
             pthread_cond_broadcast( &takeConditionVar );
 #else
+        giveConditionVar.notify_all();
         takeConditionVar.notify_all();
 #endif
     }
@@ -257,7 +258,7 @@ private:
     /**
     * @brief The Take Notify Internals
     *
-    * @todo Document Take Notify Internals
+    * This operation will notify at most, one waiting give thread.
     */
     inline void _takeNotify()
     {
@@ -310,7 +311,7 @@ private:
 #ifdef REISER_RT_HAS_PTHREADS
             pthread_cond_wait(&takeConditionVar, mutexNativeHandle );
 #else
-            takeConditionVar.take( lock, [ this ]{ return abortFlag || availableCount > 0; } );
+            takeConditionVar.wait( lock, [ this ]{ return abortFlag || availableCount > 0; } );
 #endif
             // Awakened with test returning true.
             --takePendingCount;
@@ -320,7 +321,8 @@ private:
     /**
     * @brief The Give Wait Internals
     *
-    * @todo Document Give Wait Internals
+    * This operation will block if the maximum available count would be exceeded. We must wait for a take
+    * to catch up. It expects the mutex to be locked upon invocation.
     */
     void _giveWait( std::unique_lock< Mutex > & lock )
     {
@@ -336,9 +338,8 @@ private:
 
             // If we have already hit the numeric limits for available count, we cannot give anymore.
             // We will throw an exception.
-            ///@todo Make a new exception for this!
             if ( std::numeric_limits< AvailableCountType >::max() == availableCount )
-                    throw SemaphoreAborted{ "Semaphore::Imple::_giveWait: Absolute Available Count Limit Hit!" };
+                    throw SemaphoreOverflow{ "Semaphore::Imple::_giveWait: Absolute Available Count Limit Hit!" };
 
             // If we can avert a wait, we will do so.
             if ( maxAvailableCount > availableCount )
@@ -350,7 +351,7 @@ private:
 #ifdef REISER_RT_HAS_PTHREADS
             pthread_cond_wait( &giveConditionVar, mutexNativeHandle );
 #else
-            giveConditionVar.take( lock, [ this ]{ return abortFlag || availableCount > 0; } );
+            giveConditionVar.wait( lock, [ this ]{ return abortFlag || availableCount > 0; } );
 #endif
             --givePendingCount;
         }

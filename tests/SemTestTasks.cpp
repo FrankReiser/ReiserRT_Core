@@ -16,7 +16,7 @@
 using namespace ReiserRT::Core;
 using namespace std;
 
-void SemTakeTask2::operator()(StartingGun* startingGun, ReiserRT::Core::Semaphore* theSem, unsigned int nTakes)
+void SemTakeTask::operator()(StartingGun* startingGun, ReiserRT::Core::Semaphore* theSem, unsigned int nTakes)
 {
     // Wait on go condition.
     state = State::waitingForGo;
@@ -46,7 +46,7 @@ void SemTakeTask2::operator()(StartingGun* startingGun, ReiserRT::Core::Semaphor
     state = State::completed;
 }
 
-const char* SemTakeTask2::stateStr() const
+const char* SemTakeTask::stateStr() const
 {
     switch (state.load())
     {
@@ -60,9 +60,9 @@ const char* SemTakeTask2::stateStr() const
     }
 }
 
-void SemTakeTask2::outputResults(unsigned int i)
+void SemTakeTask::outputResults(unsigned int i)
 {
-    cout << "SemTakeTask2(" << i << ") takeCount=" << takeCount
+    cout << "SemTakeTask(" << i << ") takeCount=" << takeCount
          << ", state=" << stateStr()
          << "\n";
 }

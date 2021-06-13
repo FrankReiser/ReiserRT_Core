@@ -16,14 +16,14 @@ namespace ReiserRT
 }
 class StartingGun;
 
-class SemTakeTask2
+class SemTakeTask
 {
 public:
     enum class State { constructed, waitingForGo, going, unknownExceptionDetected, aborted, completed };
     using StateType = std::atomic<State>;
 
-    SemTakeTask2() = default;
-    ~SemTakeTask2() = default;
+    SemTakeTask() = default;
+    ~SemTakeTask() = default;
 
     void operator()(StartingGun* startingGun, ReiserRT::Core::Semaphore* theSem, unsigned int nTakes);
 
