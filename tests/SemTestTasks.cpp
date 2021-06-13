@@ -67,7 +67,7 @@ void SemTakeTask::outputResults(unsigned int i)
          << "\n";
 }
 
-void SemGiveTask2::operator()(StartingGun* startingGun, ReiserRT::Core::Semaphore* theSem, unsigned int nGives)
+void SemGiveTask::operator()(StartingGun* startingGun, ReiserRT::Core::Semaphore* theSem, unsigned int nGives)
 {
     // Wait on go condition.
     state = State::waitingForGo;
@@ -80,7 +80,7 @@ void SemGiveTask2::operator()(StartingGun* startingGun, ReiserRT::Core::Semaphor
             try
             {
                 theSem->give();
-                this_thread::yield();   // Do not allow any one thread to pound the give key.
+                this_thread::yield();   // Do not allow any one thread to pound the give key if unbounded.
                 ++giveCount;
                 break;
             }
@@ -100,7 +100,7 @@ void SemGiveTask2::operator()(StartingGun* startingGun, ReiserRT::Core::Semaphor
     state = State::completed;
 }
 
-const char* SemGiveTask2::stateStr() const
+const char* SemGiveTask::stateStr() const
 {
     switch (state.load())
     {
@@ -114,9 +114,9 @@ const char* SemGiveTask2::stateStr() const
     }
 }
 
-void SemGiveTask2::outputResults(unsigned int i)
+void SemGiveTask::outputResults(unsigned int i)
 {
-    cout << "SemGiveTask2(" << i << ") giveCount=" << giveCount
+    cout << "SemGiveTask(" << i << ") giveCount=" << giveCount
          << ", state=" << stateStr()
          << "\n";
 }

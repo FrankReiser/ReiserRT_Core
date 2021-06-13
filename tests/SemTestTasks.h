@@ -40,13 +40,13 @@ private:
     unsigned int takeCount{ 0 };
 };
 
-struct SemGiveTask2
+struct SemGiveTask
 {
     enum class State { constructed, waitingForGo, going, unknownExceptionDetected, aborted, completed };
     using StateType = std::atomic<State>;
 
-    SemGiveTask2() = default;
-    ~SemGiveTask2() = default;
+    SemGiveTask() = default;
+    ~SemGiveTask() = default;
 
     void operator()(StartingGun* startingGun, ReiserRT::Core::Semaphore* theSem, unsigned int nGives);
 

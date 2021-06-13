@@ -118,10 +118,10 @@ int main() {
         {
             Semaphore sem{0};  // Initially empty
 
-            // Instantiate one take task for the semaphore.
+            // Instantiate one take task functor.
             SemTakeTask takeTask;
 
-            // Instantiate one take thread functor object.
+            // Instantiate one thread object for a take thread.
             unique_ptr< thread > takeThread;
 
             // Instantiate the starting gun
@@ -137,10 +137,8 @@ int main() {
                 unsigned int n = 0;
                 for (; n != 10; ++n)
                 {
-                    if (takeTask.getState() != SemTakeTask::State::waitingForGo) {
-                        this_thread::sleep_for(chrono::milliseconds(10));
-                        break;
-                    }
+                    if (takeTask.getState() == SemTakeTask::State::waitingForGo) break;
+                    this_thread::sleep_for(chrono::milliseconds(10));
                 }
                 if (n == 10)
                 {
@@ -155,10 +153,8 @@ int main() {
                 // SemTaskTask should get to the going state.
                 for (n = 0; n != 10; ++n)
                 {
-                    if (takeTask.getState() != SemTakeTask::State::going) {
-                        this_thread::sleep_for(chrono::milliseconds(10));
-                        break;
-                    }
+                    if (takeTask.getState() == SemTakeTask::State::going) break;
+                    this_thread::sleep_for(chrono::milliseconds(10));
                 }
                 if (n == 10)
                 {
@@ -168,18 +164,14 @@ int main() {
                     break;
                 }
 
-                // Issue a sem abort regardless of the failures from above or the SemTakeTask may
-                // never end and cannot be joined.
+                // Issue a sem abort.
                 sem.abort();
 
-                // If we haven't failed yet
                 // SemTaskTask should get to the aborted state.
                 for (n = 0; n != 10; ++n)
                 {
-                    if (takeTask.getState() != SemTakeTask::State::aborted) {
-                        this_thread::sleep_for(chrono::milliseconds(10));
-                        break;
-                    }
+                    if (takeTask.getState() == SemTakeTask::State::aborted) break;
+                    this_thread::sleep_for(chrono::milliseconds(10));
                 }
                 if (n == 10)
                 {
@@ -204,7 +196,115 @@ int main() {
 
         }
 
-        ///@todo I really should test that Notify will block on the correct maxAvailableCount.
+        // Simple pending test with one give thread running in parallel with a simple take thread.
+        {
+            Semaphore sem{4, 4 };  // Initially full, max 4.
+
+            // Instantiate one give task functor.
+            SemGiveTask giveTask;
+
+            // Instantiate one thread object for a give thread.
+            unique_ptr< thread > giveThread;
+
+            // Instantiate the starting gun
+            StartingGun startingGun;
+
+            // Spawn give thread invoking give task functor. It should complete after 1 give.
+            giveThread.reset( new thread{ ref(giveTask ), &startingGun, &sem, 1 } );
+
+            // We have launched a thread. We should not short circuit our joining of it.
+            // This do once structure helps ensure that we do not fail to join the thread should we bail out.
+            do
+            {
+                // Wait for it to get to the waitingForGo state.  This should be relatively quick.
+                unsigned int n = 0;
+                for ( ; n != 10; ++n )
+                {
+                    if (giveTask.getState() == SemGiveTask::State::waitingForGo) break;
+                    this_thread::sleep_for(chrono::milliseconds(10));
+                }
+                if ( n == 10 )
+                {
+                    cout << "SemGiveTask failed to reach the waitingForGo state!\n";
+                    retVal = 11;
+                    break;
+                }
+
+                // Let her rip!
+                startingGun.pullTrigger();
+
+                // SemGiveTask should get to the going state.
+                for (n = 0; n != 10; ++n)
+                {
+                    if (giveTask.getState() == SemGiveTask::State::going) break;
+                    this_thread::sleep_for(chrono::milliseconds(10));
+                }
+                if (n == 10)
+                {
+                    cout << "SemGiveTask failed to reach the going state!\n";
+                    giveTask.outputResults(0);
+                    retVal = 12;
+                    break;
+                }
+
+                // At this point, SemGiveTask should be blocking on a give since it started out with a
+                // maximum available count.  Verify that the available count returns 4.
+                if (sem.getAvailableCount() != 4)
+                {
+                    cout << "Semaphore should have reported an available count of 4 with a blocked give and reported "
+                    << sem.getAvailableCount() << "!" << endl;
+                    retVal = 13;
+                    break;
+                }
+
+                // We want to fire up a simple thread that will simply take the semaphore.
+                // Instantiate one thread object for a give thread.
+                auto takeFunk = [&sem]() { sem.take(); };
+                unique_ptr< thread > simpleTakeThread;
+                simpleTakeThread.reset( new thread{ std::ref( takeFunk ) } );
+                this_thread::sleep_for( chrono::milliseconds( 100 ) );
+                simpleTakeThread->join();
+
+                // SemGiveTask should be in the completed state.
+                for (n = 0; n != 10; ++n)
+                {
+                    if (giveTask.getState() == SemGiveTask::State::completed) break;
+                    this_thread::sleep_for(chrono::milliseconds(10));
+                }
+                if (n == 10)
+                {
+                    cout << "SemGiveTask failed to reach the completed state!\n";
+                    giveTask.outputResults(0);
+                    retVal = 14;
+                    break;
+                }
+
+                // Verify that the available count returns still returns a 4.
+                if (sem.getAvailableCount() != 4)
+                {
+                    cout << "Semaphore should have reported an available count of 4 with a blocked give and reported "
+                         << sem.getAvailableCount() << "!" << endl;
+                    retVal = 15;
+                    break;
+                }
+
+
+            } while (false);
+
+            // Join the thread and clear the go flag.
+            ///@note The abort does unblock a give. This was tested in the interim even though it
+            ///is not specifically no longer tested. Testing it now requires new test specifically addressing it.
+            sem.abort();            // Just in case we short circuited abort above.
+            startingGun.abort();
+            giveThread->join();
+
+            // If we have detected a failure, report state information from the take task.
+            if (0 != retVal)
+            {
+                giveTask.outputResults(0);
+                break;
+            }
+        }
 
         // Multi-threaded contention testing
         {
@@ -222,7 +322,7 @@ int main() {
 
             // Put and Get Task Functors, which can return state information when the runs are complete.
             SemTakeTask takeTasks[numCPUs];
-            SemGiveTask2 giveTasks[numCPUs];
+            SemGiveTask giveTasks[numCPUs];
 
             // Give and Take Threads
             unique_ptr< thread > takeThreads[numCPUs];
@@ -266,7 +366,7 @@ int main() {
                 if (n == 10)
                 {
                     cout << "SemTakeTask failed to reach the waitingForGo state!\n";
-                    retVal = 11;
+                    retVal = 16;
                     break;
                 }
 
@@ -279,7 +379,7 @@ int main() {
                     unsigned int i = 0;
                     for (; i != numCPUs; ++i)
                     {
-                        if (giveTasks[i].getState() != SemGiveTask2::State::going) {
+                        if (giveTasks[i].getState() != SemGiveTask::State::going) {
                             this_thread::sleep_for(chrono::milliseconds(10));
                             break;
                         }
@@ -291,8 +391,8 @@ int main() {
                 }
                 if (n == 10)
                 {
-                    cout << "SemGiveTask2 failed to reach the going state!\n";
-                    retVal = 12;
+                    cout << "SemGiveTask failed to reach the going state!\n";
+                    retVal = 17;
                     break;
                 }
 
@@ -319,7 +419,7 @@ int main() {
                 // If failed set return value and break out.
                 if ( failed ) {
                     cout << "FAILED" << endl;
-                    retVal = 13;
+                    retVal = 18;
                     break;
                 }
 
@@ -342,7 +442,7 @@ int main() {
             {
                 // If we make it here, it failed.
                 cout << "Semaphore should have reported an available giveAndTakeCount of zero after threads do initial takes!\n";
-                retVal = 14;
+                retVal = 19;
             }
 
             // If failure detected, then output the task status of each.
