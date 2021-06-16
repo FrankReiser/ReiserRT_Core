@@ -34,7 +34,6 @@ Mutex::Mutex()
     }
 
     // Initialize our native type (pthread_mutex_t) with our modified attribute.
-    nativeHandle = new( pthread_mutex_t );
     pthread_mutex_init( nativeHandle, &attr );
 
     // Destroy the attribute, we are done with it.
