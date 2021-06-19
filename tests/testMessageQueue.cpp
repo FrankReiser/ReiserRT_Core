@@ -7,6 +7,7 @@
 #include <iostream>
 #include <random>
 #include <thread>
+#include <atomic>
 
 using namespace std;
 using namespace ReiserRT::Core;
@@ -94,6 +95,7 @@ public:
 
     ~MessageQueueUserProcess()
     {
+        destructing = true;
         msgQueue.abort();
 
         if (messageHandlerThread.joinable())
@@ -116,7 +118,8 @@ public:
         }
         catch (const std::exception& e)
         {
-            cout << "Caught unexpected exception: " << e.what() << endl;
+            if ( !destructing )
+                cout << "Caught unexpected exception: " << e.what() << endl;
         }
     }
 
@@ -145,6 +148,8 @@ private:
     size_t numberOfMessagesValidated{ 0 };
 
     MessageQueue msgQueue{ 4, sizeof( ImpleMessage ), true };
+
+    atomic< bool > destructing{ false };
 };
 
 

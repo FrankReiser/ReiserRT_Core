@@ -8,7 +8,7 @@ add_test( NAME runRingBufferSimpleTest COMMAND $<TARGET_FILE:testRingBufferSimpl
 #add_library( startingGunObjLib OBJECT StartingGun.h StartingGun.cpp )
 #target_sources( startingGunObjLib PUBLIC StartingGun.h PRIVATE StartingGun.cpp )
 
-# We do not have a test for PriorityInheritMutex. It is tested extensively inside our Semaphore test
+# We do not have a test for CoreMutex. It is tested extensively inside our Semaphore test
 # assuming that it was conditionally compiled into the library. It's only available under certain platforms.
 
 add_executable( testSemaphore "" )

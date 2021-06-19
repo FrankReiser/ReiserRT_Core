@@ -92,6 +92,25 @@ namespace ReiserRT {
         };
 
         /**
+        * @brief SemaphoreOverflow Exception Class
+        *
+        * This class is thrown if a Semaphore has been given more that the maximum allowable
+        * limit of std::numeric_limits< uint32_t >::max() which is roughly 4 billion (2^32-1).
+        * It can only really be experienced on an unbounded Semaphore. One in which a maximumAvailableCount
+        * has not been specified.
+        */
+        class ReiserRT_Core_EXPORT SemaphoreOverflow : public std::runtime_error
+        {
+        public:
+            /**
+            * @brief Constructor for SemaphoreOverflow
+            *
+            * @param msg The message to be delivered by the base class' what member function.
+            */
+            explicit SemaphoreOverflow( const char * msg ) : std::runtime_error{ msg } {}
+        };
+
+        /**
         * @brief ObjectPoolElementSizeError Exception Class
         *
         * This class replaced std::runtime_error which CLang-CTidy complained about for being
