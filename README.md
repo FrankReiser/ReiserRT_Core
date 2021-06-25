@@ -236,9 +236,25 @@ under Windows but, the CMake work is not quite in place yet.
 Note: This project requires CMake v3.17 or higher.
 
 ## Example Usage
-Example hookup and usage can be found in the various
-tests that exist in the "tests" folder. More informative example
-will be forthcoming. Stay tuned.
+Right now there exists one example in the 'examples' folder. It is
+titled "JobDispatcher". 
+"JobDispatcher" starts a number of "JobTask" (threads), quantity
+one less than the number of CPUs available. These "JobTasks" are
+available for excepting job assignments from the "JobDispatcher".
+When a "JobTask" completes a job, it communicates back to the
+"JobDispatcher" that a job has completed. 
+If the "JobDispatcher" has more jobs, it will
+dispatch another to this now idle "JobTask". "JobDispatcher"
+utilizes one "ObjectPool" instance, and a number of "MessageQueue"
+instances in somewhat of an architecture. It runs for a
+few minutes with 8 CPUs available. In the future, we will provide
+an "install" option for "JobDispatcher" in order to provide the
+CMake details of how to link up from an external application to
+ReiserRT_Core.
+
+Example usage can also be found in the various
+tests that exist in the "tests" folder although the tests are
+not good examples of putting together an architecture.
 
 ## Building and Installation
 Roughly as follows:

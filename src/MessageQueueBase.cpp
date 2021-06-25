@@ -231,7 +231,7 @@ private:
     /**
     * @brief The Flush Operation
     *
-    * This operation is provided to empty the "cooked" ring buffer and properly destroy any unfetched objects that may remain.
+    * This operation is provided to empty the "cooked" ring buffer and properly destroy any un-fetched objects that may remain.
     * Being that we only deal with void pointers at this level, we do not know what type of destructor to invoke.
     * However, through a user provided function object, the destruction can be elevated to the client level, which should know
     * what type of base objects are in the cooked queue.
@@ -250,6 +250,18 @@ private:
         auto funk = [ operation ]( void * pV ) noexcept { operation( pV ); };
         cookedRingBuffer.flush( std::ref( funk ) );
     }
+
+    /**
+    * @brief Get the Padded Element Type Allocation Size
+    *
+    * This operation provides the element type allocation size which is padded to keep elements
+    * properly aligned to the size of the architecture. It is static as it is used at time of
+    * construction.
+    *
+    * @return Returns the padded element type allocation size which may be slightly larger than
+    * the requested element size.
+    */
+    static size_t getPaddedTypeAllocSize( size_t requestedElementSize );
 
     /**
     * @brief The Actual Requested Size
@@ -344,7 +356,7 @@ MessageQueueBase::AutoDispatchLock::~AutoDispatchLock()
 MessageQueueBase::Imple::Imple( std::size_t theRequestedNumElements, std::size_t theElementSize,
                                 bool enableDispatchLocking )
   : requestedNumElements{ theRequestedNumElements }
-  , elementSize{ theElementSize }
+  , elementSize{ getPaddedTypeAllocSize( theElementSize ) }
   , pMutex{ enableDispatchLocking ? new Mutex{} : nullptr }
   , arena{ new unsigned char [ theElementSize * requestedNumElements ] }
   , rawRingBuffer{ theRequestedNumElements, true }
@@ -439,6 +451,14 @@ void MessageQueueBase::Imple::dispatchMessage( MessageBase * pMsg )
     }
 }
 
+size_t MessageQueueBase::Imple::getPaddedTypeAllocSize( size_t requestedElementSize )
+{
+    size_t alignmentOverspill = requestedElementSize % sizeof( void * );
+    return  ( alignmentOverspill != 0 ) ? requestedElementSize + sizeof( void * ) - alignmentOverspill :
+            requestedElementSize;
+}
+
+
 MessageQueueBase::MessageQueueBase( std::size_t requestedNumElements, std::size_t requestedMaxMessageSize,
                                     bool enableDispatchLocking )
   : pImple{ new Imple{ requestedNumElements, requestedMaxMessageSize, enableDispatchLocking } }
@@ -512,4 +532,9 @@ void MessageQueueBase::flush( FlushingFunctionType operation )
 bool MessageQueueBase::isAborted() noexcept
 {
     return pImple->aborted;
+}
+
+size_t MessageQueueBase::getElementSize() noexcept
+{
+    return pImple->elementSize;
 }

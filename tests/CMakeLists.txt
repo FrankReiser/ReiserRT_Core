@@ -43,4 +43,3 @@ target_include_directories( testMessageQueue PUBLIC ../src )
 target_link_libraries( testMessageQueue ReiserRT_Core )
 add_test( NAME runMessageQueueTest COMMAND $<TARGET_FILE:testMessageQueue> )
 set_tests_properties( runMessageQueueTest PROPERTIES TIMEOUT 120 )
-

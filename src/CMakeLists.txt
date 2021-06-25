@@ -94,7 +94,8 @@ target_compile_definitions(ReiserRT_Core
 # We do not actually link Threads::Threads at this time but, this creates a requirement that will eventually have to be satisfied.
 # Anything that links to 'Us', needs Threads::Threads also.
 # Rationale: Our tests will need Threads to do adequate testing. Any client would most certainly be using threads also.
-# If CoreMutex compiles under REISER_RT_HAS_PTHREADS then, it is needed by any client without doubt.
+# If Mutex amd Semaphore compile under REISER_RT_HAS_PTHREADS then Threads::Threads
+# would be almost guaranteed to be needed by clients as most of ReiserRT_Core uses Mutex and/or Semaphore.
 target_link_libraries(ReiserRT_Core PUBLIC Threads::Threads)
 
 # Specify our target interfaces for external clients

@@ -11,6 +11,7 @@
 #include "ReiserRT_CoreExport.h"
 
 #include "MessageQueueBase.hpp"
+#include "ReiserRT_CoreExceptions.hpp"
 
 namespace ReiserRT
 {
@@ -108,8 +109,10 @@ namespace ReiserRT
             * ObjectPool instance.
             * @param msg The message to put (enqueue) into the message queue.
             *
-            * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked or if the
-            * derived message type exceeds that allowed by its internal ObjectPool instance.
+            * @throw Throws SemaphoreAborted if the abort operation has been invoked.
+            * @throw Throws MessageQueueElementSizeError if the derived message type exceeds that
+            * allowed by the requestedMaxMessageSize specified during construction plus any padding that
+            * may have been added for alignment purposes.
             */
             template<typename M>
             void put(M &&msg) {
@@ -122,6 +125,11 @@ namespace ReiserRT
 
                 // Type M must be nothrow destructible
                 static_assert(std::is_nothrow_destructible<M>::value, "Type M must be no throw destructible!!!");
+
+                // Before we even bother getting a raw block of memory, we will validate that
+                // the type being created will fit in an element block.
+                if ( getElementSize() < sizeof( M ) )
+                    throw MessageQueueElementSizeError( "MessageQueue::put: The size of type M exceeds maximum element size" );
 
                 // Wait on raw memory availability
                 void * pRaw = rawWaitAndGet();
@@ -152,8 +160,10 @@ namespace ReiserRT
             * @tparam Args A Variadic argument list for constructing in place onto pool memory.
             * @param args The arguments require to construct a message to enqueue into the message queue.
             *
-            * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked or if the
-            * derived message type exceeds that allowed by its internal ObjectPool instance.
+            * @throw Throws SemaphoreAborted if the abort operation has been invoked.
+            * @throw Throws MessageQueueElementSizeError if the derived message type exceeds that
+            * allowed by the requestedMaxMessageSize specified during construction plus any padding that
+            * may have been added for alignment purposes.
             */
             template<typename M, typename... Args>
             void emplace(Args &&... args) {
@@ -166,6 +176,11 @@ namespace ReiserRT
 
                 // Type M must be nothrow destructible
                 static_assert(std::is_nothrow_destructible<M>::value, "Type M must be no throw destructible!!!");
+
+                // Before we even bother getting a raw block of memory, we will validate that
+                // the type being created will fit in an element block.
+                if ( getElementSize() < sizeof( M ) )
+                    throw MessageQueueElementSizeError( "MessageQueue::emplace: The size of type M exceeds maximum element size" );
 
                 // Wait on raw memory availability
                 void * pRaw = rawWaitAndGet();
@@ -186,7 +201,7 @@ namespace ReiserRT
             * @brief The Get and Dispatch Operation
             *
             * This operation waits (blocks) until a message is available in the queue. As soon as a message is available
-            * for dequeuing, the dispatch lock is taken and the message is dispatched via the
+            * for de-queuing, the dispatch lock is taken and the message is dispatched via the
             * MessageBase::dispatch operation.
             *
             * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.

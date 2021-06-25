@@ -114,7 +114,7 @@ namespace ReiserRT {
         * @brief ObjectPoolElementSizeError Exception Class
         *
         * This class replaced std::runtime_error which CLang-CTidy complained about for being
-        * non-nothrow constructible. It is throw  by ObjectPool if "createdObj" is asked to
+        * non-nothrow constructible. It is thrown by ObjectPool if "createdObj" is asked to
         * create a derived object that exceeds the size allocated for the elements managed by
         * ObjectPool.
         */
@@ -127,6 +127,25 @@ namespace ReiserRT {
             * @param msg The message to be delivered by the base class' what member function.
             */
             explicit ObjectPoolElementSizeError( const char * msg ) : std::runtime_error{ msg } {}
+        };
+
+        /**
+        * @brief MessageQueueElementSizeError Exception Class
+        *
+        * This class replaced std::runtime_error which CLang-CTidy complained about for being
+        * non-nothrow constructible. It is thrown by MessageQueue if "put" or "emplace" are asked to
+        * create a derived message object that exceeds the size allocated for the elements managed by
+        * MessageQueue.
+        */
+        class ReiserRT_Core_EXPORT MessageQueueElementSizeError : public std::runtime_error
+        {
+        public:
+            /**
+            * @brief Constructor for MessageQueueElementSizeError
+            *
+            * @param msg The message to be delivered by the base class' what member function.
+            */
+            explicit MessageQueueElementSizeError( const char * msg ) : std::runtime_error{ msg } {}
         };
     }
 }
