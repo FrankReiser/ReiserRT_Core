@@ -1,6 +1,6 @@
 /**
 * @file JobData.hpp
-* @brief The Implementation for some abstract JobData along with a estimated time generator.
+* @brief The Implementation file for some abstract JobData along with a estimated time generator.
 * @authors Frank Reiser
 * @date Created on June 21, 2021
 */
@@ -16,7 +16,7 @@ private:
 
     Details()
             : jobDataRndNumberGen(std::random_device{}())  // Construct Temporary std::random_device and invoke it!
-            , jobDataRndNumberDist{5000, 10000}         // 5 to 10 seconds in milliseconds.
+            , jobDataRndNumberDist{10000, 20000}        // 10 to 20 seconds in milliseconds.
     {
     }
 

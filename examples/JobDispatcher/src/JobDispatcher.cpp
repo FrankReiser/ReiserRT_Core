@@ -24,7 +24,7 @@ class JobDispatcher::Imple
 private:
     friend class JobDispatcher;
 
-    static constexpr unsigned maxJobs = 16;
+    static constexpr unsigned maxJobs = 128;
 
     // Let us not make any assumptions about how big an object JobTask is.
     // Therefore, we will use self deleting pointers to them.
@@ -91,7 +91,7 @@ private:
         : pEstTimeGen{ new JobDataEstimatedTimeGenerator }
         , numCPUs( getNumCPUs() )
         , pool{ numCPUs << 1 } // 2x the number of parallel jobs for asynchronous timing slack.
-        , messageQueue{ 4, sizeof( TicklerMessage ) }
+        , messageQueue{ 4, sizeof( JobCompleteMessage ) }
 
     {
         // Reserve room to avoid reallocation.

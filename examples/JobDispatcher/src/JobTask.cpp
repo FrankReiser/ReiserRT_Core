@@ -1,6 +1,10 @@
-//
-// Created by frank on 6/21/21.
-//
+/**
+* @file JobTask.cpp
+* @brief The Implementation file for some abstract JobTask.
+* @authors Frank Reiser
+* @date Created on June 21, 2021
+*/
+
 
 #include "JobTask.hpp"
 
@@ -13,8 +17,8 @@
 
 #include <atomic>
 #include <thread>
-#include <iostream>
 #include <chrono>
+#include <iostream>
 
 class JobTask::Imple
 {
@@ -157,11 +161,10 @@ private:
     {
 #if 1
         std::this_thread::sleep_for( std::chrono::milliseconds( pJobData->estimatedEffortMSecs));
-        std::cout << "Job #" << pJobData->jobId << " completed by task #" << taskId
-                  << ", jobData.taskId " << pJobData->taskId << std::endl;
         if ( jobCompleteNotifier )
             jobCompleteNotifier( std::move( pJobData ) );
 #else
+        ///@todo Having trouble getting this to work. Just sleep for now.
         using ClockType = std::chrono::steady_clock;
         using TimePointType = std::chrono::steady_clock::time_point;
         using DurationType = std::chrono::milliseconds;

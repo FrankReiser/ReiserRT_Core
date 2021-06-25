@@ -1,6 +1,6 @@
 /**
 * @file JobData.hpp
-* @brief The Specification for some abstract JobData along with a estimated time generator.
+* @brief The Specification file for some abstract JobData along with a estimated time generator.
 * @authors Frank Reiser
 * @date Created on June 21, 2021
 */

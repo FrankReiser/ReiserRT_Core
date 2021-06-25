@@ -1,6 +1,9 @@
-//
-// Created by frank on 6/21/21.
-//
+/**
+* @file JobTask.hpp
+* @brief The Specification file for some abstract JobTask.
+* @authors Frank Reiser
+* @date Created on June 21, 2021
+*/
 
 #ifndef TESTREISERRT_CORE_JOBTASK_HPP
 #define TESTREISERRT_CORE_JOBTASK_HPP
