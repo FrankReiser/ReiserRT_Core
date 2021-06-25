@@ -10,6 +10,8 @@
 
 #include "JobDataPtrTypeFwd.hpp"
 
+#include <functional>   // For "Duck Type" callback hookup through std::function.
+
 // Forward Declare JobData and JobDataPtrType here thereby keeping weak relationships at the interface level.
 class JobTask
 {
