@@ -231,7 +231,7 @@ private:
     /**
     * @brief The Flush Operation
     *
-    * This operation is provided to empty the "cooked" ring buffer and properly destroy any unfetched objects that may remain.
+    * This operation is provided to empty the "cooked" ring buffer and properly destroy any un-fetched objects that may remain.
     * Being that we only deal with void pointers at this level, we do not know what type of destructor to invoke.
     * However, through a user provided function object, the destruction can be elevated to the client level, which should know
     * what type of base objects are in the cooked queue.
