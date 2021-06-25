@@ -577,6 +577,16 @@ namespace ReiserRT
             */
             bool isAborted() noexcept;
 
+            /**
+            * @brief Get the MessageQueueBase Element Size
+            *
+            * This operation retrieves the fixed size of the Elements managed by MessageQueueBase determined at time of
+            * construction. It delegates to the hidden implementation for the information.
+            *
+            * @return Returns the MessageQueueBase::Imple fixed element size determined at the time of construction.
+            */
+            size_t getElementSize() noexcept;
+
         private:
             /**
             * @brief MessageQueue Implementation Reference.

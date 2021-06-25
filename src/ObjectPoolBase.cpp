@@ -17,17 +17,7 @@
 
 using namespace ReiserRT::Core;
 
-/**
-* @brief Macro OBJECT_POOL_INITIALIZES_RAW_MEMORY
-*
-* If this macro value is defined, then the ObjectPoolBase implementation
-* will initialize all raw memory to zero. This would occur getting raw memory from the pool.
-*/
-#define OBJECT_POOL_INITIALIZES_RAW_MEMORY 1
-
-#if defined( OBJECT_POOL_INITIALIZES_RAW_MEMORY )
-#include <string.h>     // For memset operation.
-#endif
+#include <cstring>     // For memset operation.
 
 class ReiserRT_Core_EXPORT ObjectPoolBase::Imple
 {
@@ -188,6 +178,16 @@ private:
     */
     RunningStateStats getRunningStateStatistics() noexcept;
 
+    /**
+    * @brief Get the Padded Element Type Allocation Size
+    *
+    * This operation provides the element type allocation size which is padded to keep elements
+    * properly aligned to the size of the architecture. It is static as it is used at time of
+    * construction.
+    *
+    * @return Returns the padded element type allocation size which may be slightly larger than
+    * the requested element size.
+    */
     static size_t getPaddedTypeAllocSize( size_t requestedElementSize );
 
     /**
@@ -207,14 +207,12 @@ private:
     */
     Mutex mutex;
 
-#if defined( OBJECT_POOL_INITIALIZES_RAW_MEMORY) && ( OBJECT_POOL_INITIALIZES_RAW_MEMORY != 0 )
     /**
     * @brief The Element Size
     *
     * This attribute stores the size of the elements managed by the pool.
     */
     const size_t elementSize;
-#endif
 
     /**
     * @brief The Pool Size
@@ -243,9 +241,7 @@ private:
 ObjectPoolBase::Imple::Imple( size_t requestedNumElements, size_t theElementSize )
         : ringBuffer{ requestedNumElements }
         , mutex{}
-#if defined( OBJECT_POOL_INITIALIZES_RAW_MEMORY) && ( OBJECT_POOL_INITIALIZES_RAW_MEMORY != 0 )
         , elementSize{ getPaddedTypeAllocSize( theElementSize ) }
-#endif
         , poolSize{ ringBuffer.getSize() }
         , runningState{}
         , arena{ new unsigned char [ theElementSize * poolSize ] }
@@ -292,10 +288,8 @@ void * ObjectPoolBase::Imple::getRawBlock()
     } while ( !runningState.compare_exchange_weak( runningStats.state, runningStatsNew.state,
                                                    std::memory_order_seq_cst, std::memory_order_seq_cst ) );
 
-#if defined( OBJECT_POOL_INITIALIZES_RAW_MEMORY) && ( OBJECT_POOL_INITIALIZES_RAW_MEMORY != 0 )
     // Zero out Arena Memory!
     memset( pRaw, 0, elementSize );
-#endif
 
     // Return raw memory
     return pRaw;
