@@ -110,7 +110,8 @@ private:
                     [this](JobDataPtrType && pJobData) { notifyJobCompleteCallback( std::move(pJobData) ); }
                     );
 
-            std::cout << "Constructed JobTask with taskId " << i << " and associated our jobComplete observer" << std::endl;
+            std::cout << "Constructed JobTask #" << i << " and associated our notifyJobCompleteCallback observer."
+                << std::endl;
 
             jobTasks.emplace( i, std::move(pJob) );
         }
@@ -198,7 +199,7 @@ private:
         {
             auto taskId = iter.second->getTaskId();
             iter.second->doJob(pool.createObj<JobData>(pEstTimeGen, taskId, ++lastJobId ) );
-            std::cout << "Fired off Job id " << lastJobId << " to task #" << iter.second->getTaskId() << std::endl;
+            std::cout << "Fired off Job #" << lastJobId << " to task #" << iter.second->getTaskId() << "." << std::endl;
         }
 
         // A bit of a cop out, but we are just going to poll for simplicity.
@@ -211,7 +212,7 @@ private:
     void onJobCompleteMessage( JobDataPtrType && pJobData )
     {
         // Report that the job has been completed.
-        std::cout << "Job id " << pJobData->jobId << " was completed by task #" << pJobData->taskId << std::endl;
+        std::cout << "Job #" << pJobData->jobId << " was completed by task #" << pJobData->taskId << ".";
         ++completedJobCount;
 
         // Any more Jobs left? If so, send off another to the now idle task.
@@ -221,8 +222,10 @@ private:
             auto & jobTask = jobTasks[ pJobData->taskId ];
             auto taskId = jobTask->getTaskId();
             jobTask->doJob( pool.createObj<JobData>( pEstTimeGen, taskId, ++lastJobId ) );
-            std::cout << "Fired off Job id " << lastJobId << " to task #" << jobTask->getTaskId() << std::endl;
+            std::cout << " Fired off Job #" << lastJobId << " to task #" << jobTask->getTaskId() << "." << std::endl;
         }
+        else
+            std::cout << std::endl;
     }
 
     // Message Handling Thread Procedure.
