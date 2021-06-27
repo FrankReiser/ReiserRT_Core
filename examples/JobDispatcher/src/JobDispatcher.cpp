@@ -163,8 +163,10 @@ private:
         msgQueueProcThread = move( std::thread{ [this]() { messageQueueProc(); } } );
 
         // Activate all my JobTasks.
-        for ( auto & iter : jobTasks )
+        for ( auto & iter : jobTasks ) {
             iter.second->activate();
+            std::cout << "Activated JobTask #" << iter.second->getTaskId() << "." << std::endl;
+        }
 
         // Now we attempt to go to the Activated state. The only thing that should prevent this from
         // happening is our destructor or deactivate operation being invoked in a race.
