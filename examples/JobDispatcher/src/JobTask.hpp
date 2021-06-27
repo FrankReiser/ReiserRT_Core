@@ -19,7 +19,7 @@
  * on its "active" hidden worker thread. When it completes a job, will notify a client that registered itself
  * to receive such notifications. The "reactive" portion responds to events. This is accomplished by
  * de-queueing events (messages) in its "active" context and responding to such events accordingly which
- * could be dependent on its state. It makes use of ReiserRT_Core::MessageQueue to accomplish its
+ * could be dependent on its state. It makes use of ReiserRT::Core::MessageQueue to accomplish its
  * "reactive-ness".
  */
 class JobTask

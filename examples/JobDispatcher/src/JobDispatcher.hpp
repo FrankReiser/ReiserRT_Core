@@ -18,9 +18,11 @@
  * to deliver. It then waits for any remaining jobs to complete.
  *
  * JobDispatcher instantiates a number JobTask based on the number of CPUs available on the system (less one).
- * It also makes use of ReiserRT_Core::ObjectPool for raw memory on which JobData is allocated. Pointers returned
- * from ObjectPool can be moved around safely and efficiently. It also makes use of ReiserRT_Core::MessageQueue
- * to accomplish its "reactive-ness" which is to react to job complete notifications.
+ * It also makes use of ReiserRT::Core::ObjectPool for raw memory on which JobData is allocated. Pointers returned
+ * from ObjectPool can be moved around safely and efficiently. It also makes use of ReiserRT::Core::MessageQueue
+ * to accomplish its "reactive-ness" which is to react to job complete notifications. It also makes use of
+ * ReiserRT::Core::Semaphore for signaling that all jobs are completed which the runJobs operation will be
+ * will be waiting for.
  */
 class JobDispatcher
 {

@@ -11,6 +11,7 @@
 #include "JobData.hpp"
 #include "JobTask.hpp"
 #include "MessageQueue.hpp"
+#include "Semaphore.hpp"
 
 //#include <vector>
 #include <unordered_map>
@@ -92,6 +93,7 @@ private:
         , numCPUs( getNumCPUs() )
         , pool{ numCPUs << 1 } // 2x the number of parallel jobs for asynchronous timing slack.
         , messageQueue{ 4, sizeof( JobCompleteMessage ) }
+        , completionSemaphore{ 0 }
 
     {
         // Reserve room to avoid reallocation.
@@ -204,11 +206,8 @@ private:
             std::cout << "Fired off Job #" << lastJobId << " to task #" << iter.second->getTaskId() << "." << std::endl;
         }
 
-        // A bit of a cop out, but we are just going to poll for simplicity.
-        while ( maxJobs != completedJobCount )
-        {
-            std::this_thread::sleep_for( std::chrono::milliseconds { 50 } );
-        }
+        // Wait here for completion.
+        completionSemaphore.take();
     }
 
     void onJobCompleteMessage( JobDataPtrType && pJobData )
@@ -228,6 +227,9 @@ private:
         }
         else
             std::cout << std::endl;
+
+        if ( maxJobs == completedJobCount )
+            completionSemaphore.give();
     }
 
     // Message Handling Thread Procedure.
@@ -297,6 +299,9 @@ private:
 
     // Our message Queue
     ReiserRT::Core::MessageQueue messageQueue;
+
+    // Our Completion Semaphore
+    ReiserRT::Core::Semaphore completionSemaphore;
 
     // Default construction for these is this. The thread does not start until I move a function into it.
     std::thread msgQueueProcThread{};
