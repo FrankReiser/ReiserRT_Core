@@ -25,7 +25,7 @@ private:
      *
      * Along the lines of the PIMPLE idiom (pointer to hidden implementation), we are going to hide our
      * our details. It is not really an implementation it is just some details which is why it is named "Details"
-     * Rational is that we do not to create dependencies for client's use of our interface if we can avoid it.
+     * Rationale is that we do not to create dependencies for client's use of our interface if we can avoid it.
      */
     class Details;
 
