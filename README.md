@@ -179,7 +179,7 @@ its goals.
 
 ### Semaphore
 Semaphore provides for a thread safe, counted resource management 
-tool. This particular implementation supports both an  
+tool. This particular implementation supports both an 
 unbounded maximum availability and a bounded maximum availability
 also known as bipolar mode. 
 The choice of which is made at time of construction.

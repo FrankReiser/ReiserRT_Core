@@ -47,10 +47,8 @@ JobDataEstimatedTimeGenerator::JobDataEstimatedTimeGenerator::getEstimatedTime()
 
 
 JobData::JobData( JobDataEstimatedTimeGenerator * pTheEstTimeGen, unsigned theTaskId, unsigned theJobId )
-    : pEstTimeGenerator{pTheEstTimeGen}
-    , estimatedEffortMSecs(pEstTimeGenerator->getEstimatedTime())
+    : estimatedEffortMSecs(pTheEstTimeGen->getEstimatedTime())
     , taskId(theTaskId)
     , jobId(theJobId)
 {
 }
-

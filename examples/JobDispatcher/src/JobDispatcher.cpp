@@ -11,6 +11,7 @@
 #include "JobData.hpp"
 #include "JobTask.hpp"
 #include "MessageQueue.hpp"
+#include "Semaphore.hpp"
 
 //#include <vector>
 #include <unordered_map>
@@ -92,6 +93,7 @@ private:
         , numCPUs( getNumCPUs() )
         , pool{ numCPUs << 1 } // 2x the number of parallel jobs for asynchronous timing slack.
         , messageQueue{ 4, sizeof( JobCompleteMessage ) }
+        , completionSemaphore{ 0 }
 
     {
         // Reserve room to avoid reallocation.
@@ -110,7 +112,8 @@ private:
                     [this](JobDataPtrType && pJobData) { notifyJobCompleteCallback( std::move(pJobData) ); }
                     );
 
-            std::cout << "Constructed JobTask with taskId " << i << " and associated our jobComplete observer" << std::endl;
+            std::cout << "Constructed JobTask #" << i << " and associated our notifyJobCompleteCallback observer."
+                << std::endl;
 
             jobTasks.emplace( i, std::move(pJob) );
         }
@@ -162,8 +165,10 @@ private:
         msgQueueProcThread = move( std::thread{ [this]() { messageQueueProc(); } } );
 
         // Activate all my JobTasks.
-        for ( auto & iter : jobTasks )
+        for ( auto & iter : jobTasks ) {
             iter.second->activate();
+            std::cout << "Activated JobTask #" << iter.second->getTaskId() << "." << std::endl;
+        }
 
         // Now we attempt to go to the Activated state. The only thing that should prevent this from
         // happening is our destructor or deactivate operation being invoked in a race.
@@ -198,20 +203,17 @@ private:
         {
             auto taskId = iter.second->getTaskId();
             iter.second->doJob(pool.createObj<JobData>(pEstTimeGen, taskId, ++lastJobId ) );
-            std::cout << "Fired off Job id " << lastJobId << " to task #" << iter.second->getTaskId() << std::endl;
+            std::cout << "Fired off Job #" << lastJobId << " to task #" << iter.second->getTaskId() << "." << std::endl;
         }
 
-        // A bit of a cop out, but we are just going to poll for simplicity.
-        while ( maxJobs != completedJobCount )
-        {
-            std::this_thread::sleep_for( std::chrono::milliseconds { 50 } );
-        }
+        // Wait here for completion.
+        completionSemaphore.take();
     }
 
     void onJobCompleteMessage( JobDataPtrType && pJobData )
     {
         // Report that the job has been completed.
-        std::cout << "Job id " << pJobData->jobId << " was completed by task #" << pJobData->taskId << std::endl;
+        std::cout << "Job #" << pJobData->jobId << " was completed by task #" << pJobData->taskId << ".";
         ++completedJobCount;
 
         // Any more Jobs left? If so, send off another to the now idle task.
@@ -221,8 +223,13 @@ private:
             auto & jobTask = jobTasks[ pJobData->taskId ];
             auto taskId = jobTask->getTaskId();
             jobTask->doJob( pool.createObj<JobData>( pEstTimeGen, taskId, ++lastJobId ) );
-            std::cout << "Fired off Job id " << lastJobId << " to task #" << jobTask->getTaskId() << std::endl;
+            std::cout << " Fired off Job #" << lastJobId << " to task #" << jobTask->getTaskId() << "." << std::endl;
         }
+        else
+            std::cout << std::endl;
+
+        if ( maxJobs == completedJobCount )
+            completionSemaphore.give();
     }
 
     // Message Handling Thread Procedure.
@@ -292,6 +299,9 @@ private:
 
     // Our message Queue
     ReiserRT::Core::MessageQueue messageQueue;
+
+    // Our Completion Semaphore
+    ReiserRT::Core::Semaphore completionSemaphore;
 
     // Default construction for these is this. The thread does not start until I move a function into it.
     std::thread msgQueueProcThread{};
