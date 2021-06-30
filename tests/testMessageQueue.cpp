@@ -147,7 +147,7 @@ private:
     size_t numberImpleMessagesDispatched{ 0 };
     size_t numberOfMessagesValidated{ 0 };
 
-    MessageQueue msgQueue{ 4, sizeof( ImpleMessage ), true };
+    MessageQueue msgQueue{ 256, sizeof( ImpleMessage ), true };
 
     atomic< bool > destructing{ false };
 };
@@ -395,8 +395,7 @@ int main()
             pUserProcess->activate();
 
             // Invoke its send function multiple times
-//            constexpr size_t count = 1048576;
-            constexpr size_t count = 1048576 << 2;
+            constexpr size_t count = 1048576;
             for (size_t i = 0; i != count; i++)
                 pUserProcess->sendImpleMessage();
 
