@@ -162,7 +162,7 @@ private:
         // Instantiate a lambda function capturing "this" and wrapping the messageQueueProc function.
         // Then move that into our thread instance. It starts running immediately.
         // Lambdas are tricky. Do not capture references to locals that go out of scope when we return!
-        msgQueueProcThread = move( std::thread{ [this]() { messageQueueProc(); } } );
+        msgQueueProcThread = std::move( std::thread{ [this]() { messageQueueProc(); } } );
 
         // Activate all my JobTasks.
         for ( auto & iter : jobTasks ) {
@@ -201,7 +201,7 @@ private:
         // Fire off initial jobs.
         for ( auto & iter : jobTasks )
         {
-            auto taskId = iter.second->getTaskId();
+            auto taskId = iter.first;
             iter.second->doJob(pool.createObj<JobData>(pEstTimeGen, taskId, ++lastJobId ) );
             std::cout << "Fired off Job #" << lastJobId << " to task #" << iter.second->getTaskId() << "." << std::endl;
         }

@@ -109,8 +109,8 @@ namespace ReiserRT
             * ObjectPool instance.
             * @param msg The message to put (enqueue) into the message queue.
             *
-            * @throw Throws SemaphoreAborted if the abort operation has been invoked.
-            * @throw Throws MessageQueueElementSizeError if the derived message type exceeds that
+            * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation has been invoked.
+            * @throw Throws ReiserRT::Core::MessageQueueElementSizeError if the derived message type exceeds that
             * allowed by the requestedMaxMessageSize specified during construction plus any padding that
             * may have been added for alignment purposes.
             */
@@ -160,8 +160,8 @@ namespace ReiserRT
             * @tparam Args A Variadic argument list for constructing in place onto pool memory.
             * @param args The arguments require to construct a message to enqueue into the message queue.
             *
-            * @throw Throws SemaphoreAborted if the abort operation has been invoked.
-            * @throw Throws MessageQueueElementSizeError if the derived message type exceeds that
+            * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation has been invoked.
+            * @throw Throws ReiserRT::Core::MessageQueueElementSizeError if the derived message type exceeds that
             * allowed by the requestedMaxMessageSize specified during construction plus any padding that
             * may have been added for alignment purposes.
             */
@@ -204,7 +204,7 @@ namespace ReiserRT
             * for de-queuing, the dispatch lock is taken and the message is dispatched via the
             * MessageBase::dispatch operation.
             *
-            * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.
+            * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation has been invoked.
             */
             void getAndDispatch();
 
@@ -216,7 +216,7 @@ namespace ReiserRT
             * The message is then dispatched via the MessageBase::dispatch operation.
             *
             * @param wakeupFunctor A call-able object to be invoked upon message availability.
-            * @throw Throws std::runtime_error if the ObjectQueue abort operation has been invoked.
+            * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation has been invoked.
             */
             void getAndDispatch(WakeupCallFunctionType wakeupFunctor);
 
@@ -251,6 +251,9 @@ namespace ReiserRT
             * @brief The Get Auto Dispatch Lock Operation
             *
             * This operation defers to MessageQueueBase::getAutoDispatchLock to obtain an AutoDispatchLock object.
+            *
+            * @throw Throws ReiserRT::Core::MessageQueueDispatchLockingDisabled if dispatch locking was not explicitly
+            * enabled during construction.
             */
             using MessageQueueBase::getAutoDispatchLock;
         };

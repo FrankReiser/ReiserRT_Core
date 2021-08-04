@@ -147,6 +147,24 @@ namespace ReiserRT {
             */
             explicit MessageQueueElementSizeError( const char * msg ) : std::runtime_error{ msg } {}
         };
+
+        /**
+        * @brief MessageQueueDispatchLockingDisabled Exception Class
+        *
+        * This class replaced std::runtime_error which CLang-CTidy complained about for being
+        * non-nothrow constructible. It is thrown by MessageQueue if "getAutoDispatchLock" is invoked
+        * when dispatch locking has not been explicitly enabled during construction.
+        */
+        class ReiserRT_Core_EXPORT MessageQueueDispatchLockingDisabled : public std::runtime_error
+        {
+            public:
+                /**
+                * @brief Constructor for MessageQueueDispatchLockingDisabled
+                *
+                * @param msg The message to be delivered by the base class' what member function.
+                */
+                explicit MessageQueueDispatchLockingDisabled( const char * msg ) : std::runtime_error{ msg } {}
+        };
     }
 }
 #endif //REISERRT_COREEXCEPTIONS_HPP
