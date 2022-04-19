@@ -509,7 +509,8 @@ void MessageQueueBase::rawPutAndNotify( void * pRaw )
 MessageQueueBase::AutoDispatchLock MessageQueueBase::getAutoDispatchLock()
 {
     if ( !pImple->pMutex )
-        throw std::runtime_error( "MessageQueueBase::getAutoDispatchLock() - Dispatch Locking not enabled when constructed" );
+        throw MessageQueueDispatchLockingDisabled(
+                "MessageQueueBase::getAutoDispatchLock() - Dispatch Locking not enabled when constructed" );
 
     return std::move( AutoDispatchLock{ this } );
 }

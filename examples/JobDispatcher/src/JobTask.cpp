@@ -129,7 +129,7 @@ private:
         // Instantiate a lambda function capturing "this" and wrapping the messageQueueProc function.
         // Then move that into our thread instance. It starts running immediately.
         // Lambdas are tricky. Do not capture references to locals that go out of scope when we return!
-        msgQueueProcThread = move( std::thread{ [this]() { messageQueueProc(); } } );
+        msgQueueProcThread = std::move( std::thread{ [this]() { messageQueueProc(); } } );
 
         // Now we attempt to go to the Activated state. The only thing that should prevent this from
         // happening is our destructor or deactivate operation being invoked in a race.
