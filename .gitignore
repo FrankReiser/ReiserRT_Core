@@ -1,3 +1,6 @@
 build/
 cmake-build-debug/
 cmake-build-release/
+
+.kdev4/
+ReiserRT_Core.kdev4
