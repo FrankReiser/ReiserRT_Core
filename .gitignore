@@ -4,5 +4,4 @@ cmake-build-release/
 .idea/
 
 .kdev4/
-ReiserRT_Core.kdev4
-
+*.kdev4

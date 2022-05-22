@@ -14,6 +14,7 @@
 #define REISERRT_CORE_MESSAGEQUEUEBASE_HPP
 
 #include "ReiserRT_CoreExport.h"
+#include "Mutex.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -280,6 +281,25 @@ namespace ReiserRT
                     }
                     return *this;
                 }
+
+                ///@todo Consider the compliment of "Duck Type" operations that address a mutex type.
+
+                /**
+                * @brief Alias for Native Type
+                *
+                * This is simply an alias for our native type. If we are operating under POSIX PTHREADS, this
+                * is a pthread_mutex_t pointer.
+                */
+                using NativeHandleType = std::mutex::native_handle_type;
+
+                /**
+                * @brief The Native Handle Operation
+                *
+                * This operation will return the address of our native handle type.
+                *
+                * @return Returns the address of our encapsulated native mutex object.
+                */
+                NativeHandleType native_handle();
 
             private:
                 /**
