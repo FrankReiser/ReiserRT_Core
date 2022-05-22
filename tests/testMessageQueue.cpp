@@ -47,13 +47,6 @@ public:
 size_t SimpleTestMessage::dispatchCount = 0;
 size_t SimpleTestMessage::instanceCount = 0;
 
-uniform_int_distribution< unsigned int > uniformDistributionMQ;
-default_random_engine randEngineMQ;
-constexpr unsigned int hasherMQ(unsigned int x)
-{
-    return (((x << 16) | (x >> 16)) ^ 0xAAAAAAAA);
-}
-
 
 class MessageQueueUserProcess
 {
@@ -67,9 +60,9 @@ private:
 
         explicit ImpleMessage(MessageQueueUserProcess* pImple)
                 : MessageBase{}
-                , _pImple{ pImple }
-                , randNum{ uniformDistributionMQ(randEngineMQ) }
-                , randNumHash{ hasherMQ(randNum) }
+                , pImple{pImple }
+                , randNum{ pImple->getRandNumber() }
+                , randNumHash{ MessageQueueUserProcess::getRandNumberHash( randNum ) }
         {
         }
 
@@ -80,12 +73,12 @@ private:
         ImpleMessage& operator = (ImpleMessage&& another) = default;
 
     protected:
-        virtual void dispatch() { _pImple->onImpleMessage(randNum, randNumHash); }
+        virtual void dispatch() { pImple->onImpleMessage(randNum, randNumHash); }
 
         virtual const char* name() { return "ImpleMessage"; }
 
     private:
-        MessageQueueUserProcess* _pImple;
+        MessageQueueUserProcess* pImple;
         unsigned int randNum;
         unsigned int randNumHash;
     };
@@ -126,10 +119,8 @@ public:
     void onImpleMessage(unsigned int randNum, unsigned int randNumHash)
     {
         ++numberImpleMessagesDispatched;
-        if (randNumHash == (unsigned int)hasherMQ(randNum))
-        {
+        if (randNumHash == hasherMQ(randNum))
             ++numberOfMessagesValidated;
-        }
     }
 
     void sendImpleMessage()
@@ -137,12 +128,18 @@ public:
         msgQueue.emplace< ImpleMessage >(this);
     }
 
+    unsigned int getRandNumber() { return uniformDistributionMQ( randEngineMQ ); }
+    static unsigned int getRandNumberHash( unsigned int randNum ) { return hasherMQ( randNum); }
+    static unsigned int hasherMQ(unsigned int x) { return (((x << 16) | (x >> 16)) ^ 0xAAAAAAAA); }
+
     size_t getDispatchCount() const { return numberImpleMessagesDispatched; }
     size_t getValidatedCount() const { return numberOfMessagesValidated; }
 
     MessageQueueBase::AutoDispatchLock getAutoDispatchLock() { return std::move( msgQueue.getAutoDispatchLock() ); }
 
 private:
+    uniform_int_distribution< unsigned int > uniformDistributionMQ;
+    default_random_engine randEngineMQ{ std::random_device{}() };
     ActiveContextType messageHandlerThread{};
     size_t numberImpleMessagesDispatched{ 0 };
     size_t numberOfMessagesValidated{ 0 };
@@ -152,13 +149,124 @@ private:
     atomic< bool > destructing{ false };
 };
 
+int activeUserProcessTestPrimary()
+{
+    int retVal=0;
+
+    // Create MessageQueueUserProcess on heap and activate it.
+    std::unique_ptr< MessageQueueUserProcess > pUserProcess{ new MessageQueueUserProcess{} };
+    pUserProcess->activate();
+
+    // Invoke its send function multiple times
+    constexpr size_t count = 1048576;
+    for (size_t i = 0; i != count; i++)
+        pUserProcess->sendImpleMessage();
+
+    // Wait a bit.
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    // Verify it dispatched correct number of messages.
+    if ( pUserProcess->getDispatchCount() != count )
+    {
+        std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount after sendImpleMessage*count, got "
+                  << pUserProcess->getDispatchCount() << ", expected " << count << "\n";
+        retVal = 20;
+    }
+    // Else  Verify they were all validated
+    else if ( pUserProcess->getValidatedCount() != count )
+    {
+        std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount after sendImpleMessage*count, got "
+                  << pUserProcess->getDispatchCount() << ", expected " << count << "\n";
+        retVal = 21;
+    }
+//    else
+//        std::cout << "PASSED activeUserProcessTestPrimary" << std::endl;
+
+    return retVal;
+}
+
+int activeUserProcessTestSecondary()
+{
+    int retVal=0;
+
+    // Create MessageQueueUserProcess on heap and activate it.
+    std::unique_ptr< MessageQueueUserProcess > pUserProcess{ new MessageQueueUserProcess{} };
+    pUserProcess->activate();
+
+    do {
+        // Send a simple imple message and verify a dispatch count of 1
+        pUserProcess->sendImpleMessage();
+        this_thread::sleep_for( chrono::milliseconds(100) );
+        if ( pUserProcess->getDispatchCount() != 1 )
+        {
+            std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount after sendImple Message, got "
+                      << pUserProcess->getDispatchCount() << ", expected " << 1 << "\n";
+            retVal = 22;
+            break;
+        }
+
+        // Using scoping to hold an auto dispatch lock
+        {
+            // Obtain an auto dispatch lock and send a message.
+            auto dispatchLock = pUserProcess->getAutoDispatchLock();
+            pUserProcess->sendImpleMessage();
+
+            // Sleep a little bit and verify that the dispatch count is still 1 from before.
+            // We should be blocking dispatches.
+            this_thread::sleep_for( chrono::milliseconds(100) );
+            if (pUserProcess->getDispatchCount() != 1)
+            {
+                std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount blocking dispatching, got "
+                          << pUserProcess->getDispatchCount() << ", expected " << 1 << "\n";
+                retVal = 23;
+                break;
+            }
+        }
+
+        // Sleep a little bit and verify that dispatch count is now 2.
+        this_thread::sleep_for( chrono::milliseconds(100) );
+        if (pUserProcess->getDispatchCount() != 2)
+        {
+            std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount blocking dispatching, got "
+                      << pUserProcess->getDispatchCount() << ", expected " << 2 << "\n";
+            retVal = 24;
+            break;
+        }
+
+        // Scoped Test Of AutoDispatchLock native_handle operation
+        {
+            // Obtain an auto dispatch lock and send a message.
+            auto dispatchLock = pUserProcess->getAutoDispatchLock();
+            auto dispatchLockNativeHandle = dispatchLock.native_handle();
+
+            // The Lock should be taken. We should not be able to lock it again.
+            // so we will try to lock.
+            auto e = pthread_mutex_trylock( dispatchLockNativeHandle );
+            if ( 0 == e ) {
+                std::cout << "Failed, expected to not succeed locking already locked mutex" << std::endl;
+                retVal = 25;
+                break;
+            }
+            if ( EBUSY != e ) {
+                std::cout << "Failed, expected to not succeed locking already locked mutex" << std::endl;
+                retVal = 26;
+                break;
+            }
+
+        }
+
+//        std::cout << "PASSED activeUserProcessTestSecondary" << std::endl;
+    } while (0);
+
+    return retVal;
+}
 
 int main()
 {
     int retVal = 0;
 
     do {
-        // Try a simple message put and dispatch and then a emplace and dispatch
+        // Try a simple message put and dispatch and then emplace and dispatch
         {
             MessageQueue msgQueue(3, sizeof( SimpleTestMessage ));
 
@@ -294,11 +402,8 @@ int main()
 
             if ( testFailed )
             {
-                if ( 0 == retVal )
-                {
-                    cout << "Expected Runtime Error which did not occur" << endl;
-                    retVal = 12;
-                }
+                cout << "Expected Runtime Error which did not occur" << endl;
+                retVal = 12;
                 break;
             }
 
@@ -361,11 +466,8 @@ int main()
 
             if ( testFailed )
             {
-                if ( 0 == retVal )
-                {
-                    cout << "Expected Runtime Error which did not occur" << endl;
-                    retVal = 17;
-                }
+                cout << "Expected Runtime Error which did not occur" << endl;
+                retVal = 17;
                 break;
             }
 
@@ -388,87 +490,11 @@ int main()
             }
         }
 
-        // Use an Active Class to test using Imple Pointers
-        {
-            // Create MessageQueueUserProcess on heap and activate it.
-            std::unique_ptr< MessageQueueUserProcess > pUserProcess{ new MessageQueueUserProcess{} };
-            pUserProcess->activate();
+        // Use an Active Class to test using Imple Pointers with Messages.
+        activeUserProcessTestPrimary();
 
-            // Invoke its send function multiple times
-            constexpr size_t count = 1048576;
-            for (size_t i = 0; i != count; i++)
-                pUserProcess->sendImpleMessage();
-
-            // Wait a bit.
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-            // Verify it dispatched correct number of messages.
-            if (pUserProcess->getDispatchCount() != count)
-            {
-                std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount after sendImpleMessage*count, got "
-                          << pUserProcess->getDispatchCount() << ", expected " << count << "\n";
-                retVal = 20;
-            }
-            else
-            {
-                // Verify they were all validated
-                if ( pUserProcess->getValidatedCount() != count )
-                {
-                    std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount after sendImpleMessage*count, got "
-                              << pUserProcess->getDispatchCount() << ", expected " << count << "\n";
-                    retVal = 21;
-                }
-            }
-
-            // Destroy it and if it doesn't crash, we're good.
-            pUserProcess.reset();
-        }
-
-        // Use an Active Class to test dispatch locking
-        {
-            // Create MessageQueueUserProcess on heap and activate it.
-            std::unique_ptr< MessageQueueUserProcess > pUserProcess{ new MessageQueueUserProcess{} };
-            pUserProcess->activate();
-
-            // Send a simple imple message and verify a dispatch count of 1
-            pUserProcess->sendImpleMessage();
-            this_thread::sleep_for( chrono::milliseconds(100) );
-            if (pUserProcess->getDispatchCount() != 1)
-            {
-                std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount after sendImple Message, got "
-                          << pUserProcess->getDispatchCount() << ", expected " << 1 << "\n";
-                retVal = 22;
-            }
-
-            // Using scoping to hold an auto dispatch lock
-            {
-                // Obtain an auto dispatch lock and send a message.
-                auto dispatchLock = pUserProcess->getAutoDispatchLock();
-                pUserProcess->sendImpleMessage();
-
-                // Sleep a little bit and verify that the dispatch count is still 1 from before.
-                // We should be blocking dispatches.
-                this_thread::sleep_for( chrono::milliseconds(100) );
-                if (pUserProcess->getDispatchCount() != 1)
-                {
-                    std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount blocking dispatching, got "
-                              << pUserProcess->getDispatchCount() << ", expected " << 1 << "\n";
-                    retVal = 23;
-                }
-            }
-
-            // Sleep a little bit and verify that dispatch count is now 2.
-            this_thread::sleep_for( chrono::milliseconds(100) );
-            if (pUserProcess->getDispatchCount() != 2)
-            {
-                std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount blocking dispatching, got "
-                          << pUserProcess->getDispatchCount() << ", expected " << 2 << "\n";
-                retVal = 24;
-            }
-
-            // Destroy it and if it doesn't crash, we're good.
-            pUserProcess.reset();
-        }
+        // Use an Active Class to test Dispatch Locking Feature.
+        activeUserProcessTestSecondary();
 
      } while ( false );
 

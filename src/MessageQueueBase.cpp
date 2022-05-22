@@ -353,6 +353,11 @@ MessageQueueBase::AutoDispatchLock::~AutoDispatchLock()
     if ( pMQB ) pMQB->pImple->pMutex->unlock();
 }
 
+MessageQueueBase::AutoDispatchLock::NativeHandleType MessageQueueBase::AutoDispatchLock::native_handle()
+{
+    return pMQB ? pMQB->pImple->pMutex->native_handle() : nullptr;
+}
+
 MessageQueueBase::Imple::Imple( std::size_t theRequestedNumElements, std::size_t theElementSize,
                                 bool enableDispatchLocking )
   : requestedNumElements{ theRequestedNumElements }
