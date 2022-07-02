@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 project(
         ReiserRT_Core
-        VERSION 2.2.3
+        VERSION 2.3.1
         DESCRIPTION "Frank Reiser's C++11 core components for multi-threaded, realtime embedded systems.")
 
 # Set up compiler requirements
@@ -42,7 +42,6 @@ foreach(p LIB BIN INCLUDE CMAKE)
     message(STATUS "Installing ${p} components to ${_path}")
     unset(_path)
 endforeach()
-
 
 add_subdirectory( src )
 enable_testing()
