@@ -170,14 +170,14 @@ int activeUserProcessTestPrimary()
     {
         std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount after sendImpleMessage*count, got "
                   << pUserProcess->getDispatchCount() << ", expected " << count << "\n";
-        retVal = 20;
+        retVal = 30;
     }
     // Else  Verify they were all validated
     else if ( pUserProcess->getValidatedCount() != count )
     {
         std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount after sendImpleMessage*count, got "
                   << pUserProcess->getDispatchCount() << ", expected " << count << "\n";
-        retVal = 21;
+        retVal = 31;
     }
 //    else
 //        std::cout << "PASSED activeUserProcessTestPrimary" << std::endl;
@@ -201,7 +201,7 @@ int activeUserProcessTestSecondary()
         {
             std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount after sendImple Message, got "
                       << pUserProcess->getDispatchCount() << ", expected " << 1 << "\n";
-            retVal = 22;
+            retVal = 32;
             break;
         }
 
@@ -218,7 +218,7 @@ int activeUserProcessTestSecondary()
             {
                 std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount blocking dispatching, got "
                           << pUserProcess->getDispatchCount() << ", expected " << 1 << "\n";
-                retVal = 23;
+                retVal = 33;
                 break;
             }
         }
@@ -229,7 +229,7 @@ int activeUserProcessTestSecondary()
         {
             std::cout << "Failed to read a correct MessageQueueUserProcess::dispatchCount blocking dispatching, got "
                       << pUserProcess->getDispatchCount() << ", expected " << 2 << "\n";
-            retVal = 24;
+            retVal = 34;
             break;
         }
 
@@ -244,12 +244,12 @@ int activeUserProcessTestSecondary()
             auto e = pthread_mutex_trylock( dispatchLockNativeHandle );
             if ( 0 == e ) {
                 std::cout << "Failed, expected to not succeed locking already locked mutex" << std::endl;
-                retVal = 25;
+                retVal = 35;
                 break;
             }
             if ( EBUSY != e ) {
                 std::cout << "Failed, expected to not succeed locking already locked mutex" << std::endl;
-                retVal = 26;
+                retVal = 36;
                 break;
             }
 
@@ -489,6 +489,61 @@ int main()
                 break;
             }
         }
+
+        // Test the Purge Feature
+        {
+            // Reset SimpleTestMessageCounters from previous tests to zero.
+            SimpleTestMessage::instanceCount = 0;
+            SimpleTestMessage::dispatchCount = 0;
+
+            MessageQueue msgQueue(4, sizeof( SimpleTestMessage ));
+
+            // Before we put any messages into the queue. Ensure purge on an empty queue does not hang.
+            msgQueue.purge();
+
+            // Put two messages in message queue
+            msgQueue.put(std::move(SimpleTestMessage{}));
+            msgQueue.put(std::move(SimpleTestMessage{}));
+
+            // Verify SimpleTestMessage instance count;
+            if ( 2 != SimpleTestMessage::instanceCount )
+            {
+                cout << "The SimpleTestMessage::instanceCount is " << SimpleTestMessage::instanceCount
+                     << ". Expected " << 2 << endl;
+                retVal = 21;
+                break;
+            }
+
+            // Verify SimpleTestMessage dispatch count
+            if ( 0 != SimpleTestMessage::dispatchCount )
+            {
+                cout << "The SimpleTestMessage::dispatchCount is " << SimpleTestMessage::dispatchCount
+                     << ". Expected " << 0 << endl;
+                retVal = 22;
+                break;
+            }
+
+            // Purge the queue and verify instance count
+            msgQueue.purge();
+            if ( 0 != SimpleTestMessage::instanceCount )
+            {
+                cout << "The SimpleTestMessage::instanceCount is " << SimpleTestMessage::instanceCount
+                     << ". Expected " << 0 << endl;
+                retVal = 23;
+                break;
+            }
+
+            // Verify SimpleTestMessage dispatch count is still 0
+            if ( 0 != SimpleTestMessage::dispatchCount )
+            {
+                cout << "The SimpleTestMessage::dispatchCount is " << SimpleTestMessage::dispatchCount
+                     << ". Expected " << 0 << endl;
+                retVal = 24;
+                break;
+            }
+        }
+
+
 
         // Use an Active Class to test using Imple Pointers with Messages.
         activeUserProcessTestPrimary();
