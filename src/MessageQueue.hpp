@@ -212,13 +212,30 @@ namespace ReiserRT
             * @brief The Get and Dispatch Operation with Wake-up Notification
             *
             * This operation waits (blocks) until a message is available in the queue. As soon as a message is available
-            * for dequeuing, the wakeupFunctor is invoked and then the dispatch lock is taken.
+            * for de-queuing, the wakeupFunctor is invoked and then the dispatch lock is taken.
             * The message is then dispatched via the MessageBase::dispatch operation.
             *
             * @param wakeupFunctor A call-able object to be invoked upon message availability.
             * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation has been invoked.
             */
             void getAndDispatch(WakeupCallFunctionType wakeupFunctor);
+
+            /**
+            * @brief The Purge Operation
+            *
+            * This operation empties a message queue of all messages without dispatching them.
+            * Being that messages are not dispatched, a dispatch lock will not impact this operation.
+            *
+            * @warning This operation is an afterthought. Its primary purpose is to recycle a message queue
+            * for reuse after some sort of client state change should old messages remain enqueued.
+            * It relies on the client to not be adding or dispatching messages to or from the queue
+            * while simultaneously attempting to purge it.
+            * Doing so could lead to undefined behavior including indefinite blocking.
+            * This weakness could be guarded internally but not without negatively impacting performance.
+            * The rare need for purging a message queue does not justify this cost.
+            * Therefore, it is up to the client to use appropriately. You have been warned.
+            */
+            void purge();
 
             /**
             * @brief Get the Name of the Last Message Dispatched.
