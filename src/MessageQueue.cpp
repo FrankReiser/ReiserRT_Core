@@ -20,8 +20,8 @@ MessageQueue::MessageQueue( size_t requestedNumElements, size_t requestedMaxMess
 
 void MessageQueue::getAndDispatch()
 {
+    // CookedMemoryManager ensures memory is returned to the raw pool should dispatch throw.
     auto * pM = cookedWaitAndGet();
-
     CookedMemoryManager cookedMemoryManager{ this, pM };
 
     dispatchMessage( pM );
@@ -29,11 +29,23 @@ void MessageQueue::getAndDispatch()
 
 void MessageQueue::getAndDispatch( WakeupCallFunctionType wakeupFunctor )
 {
+    // CookedMemoryManager ensures memory is returned to the raw pool should wakeupFunctor
+    // or dispatch throw.
     auto * pM = cookedWaitAndGet();
+    CookedMemoryManager cookedMemoryManager{ this, pM };
 
     wakeupFunctor();
 
-    CookedMemoryManager cookedMemoryManager{ this, pM };
-
     dispatchMessage( pM );
+}
+
+void MessageQueue::purge()
+{
+    // Note warning in documentation. We are assuming we are being used properly.
+    // We only get the running state snapshot once and then count down to zero.
+    // We do not expect to block here if used properly.
+    // CookedMemoryManager returns memory to the raw pool.
+    auto runningState = getRunningStateStatistics();
+    for ( ; 0 != runningState.runningCount; --runningState.runningCount )
+        CookedMemoryManager{ this, cookedWaitAndGet() };
 }
