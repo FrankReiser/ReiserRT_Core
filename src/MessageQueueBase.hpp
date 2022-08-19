@@ -258,9 +258,10 @@ namespace ReiserRT
                 *
                 * @param another Another instance of an AutoDispatchLock
                 */
-                AutoDispatchLock( AutoDispatchLock && another ) noexcept : pMQB{ another.pMQB }
+                AutoDispatchLock( AutoDispatchLock && another ) noexcept : pMQB{ another.pMQB }, locked{ another.locked }
                 {
                     another.pMQB = nullptr;
+                    another.locked = 0;
                 }
 
                 /**
@@ -277,12 +278,28 @@ namespace ReiserRT
                     if (this != &another)
                     {
                         pMQB = another.pMQB;
+                        locked = another.locked;
                         another.pMQB = nullptr;
+                        another.locked = 0;
                     }
                     return *this;
                 }
 
-                ///@todo Consider the compliment of "Duck Type" operations that address a mutex type.
+                /**
+                * @brief Lock Operation
+                *
+                * This operation provides for more nuanced control of the dispatch lock should it be necessary.
+                * It provides for part of the "Basic Lockable" duck type interface and may be utilized like std::unique_lock.
+                */
+                void lock();
+
+                /**
+                * @brief Unlock Operation
+                *
+                * This operation provides for more nuanced control of the dispatch lock should it be necessary.
+                * It provides for part of the "Basic Lockable" duck type interface and may be utilized like std::unique_lock.
+                */
+                void unlock();
 
                 /**
                 * @brief Alias for Native Type
@@ -307,7 +324,8 @@ namespace ReiserRT
                 *
                 * A pointer to the MessageQueueBase.
                 */
-                MessageQueueBase * pMQB;
+                MessageQueueBase * pMQB{};
+                size_t locked{1};
             };
 
         protected:
