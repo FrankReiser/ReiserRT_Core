@@ -350,12 +350,24 @@ MessageQueueBase::AutoDispatchLock::AutoDispatchLock( MessageQueueBase * pTheMQB
 MessageQueueBase::AutoDispatchLock::~AutoDispatchLock()
 {
     // If we have not been "moved from", unlock. Otherwise, the "moved to" is responsible.
-    if ( pMQB ) pMQB->pImple->pMutex->unlock();
+    if ( locked && pMQB ) pMQB->pImple->pMutex->unlock();
 }
 
 MessageQueueBase::AutoDispatchLock::NativeHandleType MessageQueueBase::AutoDispatchLock::native_handle()
 {
     return pMQB ? pMQB->pImple->pMutex->native_handle() : nullptr;
+}
+
+void MessageQueueBase::AutoDispatchLock::lock()
+{
+    pMQB->pImple->pMutex->lock();
+    locked = 1;
+}
+
+void MessageQueueBase::AutoDispatchLock::unlock()
+{
+    pMQB->pImple->pMutex->unlock();
+    locked = 0;
 }
 
 MessageQueueBase::Imple::Imple( std::size_t theRequestedNumElements, std::size_t theElementSize,
