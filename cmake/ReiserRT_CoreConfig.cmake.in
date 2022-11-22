@@ -1,40 +1,38 @@
-# ReiserRT_CoreConfig.cmake
 # -------------------
 #
-# ReiserRT_Core cmake module.
+# @PROJECT_NAME@Config cmake module.
 # This module sets the following variables in your project:
 #
-#   ReiserRT_Core_FOUND - true if ReiserRT_Core found on the system
-#   ReiserRT_Core_VERSION - ReiserRT_Core version in format Major.Minor.Release
+#   @PROJECT_NAME@_FOUND - true if @PROJECT_NAME@ found on the system
+#   @PROJECT_NAME@_VERSION - @PROJECT_NAME@ version in format Major.Minor.Release
 #
 #
 # Exported targets:
 #
-# If ReiserRT_Core is found, this module defines the following :prop_tgt:`IMPORTED`
+# If @PROJECT_NAME@ is found, this module defines the following :prop_tgt:`IMPORTED`
 # targets. ::
-#   ReiserRT_Core::ReiserRT_Core - the shared library with header & defs attached.
+#   @PROJECT_NAME@::@PROJECT_NAME@ - the shared library with header & defs attached.
 #
 #
 # Suggested usage:
 #
-#   find_package(ReiserRT_Core)
-#   find_package(ReiserRT_Core 1.0 CONFIG REQUIRED)
+#   find_package(@PROJECT_NAME@)
+#   find_package(@PROJECT_NAME@ @PROJECT_VERSION_MAJOR@.@PROJECT_VERSION_MINOR@ CONFIG REQUIRED)
 #
 #
 # The following variables can be set to guide the search for this package:
 #
-#   ReiserRT_Core_DIR - CMake variable, set to directory containing this Config file
+#   @PROJECT_NAME@_DIR - CMake variable, set to directory containing this Config file
 #   CMAKE_PREFIX_PATH - CMake variable, set to root directory of this package
 #   PATH - environment variable, set to bin directory of this package
-#   CMAKE_DISABLE_FIND_PACKAGE_ReiserRT_Core - CMake variable, disables
-#       find_package(ReiserRT_Core) perhaps to force internal build
+#   CMAKE_DISABLE_FIND_PACKAGE_@PROJECT_NAME@ - CMake variable, disables
+#       find_package(@PROJECT_NAME@) perhaps to force internal build
 
 @PACKAGE_INIT@
 
 include(CMakeFindDependencyMacro)
 find_dependency(Threads)
 
-include("${CMAKE_CURRENT_LIST_DIR}/ReiserRT_CoreTargets.cmake")
-check_required_components(
-  "ReiserRT_Core"
-  )
+include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
+check_required_components( @PROJECT_NAME@ )
+

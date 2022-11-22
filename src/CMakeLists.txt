@@ -1,4 +1,8 @@
-# Public Header files
+# We are creating a build environment for a shared library named the same as
+# our project in the top level CMakeLists.txt file.
+add_library( ${PROJECT_NAME} SHARED "" )
+
+# Specify all of our public headers for easy reference.
 set( _publicHeaders
         ReiserRT_CoreExceptions.hpp
         RingBufferSimple.hpp
@@ -13,13 +17,13 @@ set( _publicHeaders
         MessageQueue.hpp
         )
 
-# Private Header files (none until otherwise determined)
+# Specify all of our private headers for easy reference.
 set( _privateHeaders
-        ""
-        )
+      ""
+    )
 
-# Private Source files.
-set( _privateSources
+# Specify our source files
+set( _sourceFiles
         ReiserRT_CoreExceptions.cpp
         RingBufferSimple.cpp
         Mutex.cpp
@@ -47,48 +51,22 @@ if(CMAKE_USE_PTHREADS_INIT)
     set( _REISER_RT_HAS_PTHREADS ON)
 endif()
 
-#[[
-# These are no longer private. However, I'm leaving this snippet in place as an example of how to append
-# to an existing list.
-if(_REISER_RT_HAS_PTHREADS)
-    list( APPEND _privateHeaders ${CMAKE_CURRENT_LIST_DIR}/Mutex.hpp)
-    list( APPEND _privateSources ${CMAKE_CURRENT_LIST_DIR}/Mutex.cpp)
-endif()
-]]
+# Now, Specify Sources to be built into our library
+target_sources( ${PROJECT_NAME} PRIVATE ${_sourceFiles} )
 
-#[[
-# Just an experiment
-find_package(PkgConfig QUIET)
-message( STATUS "PKG_CONFIG_FOUND: ${CMAKE_USE_PTHREADS_INIT}" )
-]]
-
-# Now the entire Library, currently SHARED by default. Could make an option though.
-add_library( ReiserRT_Core SHARED "" )
-target_sources( ReiserRT_Core
-        PRIVATE
-            ${_privateSources}
-#            ${_privateHeaders}
-#        PUBLIC
-#            ${_publicHeaders}
-        )
-
-set_target_properties(ReiserRT_Core
-        PROPERTIES
-            POSITION_INDEPENDENT_CODE 1
-            CXX_VISIBILITY_PRESET hidden
-            VISIBILITY_INLINES_HIDDEN 1
-            VERSION ${PROJECT_VERSION}
-            SOVERSION ${PROJECT_VERSION_MAJOR}
-            DEBUG_POSTFIX "_d"
-            PUBLIC_HEADER "${_publicHeaders};${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}/ReiserRT_CoreExport.h"
-        )
-
-target_compile_definitions(ReiserRT_Core
+target_compile_definitions(${PROJECT_NAME}
         PUBLIC
             $<$<BOOL:${_REISER_RT_HAS_PTHREADS}>:REISER_RT_HAS_PTHREADS>
 # I have no use for this feature at this time, so I am not going to incorporate it.
 #        INTERFACE
-#            $<INSTALL_INTERFACE:USING_ReiserRT_Core>
+#            $<INSTALL_INTERFACE:USING_${PROJECT_NAME}>
+        )
+
+# Specify our target interfaces for ourself and external clients post installation
+target_include_directories( ${PROJECT_NAME}
+        PUBLIC
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR};${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}>"
+        "$<INSTALL_INTERFACE:${INSTALL_INCLUDEDIR}>"
         )
 
 # We do not actually link Threads::Threads at this time but, this creates a requirement that will eventually have to be satisfied.
@@ -96,73 +74,79 @@ target_compile_definitions(ReiserRT_Core
 # Rationale: Our tests will need Threads to do adequate testing. Any client would most certainly be using threads also.
 # If Mutex amd Semaphore compile under REISER_RT_HAS_PTHREADS then Threads::Threads
 # would be almost guaranteed to be needed by clients as most of ReiserRT_Core uses Mutex and/or Semaphore.
-target_link_libraries(ReiserRT_Core PUBLIC Threads::Threads)
+target_link_libraries(${PROJECT_NAME} PUBLIC Threads::Threads)
 
-# Specify our target interfaces for external clients
-target_include_directories( ReiserRT_Core
-        PUBLIC
-            "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR};${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}>"
-            "$<INSTALL_INTERFACE:${INSTALL_INCLUDEDIR}>"
-        )
+# Specify Shared Object used Position Independent Code Major, the Major Version, Debug Prefix and Public Headers.
+# NOTE: Additional properties set or overridden after Export Header generated below.
+set_target_properties( ${PROJECT_NAME}
+        PROPERTIES
+        POSITION_INDEPENDENT_CODE 1
+        VERSION ${PROJECT_VERSION}
+        SOVERSION ${PROJECT_VERSION_MAJOR}
+        DEBUG_POSTFIX "_d"
+        PUBLIC_HEADER "${_publicHeaders}"
+)
 
+# Generate Export Header File
 include(GenerateExportHeader)
-generate_export_header(ReiserRT_Core
-        BASE_NAME "ReiserRT_Core"
-        EXPORT_MACRO_NAME "ReiserRT_Core_EXPORT"
-        EXPORT_FILE_NAME "${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}/ReiserRT_CoreExport.h"
-        DEPRECATED_MACRO_NAME "ReiserRT_Core_DEPRECATED"
-        NO_EXPORT_MACRO_NAME "ReiserRT_Core_NO_EXPORT"
-        STATIC_DEFINE "ReiserRT_Core_STATIC_DEFINE"
-        NO_DEPRECATED_MACRO_NAME "ReiserRT_Core_NO_DEPRECATED"
+generate_export_header( ${PROJECT_NAME}
+        BASE_NAME "${PROJECT_NAME}"
+        EXPORT_MACRO_NAME "${PROJECT_NAME}_EXPORT"
+        EXPORT_FILE_NAME "${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}/${PROJECT_NAME}Export.h"
+        DEPRECATED_MACRO_NAME "${PROJECT_NAME}_DEPRECATED"
+        NO_EXPORT_MACRO_NAME "${PROJECT_NAME}_NO_EXPORT"
+        STATIC_DEFINE "${PROJECT_NAME}_STATIC_DEFINE"
+        NO_DEPRECATED_MACRO_NAME "${PROJECT_NAME}_NO_DEPRECATED"
         DEFINE_NO_DEPRECATED
         )
 
-install(
-    TARGETS
-        ReiserRT_Core
-    EXPORT
-        ReiserRT_CoreTargets
-    ARCHIVE
-        DESTINATION ${INSTALL_LIBDIR}
-        COMPONENT lib
-    RUNTIME
-        DESTINATION ${INSTALL_BINDIR}
-        COMPONENT bin
-    LIBRARY
-        DESTINATION ${INSTALL_LIBDIR}
-        COMPONENT lib
-    PUBLIC_HEADER
-        DESTINATION "${INSTALL_INCLUDEDIR}"
-        COMPONENT dev
-)
+# Since we have an EXPORT file, hide everything that isn't explicitly exported.
+# Additionally, rewrite public headers appending the Export File. All of these includes need
+# be part of the installation.
+get_target_property( _tmp ${PROJECT_NAME} PUBLIC_HEADER )
+set_target_properties( ${PROJECT_NAME}
+        PROPERTIES
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN 1
+        PUBLIC_HEADER "${_tmp};${CMAKE_BINARY_DIR}/${INSTALL_INCLUDEDIR}/${PROJECT_NAME}Export.h"
+        )
 
-install (
-        EXPORT
-            ReiserRT_CoreTargets
-        NAMESPACE
-            "ReiserRT_Core::"
-        DESTINATION
-            ${INSTALL_CMAKEDIR}
-        COMPONENT
-            dev
-)
-
+# Process CMake configuration input file which dynamically generates the output CMake configuration files.
+# This aides the integration with other CMake client projects that use this project.
+# The first part specifies version compatibility for clients and the the second part generates the CMake
+# configuration for the development purposes.
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
-        ${CMAKE_CURRENT_BINARY_DIR}/ReiserRT_CoreConfigVersion.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
         VERSION ${PROJECT_VERSION}
         COMPATIBILITY SameMajorVersion
 )
 configure_package_config_file(
-        ${PROJECT_SOURCE_DIR}/cmake/ReiserRT_CoreConfig.cmake.in
-        ${CMAKE_CURRENT_BINARY_DIR}/ReiserRT_CoreConfig.cmake
+        ${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
         INSTALL_DESTINATION ${INSTALL_CMAKEDIR}
+)
+
+# Installation of Versioned Shared object library and CMake configuration files.
+install(
+        TARGETS ${PROJECT_NAME}
+        EXPORT ${PROJECT_NAME}Targets
+        ARCHIVE DESTINATION ${INSTALL_LIBDIR} COMPONENT lib
+        LIBRARY DESTINATION ${INSTALL_LIBDIR} COMPONENT lib
+        RUNTIME DESTINATION ${INSTALL_BINDIR} COMPONENT bin
+        PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDEDIR}" COMPONENT dev
+)
+
+install(
+        EXPORT ${PROJECT_NAME}Targets
+        NAMESPACE "${PROJECT_NAME}::"
+        DESTINATION ${INSTALL_CMAKEDIR}
+        COMPONENT dev
 )
 
 install(
         FILES
-            ${CMAKE_CURRENT_BINARY_DIR}/ReiserRT_CoreConfig.cmake
-            ${CMAKE_CURRENT_BINARY_DIR}/ReiserRT_CoreConfigVersion.cmake
-        DESTINATION
-            ${INSTALL_CMAKEDIR}
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+        DESTINATION ${INSTALL_CMAKEDIR}
 )
