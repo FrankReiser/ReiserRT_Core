@@ -8,7 +8,6 @@
 #ifndef REISERRT_CORE_OBJECTPOOLDELETER_HPP
 #define REISERRT_CORE_OBJECTPOOLDELETER_HPP
 
-#include "ReiserRT_CoreExport.h"
 #include "MemoryPoolDeleterBase.hpp"
 
 namespace ReiserRT
@@ -25,14 +24,6 @@ namespace ReiserRT
         template < typename T >
         class ObjectPoolDeleter : public MemoryPoolDeleterBase
         {
-        private:
-            /**
-            * @brief Friend Declaration
-            *
-            * We declare MemoryPoolBase as a friend as we only allow it to construct us.
-            */
-            friend class MemoryPoolBase;
-
         public:
             /**
             * @brief Qualified Constructor for ObjectPoolDeleter

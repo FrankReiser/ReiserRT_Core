@@ -14,7 +14,9 @@ namespace ReiserRT
 {
     namespace Core
     {
-        // Forward Declaration
+        /**
+        * @brief Forward Declaration of Memory Pool Base
+        */
         class MemoryPoolBase;
 
         /**
