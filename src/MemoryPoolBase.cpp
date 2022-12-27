@@ -83,6 +83,7 @@ private:
         RunningStateBasis state{ 0 };
     };
 
+public:
     /**
     * @brief Default Constructor for MemoryPoolBase::Imple
     *
@@ -90,6 +91,7 @@ private:
     */
     Imple() = delete;
 
+private:
     /**
     * @brief Qualified Constructor for MemoryPoolBase::Imple
     *
@@ -105,6 +107,7 @@ private:
     */
     explicit Imple( size_t requestedNumElements, size_t theElementSize );
 
+public:
     /**
     * @brief Copy Constructor for MemoryPoolBase::Imple
     *
@@ -141,6 +144,7 @@ private:
     */
     Imple & operator =( Imple && another ) = delete;
 
+private:
     /**
     * @brief Destructor for MemoryPoolBase::Imple
     *
@@ -264,7 +268,7 @@ MemoryPoolBase::Imple::~Imple()
 void * MemoryPoolBase::Imple::getRawBlock()
 {
     // Utilize small block scoping for mutex lock to minimize lock time.
-    void * pRaw = nullptr;
+    void * pRaw;
     {
         // Take lock RAII style
         std::lock_guard< Mutex > lock( mutex );

@@ -48,7 +48,6 @@ namespace ReiserRT
             */
             using CounterType = uint32_t;
 
-            ///@todo Make these protected operations instead of friend operations.
             /**
             * @brief Friend Class Declaration.
             *
@@ -81,7 +80,6 @@ namespace ReiserRT
                 CounterType lowWatermark{ 0 };  //!< The Current Low Watermark Captured Atomically (snapshot)
             };
 
-        protected:
             /**
             * @brief Default Constructor for MemoryPoolBase
             *
@@ -89,6 +87,7 @@ namespace ReiserRT
             */
             MemoryPoolBase() = delete;
 
+        protected:
             /**
             * @brief Qualified Constructor for MemoryPoolBase
             *
@@ -101,6 +100,7 @@ namespace ReiserRT
             */
             explicit MemoryPoolBase( size_t requestedNumElements, size_t elementSize );
 
+        public:
             /**
             * @brief Copy Constructor for MemoryPoolBase
             *
@@ -137,6 +137,7 @@ namespace ReiserRT
             */
             MemoryPoolBase & operator =( MemoryPoolBase && another ) = delete;
 
+        protected:
             /**
             * @brief Destructor for MemoryPoolBase
             *
@@ -162,19 +163,6 @@ namespace ReiserRT
             * @param pRaw A pointer to the raw block of memory to return to the pool.
             */
             void returnRawBlock( void * pRaw ) noexcept;
-
-            ///@todo Move this out and into ObjectPool. Block pool will need it's own.
-            /**
-            * @brief Create a Concrete ObjectPoolDeleter Object
-            *
-            * This operation creates an ObjectPoolDeleter locally and moves it off the stack for return.
-            * No heap usage is required.
-            *
-            * @tparam The type of object to which a ObjectPoolDeleter instance is required.
-            * @return An instance of a concrete ObjectPoolDeleter object moved off the stack.
-            */
-            template < typename T >
-            ObjectPoolDeleter< T > createDeleter() { return std::move(ObjectPoolDeleter< T >{this} ); }
 
             /**
             * @brief Get the MemoryPoolBase Size

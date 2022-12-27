@@ -34,7 +34,7 @@ namespace ReiserRT
             *
             * @param thePool A pointer to the object pool instance which invoke the operation.
             */
-            explicit inline ObjectPoolDeleterBase( MemoryPoolBase * thePool ) noexcept : pool{thePool } {}
+            explicit inline ObjectPoolDeleterBase( MemoryPoolBase * thePool ) noexcept : pool{ thePool } {}
 
             /**
             * @brief Default Constructor for ObjectPoolDeleterBase
@@ -124,6 +124,7 @@ namespace ReiserRT
             */
             friend class MemoryPoolBase;
 
+        public:
             /**
             * @brief Qualified Constructor for ObjectPoolDeleter
             *
@@ -131,9 +132,8 @@ namespace ReiserRT
             *
             * @param thePool A pointer to the object pool instance which invoke the operation.
             */
-            explicit ObjectPoolDeleter(MemoryPoolBase * thePool ) noexcept : ObjectPoolDeleterBase{thePool } {}
+            explicit ObjectPoolDeleter( MemoryPoolBase * thePool ) noexcept : ObjectPoolDeleterBase{thePool } {}
 
-        public:
             /**
             * @brief Default Constructor for ObjectPoolDeleter
             *

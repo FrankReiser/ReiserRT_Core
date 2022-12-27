@@ -200,7 +200,7 @@ namespace ReiserRT
                 rawMemoryManager.release();
 
                 // Wrap for delivery.
-                return ObjectPtrType{ pCooked, std::move(createDeleter<T>() ) };
+                return ObjectPtrType{ pCooked, std::move( createDeleter() ) };
             }
 
             /**
@@ -216,7 +216,17 @@ namespace ReiserRT
             * This declaration brings the base class functionality into the public scope.
             */
             using MemoryPoolBase::getRunningStateStatistics;
-        };
+
+        private:
+            /**
+            * @brief Create a Concrete ObjectPoolDeleter Object
+            *
+            * This operation creates an ObjectPoolDeleter locally and moves it off the stack for return.
+            *
+            * @return An instance of a concrete ObjectPoolDeleter object moved off the stack.
+            */
+            ObjectPoolDeleter< T > createDeleter() { return std::move( ObjectPoolDeleter< T >{ this } ); }
+       };
     }
 }
 
