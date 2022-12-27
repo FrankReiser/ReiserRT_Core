@@ -49,7 +49,7 @@ namespace ReiserRT
             * ObjectPoolDeleterBase requires access to our returnRawBlock operation and we wish no other access
             * other than that of derived types of ObjectPool (template instantiations).
             */
-            friend class ObjectPoolDeleterBase;
+            friend class MemoryPoolDeleterBase;
 
         public:
             /**

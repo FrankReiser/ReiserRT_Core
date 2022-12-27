@@ -9,103 +9,12 @@
 #define REISERRT_CORE_OBJECTPOOLDELETER_HPP
 
 #include "ReiserRT_CoreExport.h"
+#include "MemoryPoolDeleterBase.hpp"
 
 namespace ReiserRT
 {
     namespace Core
     {
-        // Forward Declaration
-        class MemoryPoolBase;
-
-        /**
-        * @brief The ObjectPoolDeleterBase
-        *
-        * This class provides the deleter implementation for objects created by ObjectPool which are "owned"
-        * by a unique_ptr object. It invokes the object destructor and returns the memory block back to the
-        * originating ObjectPool instance.
-        */
-        class ReiserRT_Core_EXPORT ObjectPoolDeleterBase
-        {
-        protected:
-            /**
-            * @brief Qualified Constructor for ObjectPoolDeleterBase
-            *
-            * Constructs a ObjectPoolDeleterBase object with a pointer reference to the pool base instance which created it.
-            *
-            * @param thePool A pointer to the object pool instance which invoke the operation.
-            */
-            explicit inline ObjectPoolDeleterBase( MemoryPoolBase * thePool ) noexcept : pool{ thePool } {}
-
-            /**
-            * @brief Default Constructor for ObjectPoolDeleterBase
-            *
-            * Default construction required for use with empty unique_ptr.
-            */
-            inline ObjectPoolDeleterBase() noexcept = default;
-
-            /**
-            * @brief Default Destructor for ObjectPoolDeleterBase
-            *
-            * We have no special needs. Therefore we request the default operation which does nothing.
-            */
-            inline ~ObjectPoolDeleterBase() = default;
-
-            /**
-            * @brief Copy Constructor for ObjectPoolDeleterBase
-            *
-            * This is our copy constructor operation. An implementation must exist to copy ObjectPoolDeleterBase objects
-            * as this is what is a minimum requirement for unique_ptr ownership transfer and shared_ptr copying.
-            *
-            * @param another A reference to an instance being copied.
-            */
-            ObjectPoolDeleterBase( const ObjectPoolDeleterBase & another ) noexcept = default;
-
-            /**
-            * @brief Assignment Operator for ObjectPoolDeleterBase
-            *
-            * This operation compliments our copy constructor. One shouldn't exist without the other.
-            *
-            * @param another A reference to an instance being assigned from.
-            */
-            ObjectPoolDeleterBase & operator=( const ObjectPoolDeleterBase & another ) noexcept = default;
-
-            /**
-            * @brief Move Constructor for ObjectPoolDeleterBase
-            *
-            * Provides for move construction.
-            *
-            * @param another An rvalue reference to another instance of a ObjectPoolDeleterBase.
-            */
-            ObjectPoolDeleterBase( ObjectPoolDeleterBase && another ) = default;
-
-            /**
-            * @brief Move Assignment Operation for ObjectPoolDeleterBase
-            *
-            * Provides for move assignment.
-            *
-            * @param another An rvalue reference to another instance of a ObjectPoolDeleterBase.
-            */
-            ObjectPoolDeleterBase & operator =( ObjectPoolDeleterBase && another ) = default;
-
-            /**
-            * @brief Return Memory to the Pool
-            *
-            * This protected operation is used solely by our Deleter object to return memory to the ObjectPool after
-            * an object's destruction. The pointer to this memory is put back into our RingBuffer for subsequent reuse.
-            *
-            * @param p A pointer to raw memory, that originally came from the ObjectPool.
-            */
-            void returnRawBlock( void * pV ) noexcept;
-
-        protected:
-            /**
-            * @brief A Reference to Our Object Pool Base class
-            *
-            * This attribute records the MemoryPoolBase instance that instantiated the ObjectPoolDeleterBase.
-            */
-            MemoryPoolBase * pool{ nullptr };
-        };
-
         /**
         * @brief The ObjectPoolDeleter
         *
@@ -114,7 +23,7 @@ namespace ReiserRT
         * originating ObjectPool instance.
         */
         template < typename T >
-        class ObjectPoolDeleter : public ObjectPoolDeleterBase
+        class ObjectPoolDeleter : public MemoryPoolDeleterBase
         {
         private:
             /**
@@ -132,7 +41,7 @@ namespace ReiserRT
             *
             * @param thePool A pointer to the object pool instance which invoke the operation.
             */
-            explicit ObjectPoolDeleter( MemoryPoolBase * thePool ) noexcept : ObjectPoolDeleterBase{ thePool } {}
+            explicit ObjectPoolDeleter( MemoryPoolBase * thePool ) noexcept : MemoryPoolDeleterBase{ thePool } {}
 
             /**
             * @brief Default Constructor for ObjectPoolDeleter

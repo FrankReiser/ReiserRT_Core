@@ -10,6 +10,7 @@ set( _publicHeaders
         Semaphore.hpp
         RingBufferGuarded.hpp
         MemoryPoolBase.hpp
+        MemoryPoolDeleterBase.hpp
         ObjectPool.hpp
         ObjectPoolDeleter.hpp
         ObjectPoolFwd.hpp
@@ -30,6 +31,7 @@ set( _sourceFiles
         Semaphore.cpp
         RingBufferGuarded.cpp
         MemoryPoolBase.cpp
+        MemoryPoolDeleterBase.cpp
         ObjectPool.cpp
         ObjectPoolDeleter.cpp
         ObjectPoolFwd.cpp
