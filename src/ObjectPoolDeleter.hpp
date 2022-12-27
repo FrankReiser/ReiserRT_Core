@@ -15,7 +15,7 @@ namespace ReiserRT
     namespace Core
     {
         // Forward Declaration
-        class ReiserRT_Core_EXPORT MemoryPoolBase;
+        class MemoryPoolBase;
 
         /**
         * @brief The ObjectPoolDeleterBase
@@ -132,7 +132,7 @@ namespace ReiserRT
             *
             * @param thePool A pointer to the object pool instance which invoke the operation.
             */
-            explicit ObjectPoolDeleter( MemoryPoolBase * thePool ) noexcept : ObjectPoolDeleterBase{thePool } {}
+            explicit ObjectPoolDeleter( MemoryPoolBase * thePool ) noexcept : ObjectPoolDeleterBase{ thePool } {}
 
             /**
             * @brief Default Constructor for ObjectPoolDeleter

@@ -10,13 +10,8 @@
 
 #include "ReiserRT_CoreExport.h"
 
-#include "ObjectPoolDeleter.hpp"
-
-#include <memory>
-#include <type_traits>
-#include <functional>
-#include <string>
-#include <stdexcept>
+#include <cstdlib>
+#include <cstdint>
 
 namespace ReiserRT
 {

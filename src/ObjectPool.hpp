@@ -7,7 +7,11 @@
 
 #include "MemoryPoolBase.hpp"
 #include "ObjectPoolFwd.hpp"
+#include "ObjectPoolDeleter.hpp"
 #include "ReiserRT_CoreExceptions.hpp"
+
+#include <type_traits>
+#include <utility>
 
 #ifndef REISERRT_CORE_OBJECTPOOL_HPP
 #define REISERRT_CORE_OBJECTPOOL_HPP
