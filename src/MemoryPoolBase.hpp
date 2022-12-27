@@ -1,12 +1,12 @@
 /**
-* @file ObjectPoolBase.hpp
+* @file MemoryPoolBase.hpp
 * @brief The Specification for a Generic Object Pool Base.
 * @authors Frank Reiser
 * @date Created on Apr 9, 2015
 */
 
-#ifndef REISERRT_CORE_OBJECTPOOLBASE_HPP
-#define REISERRT_CORE_OBJECTPOOLBASE_HPP
+#ifndef REISERRT_CORE_MEMORYPOOLBASE_HPP
+#define REISERRT_CORE_MEMORYPOOLBASE_HPP
 
 #include "ReiserRT_CoreExport.h"
 
@@ -23,12 +23,12 @@ namespace ReiserRT
     namespace Core
     {
         /**
-        * @brief The ObjectPoolBase Class
+        * @brief The MemoryPoolBase Class
         *
-        * This class provides a base for all specialized ObjectPool template instantiations.
-        * It provides a hidden implementation and the primary interface operations required for ObjectPool.
+        * This class provides a basis for other classes that serve as Object or Block memory pools.
+        * It provides a hidden implementation and the necessary interface operations for such use cases.
         */
-        class ReiserRT_Core_EXPORT ObjectPoolBase
+        class ReiserRT_Core_EXPORT MemoryPoolBase
         {
         private:
             /**
@@ -41,13 +41,14 @@ namespace ReiserRT
             /**
             * @brief Performance Tracking Feature Counter Type
             *
-            * The ObjectPoolBase can keep track of certain performance characteristics. These would primarily be a
+            * The MemoryPoolBase can keep track of certain performance characteristics. These would primarily be a
             * "Low Watermark" and the current "Running Count". Since this is a pool, the "Running Count" starts
             * out full (high) and so would the "Low Watermark". We use a 32 bit value for these, which should be
             * adequate. On 20200707, the internal ring buffer is maximum is limited to 1 Mega blocks.
             */
             using CounterType = uint32_t;
 
+            ///@todo Make these protected operations instead of friend operations.
             /**
             * @brief Friend Class Declaration.
             *
@@ -82,14 +83,14 @@ namespace ReiserRT
 
         protected:
             /**
-            * @brief Default Constructor for ObjectPoolBase
+            * @brief Default Constructor for MemoryPoolBase
             *
-            * Default construction of ObjectPoolBase is disallowed. Hence, this operation has been deleted.
+            * Default construction of MemoryPoolBase is disallowed. Hence, this operation has been deleted.
             */
-            ObjectPoolBase() = delete;
+            MemoryPoolBase() = delete;
 
             /**
-            * @brief Qualified Constructor for ObjectPool
+            * @brief Qualified Constructor for MemoryPoolBase
             *
             * This qualified constructor builds an ObjectPool using the requestedNumElements and element size argument
             * values. It delegates to the hidden implementation to fill the construction requirements.
@@ -98,50 +99,50 @@ namespace ReiserRT
             * power of two and clamped within RingBuffer design limits.
             * @param elementSize The maximum size of each allocation block.
             */
-            explicit ObjectPoolBase( size_t requestedNumElements, size_t elementSize );
+            explicit MemoryPoolBase( size_t requestedNumElements, size_t elementSize );
 
             /**
-            * @brief Copy Constructor for ObjectPoolBase
+            * @brief Copy Constructor for MemoryPoolBase
             *
-            * Copying ObjectPoolBase is disallowed. Hence, this operation has been deleted.
+            * Copying MemoryPoolBase is disallowed. Hence, this operation has been deleted.
             *
-            * @param another Another instance of a ObjectPoolBase.
+            * @param another Another instance of a MemoryPoolBase.
             */
-            ObjectPoolBase( const ObjectPoolBase & another ) = delete;
+            MemoryPoolBase( const MemoryPoolBase & another ) = delete;
 
             /**
-            * @brief Copy Assignment Operation for ObjectPoolBase
+            * @brief Copy Assignment Operation for MemoryPoolBase
             *
-            * Copying ObjectPoolBase is disallowed. Hence, this operation has been deleted.
+            * Copying MemoryPoolBase is disallowed. Hence, this operation has been deleted.
             *
-            * @param another Another instance of a ObjectPoolBase of the same template type.
+            * @param another Another instance of a MemoryPoolBase of the same template type.
             */
-            ObjectPoolBase & operator =( const ObjectPoolBase & another ) = delete;
+            MemoryPoolBase & operator =( const MemoryPoolBase & another ) = delete;
 
             /**
-            * @brief Move Constructor for ObjectPoolBase
+            * @brief Move Constructor for MemoryPoolBase
             *
-            * Moving ObjectPoolBase is disallowed. Hence, this operation has been deleted.
+            * Moving MemoryPoolBase is disallowed. Hence, this operation has been deleted.
             *
-            * @param another An rvalue reference to another instance of a ObjectPoolBase of the same template type.
+            * @param another An rvalue reference to another instance of a MemoryPoolBase of the same template type.
             */
-            ObjectPoolBase( ObjectPoolBase && another ) = delete;
+            MemoryPoolBase( MemoryPoolBase && another ) = delete;
 
             /**
-            * @brief Move Assignment Operation for ObjectPoolBase
+            * @brief Move Assignment Operation for MemoryPoolBase
             *
-            * Moving ObjectPoolBase is disallowed. Hence, this operation has been deleted.
+            * Moving MemoryPoolBase is disallowed. Hence, this operation has been deleted.
             *
-            * @param another An rvalue reference to another instance of a ObjectPoolBase of the same template type.
+            * @param another An rvalue reference to another instance of a MemoryPoolBase of the same template type.
             */
-            ObjectPoolBase & operator =( ObjectPoolBase && another ) = delete;
+            MemoryPoolBase & operator =( MemoryPoolBase && another ) = delete;
 
             /**
-            * @brief Destructor for ObjectPoolBase
+            * @brief Destructor for MemoryPoolBase
             *
             * The destructor destroys the hidden implementation object.
             */
-            ~ObjectPoolBase();
+            ~MemoryPoolBase();
 
             /**
             * @brief The Get Raw Block Operation
@@ -162,6 +163,7 @@ namespace ReiserRT
             */
             void returnRawBlock( void * pRaw ) noexcept;
 
+            ///@todo Move this out and into ObjectPool. Block pool will need it's own.
             /**
             * @brief Create a Concrete ObjectPoolDeleter Object
             *
@@ -175,29 +177,29 @@ namespace ReiserRT
             ObjectPoolDeleter< T > createDeleter() { return std::move(ObjectPoolDeleter< T >{this} ); }
 
             /**
-            * @brief Get the ObjectPoolBase Size
+            * @brief Get the MemoryPoolBase Size
             *
-            * This operation retrieves the fixed size of the ObjectPoolBase determined at the time of construction.
+            * This operation retrieves the fixed size of the MemoryPoolBase determined at the time of construction.
             * It delegates to the hidden implementation for the information.
             *
-            * @return Returns the ObjectPoolBase::Imple fixed size determined at the time of construction.
+            * @return Returns the MemoryPoolBase::Imple fixed size determined at the time of construction.
             */
             size_t getSize() noexcept;
 
             /**
-            * @brief Get the ObjectPoolBase Element Size
+            * @brief Get the MemoryPoolBase Element Size
             *
-            * This operation retrieves the fixed size of the Elements managed by ObjectPoolBase determined at time of
+            * This operation retrieves the fixed size of the Elements managed by MemoryPoolBase determined at time of
             * construction. It delegates to the hidden implementation for the information.
             *
-            * @return Returns the ObjectPoolBase::Imple fixed element size determined at the time of construction.
+            * @return Returns the MemoryPoolBase::Imple fixed element size determined at the time of construction.
             */
             size_t getElementSize() noexcept;
 
             /**
             * @brief Get the Running State Statistics
             *
-            * This operation provides for performance monitoring of the ObjectPoolBase. The data returned
+            * This operation provides for performance monitoring of the MemoryPoolBase. The data returned
             * is an atomically captured snapshot of the RunningStateStats. The "low watermark",
             * compared to the size can provide an indication of the exhaustion level.
             *
@@ -216,4 +218,4 @@ namespace ReiserRT
     }
 }
 
-#endif /* REISERRT_CORE_OBJECTPOOLBASE_HPP */
+#endif /* REISERRT_CORE_MEMORYPOOLBASE_HPP */

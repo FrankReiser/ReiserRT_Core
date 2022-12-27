@@ -9,7 +9,7 @@ set( _publicHeaders
         Mutex.hpp
         Semaphore.hpp
         RingBufferGuarded.hpp
-        ObjectPoolBase.hpp
+        MemoryPoolBase.hpp
         ObjectPool.hpp
         ObjectPoolDeleter.hpp
         ObjectPoolFwd.hpp
@@ -29,7 +29,7 @@ set( _sourceFiles
         Mutex.cpp
         Semaphore.cpp
         RingBufferGuarded.cpp
-        ObjectPoolBase.cpp
+        MemoryPoolBase.cpp
         ObjectPool.cpp
         ObjectPoolDeleter.cpp
         ObjectPoolFwd.cpp

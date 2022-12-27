@@ -15,7 +15,7 @@ namespace ReiserRT
     namespace Core
     {
         // Forward Declaration
-        class ReiserRT_Core_EXPORT ObjectPoolBase;
+        class ReiserRT_Core_EXPORT MemoryPoolBase;
 
         /**
         * @brief The ObjectPoolDeleterBase
@@ -34,7 +34,7 @@ namespace ReiserRT
             *
             * @param thePool A pointer to the object pool instance which invoke the operation.
             */
-            explicit inline ObjectPoolDeleterBase( ObjectPoolBase * thePool ) noexcept : pool{ thePool } {}
+            explicit inline ObjectPoolDeleterBase( MemoryPoolBase * thePool ) noexcept : pool{thePool } {}
 
             /**
             * @brief Default Constructor for ObjectPoolDeleterBase
@@ -101,9 +101,9 @@ namespace ReiserRT
             /**
             * @brief A Reference to Our Object Pool Base class
             *
-            * This attribute records the ObjectPoolBase instance that instantiated the ObjectPoolDeleterBase.
+            * This attribute records the MemoryPoolBase instance that instantiated the ObjectPoolDeleterBase.
             */
-            ObjectPoolBase * pool{ nullptr };
+            MemoryPoolBase * pool{ nullptr };
         };
 
         /**
@@ -120,9 +120,9 @@ namespace ReiserRT
             /**
             * @brief Friend Declaration
             *
-            * We declare ObjectPoolBase as a friend as we only allow it to construct us.
+            * We declare MemoryPoolBase as a friend as we only allow it to construct us.
             */
-            friend class ObjectPoolBase;
+            friend class MemoryPoolBase;
 
             /**
             * @brief Qualified Constructor for ObjectPoolDeleter
@@ -131,7 +131,7 @@ namespace ReiserRT
             *
             * @param thePool A pointer to the object pool instance which invoke the operation.
             */
-            explicit ObjectPoolDeleter( ObjectPoolBase * thePool ) noexcept : ObjectPoolDeleterBase{ thePool } {}
+            explicit ObjectPoolDeleter(MemoryPoolBase * thePool ) noexcept : ObjectPoolDeleterBase{thePool } {}
 
         public:
             /**

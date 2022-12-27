@@ -3,12 +3,9 @@
 * @brief The Specification for a Specialized Object Pool Classes.
 * @authors Frank Reiser
 * @date Created on Mar 24, 2021
-*
-* @note Factored out from what is now ObjectPoolBase.hpp (Was ObjectPool.hpp). See history on that file for
-* prior changes to template class ObjectPool now contained within.
 */
 
-#include "ObjectPoolBase.hpp"
+#include "MemoryPoolBase.hpp"
 #include "ObjectPoolFwd.hpp"
 #include "ReiserRT_CoreExceptions.hpp"
 
@@ -20,9 +17,9 @@ namespace ReiserRT
     namespace Core
     {
         /**
-        * @brief A Generic Object Pool Implementation with ObjectFactory Functionality
+        * @brief A Generic Object Pool Implementation with Object Factory Functionality
         *
-        * This template class provides a compile-time, high performance, generic object factory from a preallocated
+        * This template class provides a compile-time, high performance, generic object factory from a pre-allocated
         * memory pool. The implementation relies heavily on C++11 meta-programming capabilities to accomplish its goal
         * of compile-time polymorphism. The RingBufferSimple class of the same namespace
         * is utilized extensively. Types created and delivered from this implementation are encapsulated
@@ -45,7 +42,7 @@ namespace ReiserRT
         * at compile-time as an error.
         */
         template < typename T >
-        class ObjectPool : public ObjectPoolBase
+        class ObjectPool : public MemoryPoolBase
         {
         public:
             /**
@@ -76,7 +73,7 @@ namespace ReiserRT
             * This value is clamped to be no less than the size of type T.
             */
             explicit ObjectPool( size_t requestedNumElements, size_t minTypeAllocSize = sizeof( T ) )
-                : ObjectPoolBase{ requestedNumElements, std::max( minTypeAllocSize, sizeof( T ) ) }
+                : MemoryPoolBase{requestedNumElements, std::max(minTypeAllocSize, sizeof( T ) ) }
             {
             }
 
@@ -211,14 +208,14 @@ namespace ReiserRT
             *
             * This declaration brings the base class functionality into the public scope.
             */
-            using ObjectPoolBase::getSize;
+            using MemoryPoolBase::getSize;
 
             /**
             * @brief Get the Running State Statistics
             *
             * This declaration brings the base class functionality into the public scope.
             */
-            using ObjectPoolBase::getRunningStateStatistics;
+            using MemoryPoolBase::getRunningStateStatistics;
         };
     }
 }
