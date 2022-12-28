@@ -77,7 +77,7 @@ namespace ReiserRT
             * This value is clamped to be no less than the size of type T.
             */
             explicit ObjectPool( size_t requestedNumElements, size_t minTypeAllocSize = sizeof( T ) )
-                : MemoryPoolBase{requestedNumElements, std::max(minTypeAllocSize, sizeof( T ) ) }
+                : MemoryPoolBase{ requestedNumElements, std::max( minTypeAllocSize, sizeof( T ) ) }
             {
             }
 
