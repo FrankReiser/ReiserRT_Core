@@ -171,16 +171,13 @@ namespace ReiserRT
                 // Type D must be nothrow_destructible.
                 static_assert( std::is_nothrow_destructible< D >::value, "Type D must be nothrow destructible!!!" );
 
-                // Get raw buffer from ring. This could throw underflow if pool is exhausted.
-                void * pRaw;
-
                 // Before we even bother getting a raw block of memory, we will validate that
                 // the type being created will fit in the block.
                 if ( getElementSize() < sizeof( D ) )
                     throw ObjectPoolElementSizeError( "ObjectPool::createObj: The size of type D exceeds maximum element size" );
 
                 // Obtain a raw block of memory to cook.
-                pRaw =  getRawBlock();
+                auto pRaw =  getRawBlock();
 
                 // I could have used a unique_ptr to pull this trick off, but it isn't pretty but, C-Tidy doesn't like
                 // it and this is clean and lean. So, I just rolled my own again.
