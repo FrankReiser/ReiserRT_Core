@@ -159,6 +159,7 @@ namespace ReiserRT
             */
             void returnRawBlock( void * pRaw ) noexcept;
 
+        public:
             /**
             * @brief Get the MemoryPoolBase Size
             *
@@ -172,12 +173,23 @@ namespace ReiserRT
             /**
             * @brief Get the MemoryPoolBase Element Size
             *
-            * This operation retrieves the fixed size of the Elements managed by MemoryPoolBase determined at time of
+            * This operation retrieves the size of the Elements specified at time of
             * construction. It delegates to the hidden implementation for the information.
             *
-            * @return Returns the MemoryPoolBase::Imple fixed element size determined at the time of construction.
+            * @return Returns the MemoryPoolBase::Imple element size specified at the time of construction.
             */
             size_t getElementSize() noexcept;
+
+            /**
+            * @brief Get the MemoryPoolBase Element Size
+            *
+            * This operation retrieves the padded size of the Elements managed by MemoryPoolBase determined at time of
+            * construction. The padding allows for each raw block obtained through `getRawBlock` to be architecturally
+            * aligned. It delegates to the hidden implementation for the information.
+            *
+            * @return Returns the MemoryPoolBase::Imple padded element size determined at the time of construction.
+            */
+            size_t getPaddedElementSize() noexcept;
 
             /**
             * @brief Get the Running State Statistics
@@ -190,6 +202,7 @@ namespace ReiserRT
             */
             RunningStateStats getRunningStateStatistics() noexcept;
 
+        private:
             /**
             * @brief The Hidden Implementation Instance
             *

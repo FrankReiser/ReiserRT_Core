@@ -10,6 +10,8 @@
 
 #include "ReiserRT_CoreExport.h"
 
+#include <cstdlib>
+
 namespace ReiserRT
 {
     namespace Core
@@ -99,6 +101,16 @@ namespace ReiserRT
             * @param p A pointer to raw memory, that originally came from the MemoryPoolBase.
             */
             void returnRawBlock( void * pV ) noexcept;
+
+            /**
+            * @brief Get the Memory Pool Element Size
+            *
+            * This operation retrieves the size of the elements managed by the memory pool as specified when it
+            * was instantiated.
+            *
+            * @return Returns the MemoryPoolBase::Imple element size specified when the memory pool was instatiated.
+            */
+            size_t getElementSize() noexcept;
 
         protected:
             /**

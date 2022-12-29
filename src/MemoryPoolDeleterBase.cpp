@@ -12,8 +12,13 @@
 using namespace ReiserRT;
 using namespace ReiserRT::Core;
 
-void ReiserRT::Core::MemoryPoolDeleterBase::returnRawBlock(void * pV ) noexcept
+void MemoryPoolDeleterBase::returnRawBlock( void * pV ) noexcept
 {
     // Return the memory to the pool
     pool->returnRawBlock( pV );
+}
+
+size_t MemoryPoolDeleterBase::getElementSize() noexcept
+{
+    return pool->getElementSize();
 }

@@ -214,9 +214,17 @@ private:
     /**
     * @brief The Element Size
     *
-    * This attribute stores the size of the elements managed by the pool.
+    * This attribute stores the size of the elements managed by the pool, specified at time of construction.
     */
     const size_t elementSize;
+
+    /**
+    * @brief The Element Size
+    *
+    * This attribute stores the padded size of the elements managed by the pool, so that each element is properly
+    * aligned with the architecture.
+    */
+    const size_t paddedElementSize;
 
     /**
     * @brief The Pool Size
@@ -242,10 +250,11 @@ private:
     alignas( void * ) unsigned char * arena;
 };
 
-MemoryPoolBase::Imple::Imple(size_t requestedNumElements, size_t theElementSize )
+MemoryPoolBase::Imple::Imple( size_t requestedNumElements, size_t theElementSize )
         : ringBuffer{ requestedNumElements }
         , mutex{}
-        , elementSize{ getPaddedTypeAllocSize( theElementSize ) }
+        , elementSize{ theElementSize }
+        , paddedElementSize{ getPaddedTypeAllocSize( elementSize ) }
         , poolSize{ ringBuffer.getSize() }
         , runningState{}
         , arena{ new unsigned char [ theElementSize * poolSize ] }
@@ -293,13 +302,13 @@ void * MemoryPoolBase::Imple::getRawBlock()
                                                    std::memory_order_seq_cst, std::memory_order_seq_cst ) );
 
     // Zero out Arena Memory!
-    memset( pRaw, 0, elementSize );
+    memset(pRaw, 0, paddedElementSize );
 
     // Return raw memory
     return pRaw;
 }
 
-void MemoryPoolBase::Imple::returnRawBlock(void * pRaw ) noexcept
+void MemoryPoolBase::Imple::returnRawBlock( void * pRaw ) noexcept
 {
     // Utilize small block scoping for mutex lock to minimize lock time.
     {
@@ -338,7 +347,7 @@ MemoryPoolBase::RunningStateStats MemoryPoolBase::Imple::getRunningStateStatisti
     return snapshot;
 }
 
-size_t MemoryPoolBase::Imple::getPaddedTypeAllocSize(size_t requestedElementSize )
+size_t MemoryPoolBase::Imple::getPaddedTypeAllocSize( size_t requestedElementSize )
 {
     size_t alignmentOverspill = requestedElementSize % sizeof( void * );
     return  ( alignmentOverspill != 0 ) ? requestedElementSize + sizeof( void * ) - alignmentOverspill :
@@ -346,8 +355,8 @@ size_t MemoryPoolBase::Imple::getPaddedTypeAllocSize(size_t requestedElementSize
 }
 
 
-MemoryPoolBase::MemoryPoolBase(size_t requestedNumElements, size_t elementSize )
-        : pImple{ new Imple{ requestedNumElements, elementSize } }
+MemoryPoolBase::MemoryPoolBase( size_t requestedNumElements, size_t elementSize )
+  : pImple{ new Imple{ requestedNumElements, elementSize } }
 {
 }
 
@@ -374,6 +383,11 @@ size_t MemoryPoolBase::getSize() noexcept
 size_t MemoryPoolBase::getElementSize() noexcept
 {
     return pImple->elementSize;
+}
+
+size_t MemoryPoolBase::getPaddedElementSize() noexcept
+{
+    return pImple->paddedElementSize;
 }
 
 MemoryPoolBase::RunningStateStats MemoryPoolBase::getRunningStateStatistics() noexcept

@@ -173,7 +173,7 @@ namespace ReiserRT
 
                 // Before we even bother getting a raw block of memory, we will validate that
                 // the type being created will fit in the block.
-                if ( getElementSize() < sizeof( D ) )
+                if ( getPaddedElementSize() < sizeof( D ) )
                     throw ObjectPoolElementSizeError( "ObjectPool::createObj: The size of type D exceeds maximum element size" );
 
                 // Obtain a raw block of memory to cook.
