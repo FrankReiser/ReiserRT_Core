@@ -179,20 +179,6 @@ namespace ReiserRT
                 // Obtain a raw block of memory to cook.
                 auto pRaw =  getRawBlock();
 
-#if 0
-                // I could have used a unique_ptr to pull this trick off, but it isn't pretty but, C-Tidy doesn't like
-                // it and this is clean and lean. So, I just rolled my own again.
-                struct RawMemoryManager {
-                    RawMemoryManager( ObjectPool< T > * pThePool, void * pTheRaw ) : pP{ pThePool }, pR{ pTheRaw } {}
-                    ~RawMemoryManager() { if ( pP && pR ) pP->returnRawBlock( pR ); }
-
-                    void release() { pR = nullptr; }
-                private:
-                    ObjectPool< T > * pP{ nullptr };
-                    void * pR{ nullptr };
-                };
-#endif
-
                 // Wrap up the raw memory in our manager class so that it can be properly return to the pool
                 // should something go wrong.
                 RawMemoryManager rawMemoryManager{ this, pRaw };
