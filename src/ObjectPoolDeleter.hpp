@@ -18,7 +18,7 @@ namespace ReiserRT
         * @brief The ObjectPoolDeleter
         *
         * This class provides the deleter interface for objects created by ObjectPool which are "owned"
-        * by a unique_ptr object. It invokes the object destructor and returns the memory block back to the
+        * by a unique_ptr object. Its functor interface invokes the type destructor and returns the memory block back to the
         * originating ObjectPool instance.
         */
         template < typename T >

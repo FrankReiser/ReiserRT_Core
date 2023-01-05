@@ -25,8 +25,7 @@ namespace ReiserRT
         *
         * This template class provides a compile-time, high performance, generic object factory from a pre-allocated
         * memory pool. The implementation relies heavily on C++11 meta-programming capabilities to accomplish its goal
-        * of compile-time polymorphism. The RingBufferSimple class of the same namespace
-        * is utilized extensively. Types created and delivered from this implementation are encapsulated
+        * of compile-time polymorphism. Types created and delivered from this implementation are encapsulated
         * inside of a C++11 unique_ptr with a custom "Deleter" which automatically returns memory to this pool when the
         * unique_ptr is destroyed. Please @see ObjectPoolDeleter for details.
         *
@@ -50,15 +49,15 @@ namespace ReiserRT
         {
         public:
             /**
-            * @brief The Return Value Type
+            * @brief The Return Value Type for the `createObj` Operation
             *
-            * This type definition describes the unique_ptr specialization that we return on a createObj invocation.
+            * This type definition describes the unique_ptr specialization that we return on a `createObj` invocation.
             * The details can be found within "ObjectPoolFwd.hpp".
             */
             using ObjectPtrType = ObjectPoolPtrType< T >;
 
             /**
-            * @brief Default Constructor for ObjectPool
+            * @brief Default Constructor for ObjectPool Disallowed
             *
             * Default construction of ObjectPool is disallowed. Hence, this operation has been deleted.
             */
@@ -82,7 +81,7 @@ namespace ReiserRT
             }
 
             /**
-            * @brief Copy Constructor for ObjectPool
+            * @brief Copy Constructor for ObjectPool Disallowed
             *
             * Copying ObjectPool is disallowed. Hence, this operation has been deleted.
             *
@@ -91,7 +90,7 @@ namespace ReiserRT
             ObjectPool( const ObjectPool & another ) = delete;
 
             /**
-            * @brief Copy Assignment Operation for ObjectPool
+            * @brief Copy Assignment Operation for ObjectPool Disallowed
             *
             * Copying ObjectPool is disallowed. Hence, this operation has been deleted.
             *
@@ -100,31 +99,13 @@ namespace ReiserRT
             ObjectPool & operator =( const ObjectPool & another ) = delete;
 
             /**
-            * @brief Move Constructor for ObjectPool
-            *
-            * Moving ObjectPool is disallowed. Hence, this operation has been deleted.
-            *
-            * @param another An rvalue reference to another instance of a ObjectPool of the same templated type.
-            */
-            ObjectPool( ObjectPool && another ) = delete;
-
-            /**
-            * @brief Move Assignment Operation for ObjectPool
-            *
-            * Moving ObjectPool is disallowed. Hence, this operation has been deleted.
-            *
-            * @param another An rvalue reference to another instance of a ObjectPool of the same templated type.
-            */
-            ObjectPool & operator =( ObjectPool && another ) = delete;
-
-            /**
             * @brief Destructor for ObjectPool
             *
             * This destructor does little but delegate to the base class for the required clean-up.
             *
             * @note Destroying an ObjectPool while pointers to Objects are allocated and essentially
-             "loaned", would be a terrible thing to do. It will almost certainly lead to an exception
-              being thrown.
+            * "loaned", would be a terrible thing to do. It will almost certainly lead to an exception
+            * being thrown.
             */
             ~ObjectPool() = default;
 
@@ -147,7 +128,7 @@ namespace ReiserRT
             *
             * @param args The actual arguments to be forwarded by the compiler to the deduced constructor of type D.
             *
-            * @return This operation returns the newly object constructed, wrapped within a std::unique_ptr,
+            * @return This operation returns the newly constructed object, wrapped within a std::unique_ptr,
             * associated with our custom Deleter. This unique_ptr is aliased as ObjectPtrType.
             *
             * @throw Throws ReiserRT::Core::RingBufferOverflow on memory pool exhaustion.
