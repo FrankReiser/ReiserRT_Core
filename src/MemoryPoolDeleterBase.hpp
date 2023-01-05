@@ -52,7 +52,7 @@ namespace ReiserRT
             *
             * We have no special needs. Therefore we request the default operation which does nothing.
             */
-            inline ~MemoryPoolDeleterBase() = default;
+            inline ~MemoryPoolDeleterBase() noexcept = default;
 
             /**
             * @brief Copy Constructor for MemoryPoolDeleterBase

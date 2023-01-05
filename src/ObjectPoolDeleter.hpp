@@ -46,7 +46,7 @@ namespace ReiserRT
             *
             * We have no special needs. Therefore we request the default operation which does nothing.
             */
-            ~ObjectPoolDeleter() = default;
+            ~ObjectPoolDeleter() noexcept = default;
 
             /**
             * @brief Copy Constructor for ObjectPoolDeleter
