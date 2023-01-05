@@ -202,6 +202,7 @@ namespace ReiserRT
             */
             RunningStateStats getRunningStateStatistics() noexcept;
 
+        protected:
             /**
             * @brief A Memory Manager for Raw Memory.
             *
