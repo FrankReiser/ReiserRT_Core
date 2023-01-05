@@ -11,7 +11,6 @@
 #include "MemoryPoolDeleterBase.hpp"
 
 #include <type_traits>
-#include <cstdlib>
 
 namespace ReiserRT
 {
