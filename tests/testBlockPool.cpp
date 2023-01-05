@@ -145,7 +145,51 @@ int testWithScalars()
     return 0;
 }
 
-// The MemoryPoolBase has been tested thoroughly with ObjectPool. We will not repeat all of that here.
+class NoThrowAggregateType
+{
+public:
+    NoThrowAggregateType() noexcept {  ++objCount; };
+    ~NoThrowAggregateType() noexcept { --objCount; };
+
+    int a{1};
+    int b{2};
+    static int objCount;
+};
+int NoThrowAggregateType::objCount = 0;
+
+int testNoThrowAggregateType()
+{
+    constexpr size_t nElements = 4;
+    BlockPool< NoThrowAggregateType > dummyBlockPool{ 2, nElements };
+
+    auto block = dummyBlockPool.getBlock();
+    if ( nElements != NoThrowAggregateType::objCount )
+    {
+        std::cout << "Aggregate Test, Expected NoThrowAggregateType::objCount of " << nElements
+                  << ", detected " << NoThrowAggregateType::objCount << std::endl;
+        return 21;
+    }
+
+    // Get a pointer to the first NoThrowAggregateType instance and iterate it
+    auto p = block.get();
+    for ( size_t i = 0; nElements != i; ++i )
+    {
+        if ( 1 != p->a )
+            std::cout << "Aggregate Test, iter #" << i << ", expected p->a of 1, detected " << p->a << std::endl;
+        if ( 2 != p->b )
+            std::cout << "Aggregate Test, iter #" << i << ", expected p->b of 2, detected " << p->b << std::endl;
+    }
+
+    // Reset the smart pointer and verify NoThrowAggregateType instances are destroyed.
+    block.reset();
+    if ( 0 != NoThrowAggregateType::objCount )
+        std::cout << "Aggregate Test, Expected NoThrowAggregateType::objCount of " << 0
+                  << ", detected " << NoThrowAggregateType::objCount << std::endl;
+
+    return 0;
+}
+
+// The MemoryPoolBase has been thoroughly tested with ObjectPool. We will not repeat all of that here.
 int main()
 {
     int retVal = 0;
@@ -155,7 +199,8 @@ int main()
         if ( 1 != ( retVal = testWithScalars() ) )
             break;
 
-        ///@todo Test With Aggregate Type that does not throw
+        if ( 1 != ( retVal = testNoThrowAggregateType() ) )
+            break;
 
         ///@todo Test With Aggregate Type that does throw
 
