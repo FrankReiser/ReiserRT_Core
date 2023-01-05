@@ -202,6 +202,76 @@ namespace ReiserRT
             */
             RunningStateStats getRunningStateStatistics() noexcept;
 
+            /**
+            * @brief A Memory Manager for Raw Memory.
+            *
+            * This class exists to ensure that no leakage of the raw memory occurs during "cooking" operations.
+            * Whether "cooking" succeeds without throwing or not, raw memory is returned to the
+            * raw queue within the implementation if not explicitly released.
+            */
+            struct RawMemoryManager
+            {
+                /**
+                * @brief Constructor for RawMemoryManager.
+                *
+                * This constructor records both an instance of the MemoryPoolBase object that constructed us
+                * and a pointer to raw memory.
+                *
+                * @param pThePool A pointer to the MemoryPoolBase object that instantiated us.
+                * @param pTheRaw A pointer to the raw memory to return to the raw pool.
+                */
+                RawMemoryManager( MemoryPoolBase * pThePool, void * pTheRaw ) : pP{ pThePool }, pR{ pTheRaw } {}
+
+                /**
+                * @brief Destructor for RawMemoryManager.
+                *
+                * This destructor returns raw memory back to the raw pool unless it has been formally released
+                * through the `release` operation.
+                */
+                ~RawMemoryManager() { if ( pP && pR ) pP->returnRawBlock( pR ); }
+
+                /**
+                * @brief Copy Constructor for RawMemoryManager Disallowed
+                *
+                * Copy construction is disallowed. Hence, this operation is deleted.
+                *
+                * @param another A reference to another RawMemoryManager instance.
+                */
+                RawMemoryManager( RawMemoryManager & another ) = delete;
+
+                /**
+                * @brief Copy Assignment Operator for RawMemoryManager Disallowed
+                *
+                * Copy assignment is disallowed. Hence, this operation is deleted.
+                *
+                * @param another A reference to another RawMemoryManager instance.
+                */
+                RawMemoryManager & operator=( RawMemoryManager & another ) = delete;
+
+                /**
+                * @brief The Release Operation
+                *
+                * This operation releases RawMemoryManager from responsibility of needing to return
+                * raw memory back to the raw pool.
+                */
+                void release() { pR = nullptr; }
+
+            private:
+                /**
+                * @brief A Reference to the MessagePoolBase that constructed us.
+                *
+                * This attribute maintains a reference to the MessagePoolBase object that constructed us.
+                */
+                MemoryPoolBase * pP{ nullptr };
+
+                /**
+                * @brief A Reference to the raw memory that we are managing.
+                *
+                * This attribute maintains a reference to the raw memory that we are managing.
+                */
+                void * pR{ nullptr };
+            };
+
         private:
             /**
             * @brief The Hidden Implementation Instance
