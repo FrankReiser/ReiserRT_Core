@@ -5,6 +5,7 @@
 #include "BlockPool.hpp"
 
 #include <iostream>
+#include <stdexcept>
 
 using namespace ReiserRT::Core;
 
@@ -160,9 +161,10 @@ int NoThrowAggregateType::objCount = 0;
 int testNoThrowAggregateType()
 {
     constexpr size_t nElements = 4;
-    BlockPool< NoThrowAggregateType > dummyBlockPool{ 2, nElements };
+    BlockPool< NoThrowAggregateType > aggregateBlockPool{2, nElements };
 
-    auto block = dummyBlockPool.getBlock();
+    // Get a block and verify constructor invoked N times.
+    auto block = aggregateBlockPool.getBlock();
     if ( nElements != NoThrowAggregateType::objCount )
     {
         std::cout << "Aggregate Test, Expected NoThrowAggregateType::objCount of " << nElements
@@ -171,13 +173,20 @@ int testNoThrowAggregateType()
     }
 
     // Get a pointer to the first NoThrowAggregateType instance and iterate it
+    // and verify attributes were constructed on block memory.
     auto p = block.get();
     for ( size_t i = 0; nElements != i; ++i )
     {
         if ( 1 != p->a )
+        {
             std::cout << "Aggregate Test, iter #" << i << ", expected p->a of 1, detected " << p->a << std::endl;
+            return 22;
+        }
         if ( 2 != p->b )
+        {
             std::cout << "Aggregate Test, iter #" << i << ", expected p->b of 2, detected " << p->b << std::endl;
+            return 23;
+        }
     }
 
     // Reset the smart pointer and verify NoThrowAggregateType instances are destroyed.
@@ -185,6 +194,71 @@ int testNoThrowAggregateType()
     if ( 0 != NoThrowAggregateType::objCount )
         std::cout << "Aggregate Test, Expected NoThrowAggregateType::objCount of " << 0
                   << ", detected " << NoThrowAggregateType::objCount << std::endl;
+
+    return 0;
+}
+
+class ThrowOnThirdInstance
+{
+public:
+    ThrowOnThirdInstance() { if ( 2 == objCount ) throw std::runtime_error( "BAH" ); ++objCount; ++everObjCount; }
+    ~ThrowOnThirdInstance() noexcept { --objCount; }
+
+    int a{1};
+    int b{2};
+    static int objCount;
+    static int everObjCount;
+};
+int ThrowOnThirdInstance::objCount = 0;
+int ThrowOnThirdInstance::everObjCount = 0;
+
+int testThrowableAggregateType()
+{
+    constexpr size_t nElements = 4;
+    BlockPool< ThrowOnThirdInstance > aggregateBlockPool{2, nElements };
+
+    // We try this as we expect to catch an exception
+    try
+    {
+        auto pBlock = aggregateBlockPool.getBlock();
+
+        // If here, this is a failure of the test itself.
+        std::cout << "Expected to catch an exception that did not occur. Fix the test!" << std::endl;
+        return 31;
+
+    } catch ( const std::runtime_error & )
+    {
+    }
+
+    // The block pool should have experience a fetching of a raw block and having
+    // it immediately returned because of the exception. We should see this with
+    // the low watermark
+    auto runningStats = aggregateBlockPool.getRunningStateStatistics();
+    if ( 1 != runningStats.lowWatermark )
+    {
+        std::cout << "Block Pool runningStats.lowWatermark is " << runningStats.lowWatermark
+                  << " and should be " << 1 << std::endl;
+        return 32;
+    }
+    if ( 2 != runningStats.runningCount )
+    {
+        std::cout << "Block Pool runningStats.runningCount is " << runningStats.runningCount
+                  << " and should be " << 2 << std::endl;
+        return 33;
+    }
+
+    // The Object counters for the ThrowOnThirdInstance should indicate that 2 out of 4 were created
+    // but also that those two were destroyed
+    if ( 2 != ThrowOnThirdInstance::everObjCount )
+    {
+        std::cout << "Block Pool did create any objects before getBlock exception" << std::endl;
+        return 34;
+    }
+    if ( 0 != ThrowOnThirdInstance::objCount )
+    {
+        std::cout << "Block Pool did not destroy all objects on getBlock exception" << std::endl;
+        return 35;
+    }
 
     return 0;
 }
@@ -199,10 +273,14 @@ int main()
         if ( 1 != ( retVal = testWithScalars() ) )
             break;
 
+        // Test with no-throw, aggregate type
         if ( 1 != ( retVal = testNoThrowAggregateType() ) )
             break;
 
-        ///@todo Test With Aggregate Type that does throw
+        // Test with throwing, aggregate type to prove invariance.
+        if ( 1 != ( retVal = testThrowableAggregateType() ) )
+            break;
+
 
     } while (false);
 
