@@ -11,6 +11,7 @@
 #include "ReiserRT_CoreExport.h"
 
 #include <functional>
+#include <cstddef>
 
 namespace ReiserRT
 {
