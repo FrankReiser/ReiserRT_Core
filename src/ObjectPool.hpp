@@ -3,14 +3,15 @@
 * @brief The Specification for a Specialized Object Pool Classes.
 * @authors Frank Reiser
 * @date Created on Mar 24, 2021
-*
-* @note Factored out from what is now ObjectPoolBase.hpp (Was ObjectPool.hpp). See history on that file for
-* prior changes to template class ObjectPool now contained within.
 */
 
-#include "ObjectPoolBase.hpp"
+#include "MemoryPoolBase.hpp"
 #include "ObjectPoolFwd.hpp"
+#include "ObjectPoolDeleter.hpp"
 #include "ReiserRT_CoreExceptions.hpp"
+
+#include <type_traits>
+#include <utility>
 
 #ifndef REISERRT_CORE_OBJECTPOOL_HPP
 #define REISERRT_CORE_OBJECTPOOL_HPP
@@ -20,9 +21,9 @@ namespace ReiserRT
     namespace Core
     {
         /**
-        * @brief A Generic Object Pool Implementation with ObjectFactory Functionality
+        * @brief A Generic Object Pool Implementation with Object Factory Functionality
         *
-        * This template class provides a compile-time, high performance, generic object factory from a preallocated
+        * This template class provides a compile-time, high performance, generic object factory from a pre-allocated
         * memory pool. The implementation relies heavily on C++11 meta-programming capabilities to accomplish its goal
         * of compile-time polymorphism. The RingBufferSimple class of the same namespace
         * is utilized extensively. Types created and delivered from this implementation are encapsulated
@@ -45,7 +46,7 @@ namespace ReiserRT
         * at compile-time as an error.
         */
         template < typename T >
-        class ObjectPool : public ObjectPoolBase
+        class ObjectPool : public MemoryPoolBase
         {
         public:
             /**
@@ -76,7 +77,7 @@ namespace ReiserRT
             * This value is clamped to be no less than the size of type T.
             */
             explicit ObjectPool( size_t requestedNumElements, size_t minTypeAllocSize = sizeof( T ) )
-                : ObjectPoolBase{ requestedNumElements, std::max( minTypeAllocSize, sizeof( T ) ) }
+                : MemoryPoolBase{ requestedNumElements, std::max( minTypeAllocSize, sizeof( T ) ) }
             {
             }
 
@@ -170,28 +171,13 @@ namespace ReiserRT
                 // Type D must be nothrow_destructible.
                 static_assert( std::is_nothrow_destructible< D >::value, "Type D must be nothrow destructible!!!" );
 
-                // Get raw buffer from ring. This could throw underflow if pool is exhausted.
-                void * pRaw;
-
                 // Before we even bother getting a raw block of memory, we will validate that
                 // the type being created will fit in the block.
-                if ( getElementSize() < sizeof( D ) )
+                if ( getPaddedElementSize() < sizeof( D ) )
                     throw ObjectPoolElementSizeError( "ObjectPool::createObj: The size of type D exceeds maximum element size" );
 
                 // Obtain a raw block of memory to cook.
-                pRaw =  getRawBlock();
-
-                // I could have used a unique_ptr to pull this trick off, but it isn't pretty but, C-Tidy doesn't like
-                // it and this is clean and lean. So, I just rolled my own again.
-                struct RawMemoryManager {
-                    RawMemoryManager( ObjectPool< T > * pThePool, void * pTheRaw ) : pP{ pThePool }, pR{ pTheRaw } {}
-                    ~RawMemoryManager() { if ( pP && pR ) pP->returnRawBlock( pR ); }
-
-                    void release() { pR = nullptr; }
-                private:
-                    ObjectPool< T > * pP{ nullptr };
-                    void * pR{ nullptr };
-                };
+                auto pRaw =  getRawBlock();
 
                 // Wrap up the raw memory in our manager class so that it can be properly return to the pool
                 // should something go wrong.
@@ -203,7 +189,7 @@ namespace ReiserRT
                 rawMemoryManager.release();
 
                 // Wrap for delivery.
-                return ObjectPtrType{ pCooked, std::move(createDeleter<T>() ) };
+                return ObjectPtrType{ pCooked, std::move( createDeleter() ) };
             }
 
             /**
@@ -211,15 +197,25 @@ namespace ReiserRT
             *
             * This declaration brings the base class functionality into the public scope.
             */
-            using ObjectPoolBase::getSize;
+            using MemoryPoolBase::getSize;
 
             /**
             * @brief Get the Running State Statistics
             *
             * This declaration brings the base class functionality into the public scope.
             */
-            using ObjectPoolBase::getRunningStateStatistics;
-        };
+            using MemoryPoolBase::getRunningStateStatistics;
+
+        private:
+            /**
+            * @brief Create a Concrete ObjectPoolDeleter Object
+            *
+            * This operation creates an ObjectPoolDeleter locally and moves it off the stack for return.
+            *
+            * @return An instance of a concrete ObjectPoolDeleter object moved off the stack.
+            */
+            ObjectPoolDeleter< T > createDeleter() { return std::move( ObjectPoolDeleter< T >{ this } ); }
+       };
     }
 }
 
