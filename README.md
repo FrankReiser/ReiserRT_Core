@@ -37,7 +37,7 @@ for which a high-priority task, handling a realtime interface,
 can do its necessary work and then hand off the additional work to a
 lesser priority task. Internally, it uses pre-allocated memory for its
 buffering purposes in order to avoid post initialization system heap
-usage, as does ObjectPool.
+usage.
 
 In order to utilize MessageQueue, you will need to derive your own
 custom messages based off of MessageBase and override the `dispatch`
