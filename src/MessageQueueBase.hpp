@@ -332,11 +332,11 @@ namespace ReiserRT
             using FlushingFunctionType = std::function< void( void * ) noexcept >;
 
             /**
-            * @brief A Memory Manager for Cooked Memory.
+            * @brief A Memory Manager for Raw Memory.
             *
-            * This class exists to guarantee that no leakage of the raw memory occurs during "cooking" operations.
+            * This class exists to ensure that no leakage of the raw memory occurs during "cooking" operations.
             * Whether "cooking" succeeds without throwing or not, raw memory is returned to the
-            * raw queue within the implementation.
+            * raw queue within the implementation if not explicitly released.
             */
             struct RawMemoryManager
             {
@@ -347,7 +347,7 @@ namespace ReiserRT
                 * and a pointer to raw memory.
                 *
                 * @param pMQBase A pointer to the MessageQueueBase object that instantiated us.
-                * @param pTheRaw A pointer to the MessageBase to destroy and return to the raw queue.
+                * @param pTheRaw A pointer to the raw memory to return to the raw queue.
                 */
                 RawMemoryManager( MessageQueueBase * pMQBase, void * pTheRaw ) : pMQB{ pMQBase }, pR{ pTheRaw } {}
 
@@ -355,27 +355,27 @@ namespace ReiserRT
                 * @brief Destructor for RawMemoryManager.
                 *
                 * This destructor returns raw memory back to the raw queue unless it has been formally released
-                * through the release operation.
+                * through the `release` operation.
                 */
                 ~RawMemoryManager() { if ( pMQB && pR ) pMQB->rawPutAndNotify( pR ); }
 
                 /**
-                * @brief Move Constructor for RawMemoryManager
+                * @brief Copy Constructor for RawMemoryManager Disallowed
                 *
-                * Move construction is disallowed. Hence, this operation is deleted.
+                * Copy construction is disallowed. Hence, this operation is deleted.
                 *
-                * @param another An rvalue reference to RawMemoryManager instance.
+                * @param another A reference to another RawMemoryManager instance.
                 */
-                RawMemoryManager( RawMemoryManager &&another ) = delete;
+                RawMemoryManager( RawMemoryManager & another ) = delete;
 
                 /**
-                * @brief Move Assignment Operator for RawMemoryManager
+                * @brief Copy Assignment Operator for RawMemoryManager Disallowed
                 *
-                * Move assignment is disallowed. Hence, this operation is deleted.
+                * Copy assignment is disallowed. Hence, this operation is deleted.
                 *
-                * @param another An rvalue reference to another RawMemoryManager instance.
+                * @param another A reference to another RawMemoryManager instance.
                 */
-                RawMemoryManager &operator=( RawMemoryManager &&another ) = delete;
+                RawMemoryManager & operator=( RawMemoryManager & another ) = delete;
 
                 /**
                 * @brief The Release Operation
@@ -404,7 +404,7 @@ namespace ReiserRT
             /**
             * @brief A Memory Manager for Cooked Memory.
             *
-            * This class exists to guarantee that no leakage of the raw memory occurs during dispatch operations.
+            * This class exists to guarantee that no leakage of  memory occurs during dispatch operations.
             * Whether dispatch succeeds without throwing or not, cooked memory is destroyed and returned to the
             * raw queue within the implementation.
             */
@@ -430,20 +430,20 @@ namespace ReiserRT
                 ~CookedMemoryManager() { if ( pMQB && pMsg ) { pMsg->~MessageBase(); pMQB->rawPutAndNotify( pMsg ); } }
 
                 /**
-                * @brief Move Constructor for CookedMemoryManager
+                * @brief Copy Constructor for CookedMemoryManager Disallowed
                 *
-                * Move construction is disallowed. Hence, this operation is deleted.
+                * Copy construction is disallowed. Hence, this operation is deleted.
                 *
-                * @param another An rvalue reference to CookedMemoryManager instance.
+                * @param another A reference to another CookedMemoryManager instance.
                 */
                 CookedMemoryManager( CookedMemoryManager &&another ) = delete;
 
                 /**
-                * @brief Move Assignment Operator for CookedMemoryManager
+                * @brief Copy Assignment Operator for CookedMemoryManager Disallowed
                 *
-                * Move assignment is disallowed. Hence, this operation is deleted.
+                * Copy assignment is disallowed. Hence, this operation is deleted.
                 *
-                * @param another An rvalue reference to another CookedMemoryManager instance.
+                * @param another A reference to another CookedMemoryManager instance.
                 */
                 CookedMemoryManager &operator=( CookedMemoryManager &&another ) = delete;
 

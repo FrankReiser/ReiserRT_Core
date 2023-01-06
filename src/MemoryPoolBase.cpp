@@ -1,12 +1,12 @@
 /**
-* @file ObjectPoolBase.cpp
+* @file MemoryPoolBase.cpp
 * @brief The Specification for Generic Object Pool Base
 *
 * @authors: Frank Reiser
 * @date Created on Feb 17, 2021
 */
 
-#include "ObjectPoolBase.hpp"
+#include "MemoryPoolBase.hpp"
 
 #include "RingBufferSimple.hpp"
 
@@ -19,15 +19,15 @@ using namespace ReiserRT::Core;
 
 #include <cstring>     // For memset operation.
 
-class ReiserRT_Core_EXPORT ObjectPoolBase::Imple
+class ReiserRT_Core_EXPORT MemoryPoolBase::Imple
 {
 private:
     /**
     * @brief Friend Declaration
     *
-    * We only allow our Outer class ObjectPoolBase to invoke our operations.
+    * We only allow our Outer class MemoryPoolBase to invoke our operations.
     */
-    friend ObjectPoolBase;
+    friend MemoryPoolBase;
 
     /**
     * @brief Internal RingBuffer Type
@@ -83,17 +83,19 @@ private:
         RunningStateBasis state{ 0 };
     };
 
+public:
     /**
-    * @brief Default Constructor for ObjectPoolBase::Imple
+    * @brief Default Constructor for MemoryPoolBase::Imple
     *
-    * Default construction of ObjectPoolBase::Imple is disallowed. Hence, this operation has been deleted.
+    * Default construction of MemoryPoolBase::Imple is disallowed. Hence, this operation has been deleted.
     */
     Imple() = delete;
 
+private:
     /**
-    * @brief Qualified Constructor for ObjectPoolBase::Imple
+    * @brief Qualified Constructor for MemoryPoolBase::Imple
     *
-    * This qualified constructor builds an ObjectPoolBase::Imple using the requestedNumElements and element size argument values.
+    * This qualified constructor builds an MemoryPoolBase::Imple using the requestedNumElements and element size argument values.
     * It first constructs a empty RingBuffer to hold raw memory pointers using the argument value which
     * applies lower and upper limits, rounding upward to the next whole power of two.
     * It then allocates a block of memory, large enough to store all objects that may be created (the arena).
@@ -105,44 +107,46 @@ private:
     */
     explicit Imple( size_t requestedNumElements, size_t theElementSize );
 
+public:
     /**
-    * @brief Copy Constructor for ObjectPoolBase::Imple
+    * @brief Copy Constructor for MemoryPoolBase::Imple
     *
-    * Copying ObjectPoolBase::Imple is disallowed. Hence, this operation has been deleted.
+    * Copying MemoryPoolBase::Imple is disallowed. Hence, this operation has been deleted.
     *
-    * @param another Another instance of a ObjectPoolBase::Imple.
+    * @param another Another instance of a MemoryPoolBase::Imple.
     */
     Imple( const Imple & another ) = delete;
 
     /**
-    * @brief Copy Assignment Operation for ObjectPoolBase::Imple
+    * @brief Copy Assignment Operation for MemoryPoolBase::Imple
     *
-    * Copying ObjectPoolBase::Imple is disallowed. Hence, this operation has been deleted.
+    * Copying MemoryPoolBase::Imple is disallowed. Hence, this operation has been deleted.
     *
-    * @param another Another instance of a ObjectPoolBase::Imple of the same template type.
+    * @param another Another instance of a MemoryPoolBase::Imple of the same template type.
     */
     Imple & operator =( const Imple & another ) = delete;
 
     /**
-    * @brief Move Constructor for ObjectPoolBase::Imple
+    * @brief Move Constructor for MemoryPoolBase::Imple
     *
-    * Moving ObjectPoolBase::Imple is disallowed. Hence, this operation has been deleted.
+    * Moving MemoryPoolBase::Imple is disallowed. Hence, this operation has been deleted.
     *
-    * @param another An rvalue reference to another instance of a ObjectPoolBase::Imple of the same template type.
+    * @param another An rvalue reference to another instance of a MemoryPoolBase::Imple of the same template type.
     */
     Imple( Imple && another ) = delete;
 
     /**
-    * @brief Move Assignment Operation for ObjectPoolBase::Imple
+    * @brief Move Assignment Operation for MemoryPoolBase::Imple
     *
-    * Moving ObjectPoolBase::Imple is disallowed. Hence, this operation has been deleted.
+    * Moving MemoryPoolBase::Imple is disallowed. Hence, this operation has been deleted.
     *
-    * @param another An rvalue reference to another instance of a ObjectPoolBase::Imple of the same template type.
+    * @param another An rvalue reference to another instance of a MemoryPoolBase::Imple of the same template type.
     */
     Imple & operator =( Imple && another ) = delete;
 
+private:
     /**
-    * @brief Destructor for ObjectPoolBase::Imple
+    * @brief Destructor for MemoryPoolBase::Imple
     *
     * The destructor destroys the memory arena.
     */
@@ -170,7 +174,7 @@ private:
     /**
     * @brief Get the Running State Statistics
     *
-    * This operation provides for performance monitoring of the ObjectPoolBase::Imple. The data returned
+    * This operation provides for performance monitoring of the MemoryPoolBase::Imple. The data returned
     * is an atomically captured snapshot of the RunningStateStats. The "low watermark",
     * compared to the size can provide an indication of the exhaustion level.
     *
@@ -210,9 +214,17 @@ private:
     /**
     * @brief The Element Size
     *
-    * This attribute stores the size of the elements managed by the pool.
+    * This attribute stores the size of the elements managed by the pool, specified at time of construction.
     */
     const size_t elementSize;
+
+    /**
+    * @brief The Element Size
+    *
+    * This attribute stores the padded size of the elements managed by the pool, so that each element is properly
+    * aligned with the architecture.
+    */
+    const size_t paddedElementSize;
 
     /**
     * @brief The Pool Size
@@ -233,15 +245,16 @@ private:
     * @brief Our Memory Arena
     *
     * This attribute records the pointer to our memory arena that was allocated during construction so that
-    * it may be properly returned to the standard heap during ObjectPoolBase::Imple destruction.
+    * it may be properly returned to the standard heap during MemoryPoolBase::Imple destruction.
     */
     alignas( void * ) unsigned char * arena;
 };
 
-ObjectPoolBase::Imple::Imple( size_t requestedNumElements, size_t theElementSize )
+MemoryPoolBase::Imple::Imple( size_t requestedNumElements, size_t theElementSize )
         : ringBuffer{ requestedNumElements }
         , mutex{}
-        , elementSize{ getPaddedTypeAllocSize( theElementSize ) }
+        , elementSize{ theElementSize }
+        , paddedElementSize{ getPaddedTypeAllocSize( elementSize ) }
         , poolSize{ ringBuffer.getSize() }
         , runningState{}
         , arena{ new unsigned char [ theElementSize * poolSize ] }
@@ -256,15 +269,15 @@ ObjectPoolBase::Imple::Imple( size_t requestedNumElements, size_t theElementSize
     runningState = runningStats.state;
 }
 
-ObjectPoolBase::Imple::~Imple()
+MemoryPoolBase::Imple::~Imple()
 {
     delete[] arena;
 }
 
-void * ObjectPoolBase::Imple::getRawBlock()
+void * MemoryPoolBase::Imple::getRawBlock()
 {
     // Utilize small block scoping for mutex lock to minimize lock time.
-    void * pRaw = nullptr;
+    void * pRaw;
     {
         // Take lock RAII style
         std::lock_guard< Mutex > lock( mutex );
@@ -289,13 +302,13 @@ void * ObjectPoolBase::Imple::getRawBlock()
                                                    std::memory_order_seq_cst, std::memory_order_seq_cst ) );
 
     // Zero out Arena Memory!
-    memset( pRaw, 0, elementSize );
+    memset(pRaw, 0, paddedElementSize );
 
     // Return raw memory
     return pRaw;
 }
 
-void ObjectPoolBase::Imple::returnRawBlock( void * pRaw ) noexcept
+void MemoryPoolBase::Imple::returnRawBlock( void * pRaw ) noexcept
 {
     // Utilize small block scoping for mutex lock to minimize lock time.
     {
@@ -321,7 +334,7 @@ void ObjectPoolBase::Imple::returnRawBlock( void * pRaw ) noexcept
                                                    std::memory_order_seq_cst, std::memory_order_seq_cst ) );
 }
 
-ObjectPoolBase::RunningStateStats ObjectPoolBase::Imple::getRunningStateStatistics() noexcept
+MemoryPoolBase::RunningStateStats MemoryPoolBase::Imple::getRunningStateStatistics() noexcept
 {
     InternalRunningStateStats stats;
     stats.state = runningState;
@@ -334,7 +347,7 @@ ObjectPoolBase::RunningStateStats ObjectPoolBase::Imple::getRunningStateStatisti
     return snapshot;
 }
 
-size_t ObjectPoolBase::Imple::getPaddedTypeAllocSize( size_t requestedElementSize )
+size_t MemoryPoolBase::Imple::getPaddedTypeAllocSize( size_t requestedElementSize )
 {
     size_t alignmentOverspill = requestedElementSize % sizeof( void * );
     return  ( alignmentOverspill != 0 ) ? requestedElementSize + sizeof( void * ) - alignmentOverspill :
@@ -342,37 +355,42 @@ size_t ObjectPoolBase::Imple::getPaddedTypeAllocSize( size_t requestedElementSiz
 }
 
 
-ObjectPoolBase::ObjectPoolBase( size_t requestedNumElements, size_t elementSize )
-        : pImple{ new Imple{ requestedNumElements, elementSize } }
+MemoryPoolBase::MemoryPoolBase( size_t requestedNumElements, size_t elementSize )
+  : pImple{ new Imple{ requestedNumElements, elementSize } }
 {
 }
 
-ObjectPoolBase::~ObjectPoolBase()
+MemoryPoolBase::~MemoryPoolBase()
 {
     delete pImple;
 }
 
-void * ObjectPoolBase::getRawBlock()
+void * MemoryPoolBase::getRawBlock()
 {
     return pImple->getRawBlock();
 }
 
-void ObjectPoolBase::returnRawBlock( void * pRaw ) noexcept
+void MemoryPoolBase::returnRawBlock(void * pRaw ) noexcept
 {
     pImple->returnRawBlock( pRaw );
 }
 
-size_t ObjectPoolBase::getSize() noexcept
+size_t MemoryPoolBase::getSize() noexcept
 {
     return pImple->poolSize;
 }
 
-size_t ObjectPoolBase::getElementSize() noexcept
+size_t MemoryPoolBase::getElementSize() noexcept
 {
     return pImple->elementSize;
 }
 
-ObjectPoolBase::RunningStateStats ObjectPoolBase::getRunningStateStatistics() noexcept
+size_t MemoryPoolBase::getPaddedElementSize() noexcept
+{
+    return pImple->paddedElementSize;
+}
+
+MemoryPoolBase::RunningStateStats MemoryPoolBase::getRunningStateStatistics() noexcept
 {
     return pImple->getRunningStateStatistics();
 }

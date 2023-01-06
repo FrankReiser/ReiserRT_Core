@@ -9,12 +9,16 @@ set( _publicHeaders
         Mutex.hpp
         Semaphore.hpp
         RingBufferGuarded.hpp
-        ObjectPoolBase.hpp
+        MemoryPoolBase.hpp
+        MemoryPoolDeleterBase.hpp
         ObjectPool.hpp
         ObjectPoolDeleter.hpp
         ObjectPoolFwd.hpp
         MessageQueueBase.hpp
         MessageQueue.hpp
+        BlockPoolFwd.hpp
+        BlockPoolDeleter.hpp
+        BlockPool.hpp
         )
 
 # Specify all of our private headers for easy reference.
@@ -29,12 +33,16 @@ set( _sourceFiles
         Mutex.cpp
         Semaphore.cpp
         RingBufferGuarded.cpp
-        ObjectPoolBase.cpp
+        MemoryPoolBase.cpp
+        MemoryPoolDeleterBase.cpp
         ObjectPool.cpp
         ObjectPoolDeleter.cpp
         ObjectPoolFwd.cpp
         MessageQueueBase.cpp
         MessageQueue.cpp
+        BlockPoolFwd.cpp
+        BlockPoolDeleter.cpp
+        BlockPool.cpp
         )
 
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)

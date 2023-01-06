@@ -6,13 +6,3 @@
 */
 
 #include "ObjectPoolDeleter.hpp"
-#include "ObjectPoolBase.hpp"
-
-using namespace ReiserRT;
-using namespace ReiserRT::Core;
-
-void ReiserRT::Core::ObjectPoolDeleterBase::returnRawBlock(void * pV ) noexcept
-{
-    // Return the memory to the pool
-    pool->returnRawBlock( pV );
-}
