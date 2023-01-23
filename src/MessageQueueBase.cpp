@@ -229,29 +229,6 @@ private:
     }
 
     /**
-    * @brief The Flush Operation
-    *
-    * This operation is provided to empty the "cooked" ring buffer and properly destroy any un-fetched objects that may remain.
-    * Being that we only deal with void pointers at this level, we do not know what type of destructor to invoke.
-    * However, through a user provided function object, the destruction can be elevated to the client level, which should know
-    * what type of base objects are in the cooked queue.
-    *
-    * @pre The implementation's "cooked" ring buffer is expected to be in the "Terminal" state to invoke this operation.
-    * Violations will result in an exception being thrown.
-    *
-    * @param operation This is a functor value of type FlushingFunctionType. It must have a valid target
-    * (i.e., a nonempty function object). It will be invoked once per remaining object in the "cooked" ring buffer.
-    *
-    * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
-    * @throw Throws std::logic_error if the "cooked" ring buffer is not in the terminal state.
-    */
-    inline void flush( const MessageQueueBase::FlushingFunctionType & operation )
-    {
-        auto funk = [ &operation ]( void * pV ) noexcept { operation( pV ); };
-        cookedRingBuffer.flush( funk );
-    }
-
-    /**
     * @brief Get the Padded Element Type Allocation Size
     *
     * This operation provides the element type allocation size which is padded to keep elements
@@ -391,8 +368,9 @@ MessageQueueBase::Imple::Imple( std::size_t theRequestedNumElements, std::size_t
 
 MessageQueueBase::Imple::~Imple()
 {
+    // Flush anything left in the cooked ring buffer.
     auto funk = []( void * pV ) { auto * pM = reinterpret_cast< MessageBase * >( pV ); pM->~MessageBase(); };
-    flush( funk );
+    cookedRingBuffer.flush( funk );
 
     // Return our arena memory to the standard heap.
     delete[] arena;
@@ -547,13 +525,6 @@ const char * MessageQueueBase::getNameOfLastMessageDispatched()
 {
     return pImple->getNameOfLastMessageDispatched();
 }
-
-#if 0
-void MessageQueueBase::flush( const FlushingFunctionType & operation )
-{
-    pImple->flush( operation );
-}
-#endif
 
 bool MessageQueueBase::isAborted() noexcept
 {

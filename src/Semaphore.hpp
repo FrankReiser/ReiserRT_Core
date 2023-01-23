@@ -135,13 +135,10 @@ namespace ReiserRT
             * This provides affords the client an opportunity to do bookkeeping under mutual exclusion without having to
             * take a separate lock.
             *
-            * @param operation This is a value (copy) of a user provided function object to be invoked after the availableCount is decremented.
-            * The user operation is invoked while an internal lock is held. The function object may be wrapped with std::ref to avert overhead
-            * in making a copy.
+            * @param operation A reference to a user provided function object to be invoked after the availableCount is decremented.
+            * The user operation is invoked while an internal lock is held.
             * @warning Should the user operation throw an exception, the available count will be restored to its former state as if
             * the take call was never invoked.
-            * @warning It is expected that the function object remain valid throughout the duration of the take invocation. Failure
-            * to provide this assurance will lead to undefined behavior.
             * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
             * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
             * @throw The user operation may throw an exception of unknown type.
@@ -170,13 +167,10 @@ namespace ReiserRT
             * This provides affords the client an opportunity to do bookkeeping under mutual exclusion without having to
             * take a separate lock.
             *
-            * @param operation This is a value (copy) of a user provided function object to be invoked prior during prior
+            * @param operation A reference to a user provided function object to be invoked prior during prior
             * to the available count being incremented. The user operation is invoked while an internal lock is held.
-            * It may be a std::ref wrapped function object which results in only a reference being copied for efficiency.
             * @warning Should the user provided operation throw an exception, the availableCount is not incremented and no thread
             * is awakened.
-            * @warning It is expected that the function object remain valid throughout the duration of the take invocation. Failure
-            * to provide this assurance will lead to undefined behavior.
             * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
             * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread or if we have been
             * notified more times than we can count (2^32 -1).

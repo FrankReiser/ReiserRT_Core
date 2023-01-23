@@ -329,8 +329,6 @@ namespace ReiserRT
             };
 
         protected:
-            using FlushingFunctionType = std::function< void( void * ) >;
-
             /**
             * @brief A Memory Manager for Raw Memory.
             *
@@ -586,27 +584,6 @@ namespace ReiserRT
             * @return Returns the name of the last message dispatched.
             */
             const char * getNameOfLastMessageDispatched();
-
-#if 0
-            /**
-            * @brief The Flush Operation
-            *
-            * This operation is provided to empty the "cooked" ring buffer and properly destroy any unfetched objects that may remain.
-            * Being that we only deal with void pointers at this level, we do not know what type of destructor to invoke.
-            * However, through a user provided function object, the destruction can be elevated to the client level, which should know
-            * what type of base objects are in the cooked queue.
-            *
-            * @pre The implementation's "cooked" ring buffer is expected to be in the "Terminal" state to invoke this operation.
-            * Violations will result in an exception being thrown.
-            *
-            * @param operation This is a functor value of type FlushingFunctionType. It must have a valid target
-            * (i.e., a nonempty function object). It will be invoked once per remaining object in the "cooked" ring buffer.
-            *
-            * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
-            * @throw Throws ReiserRT::Core::RingBufferStateError if the "cooked" ring buffer is not in the terminal state.
-            */
-            void flush( const FlushingFunctionType & operation );
-#endif
 
             /**
             * @brief The Is Aborted Operation
