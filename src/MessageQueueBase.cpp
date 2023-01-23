@@ -391,6 +391,9 @@ MessageQueueBase::Imple::Imple( std::size_t theRequestedNumElements, std::size_t
 
 MessageQueueBase::Imple::~Imple()
 {
+    auto funk = []( void * pV ) { auto * pM = reinterpret_cast< MessageBase * >( pV ); pM->~MessageBase(); };
+    flush( funk );
+
     // Return our arena memory to the standard heap.
     delete[] arena;
 }
@@ -489,11 +492,9 @@ MessageQueueBase::MessageQueueBase( std::size_t requestedNumElements, std::size_
 
 MessageQueueBase::~MessageQueueBase()
 {
+    // Abort and wait a bit for blocked threads to get out of the way.
     abort();
     std::this_thread::sleep_for( std::chrono::milliseconds(100) );
-
-    auto funk = []( void * pV ) { auto * pM = reinterpret_cast< MessageBase * >( pV ); pM->~MessageBase(); };
-    flush( funk );
 
     delete pImple;
 }
@@ -547,10 +548,12 @@ const char * MessageQueueBase::getNameOfLastMessageDispatched()
     return pImple->getNameOfLastMessageDispatched();
 }
 
+#if 0
 void MessageQueueBase::flush( const FlushingFunctionType & operation )
 {
     pImple->flush( operation );
 }
+#endif
 
 bool MessageQueueBase::isAborted() noexcept
 {

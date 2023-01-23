@@ -587,6 +587,7 @@ namespace ReiserRT
             */
             const char * getNameOfLastMessageDispatched();
 
+#if 0
             /**
             * @brief The Flush Operation
             *
@@ -605,6 +606,7 @@ namespace ReiserRT
             * @throw Throws ReiserRT::Core::RingBufferStateError if the "cooked" ring buffer is not in the terminal state.
             */
             void flush( const FlushingFunctionType & operation );
+#endif
 
             /**
             * @brief The Is Aborted Operation
