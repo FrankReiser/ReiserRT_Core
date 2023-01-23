@@ -229,29 +229,6 @@ private:
     }
 
     /**
-    * @brief The Flush Operation
-    *
-    * This operation is provided to empty the "cooked" ring buffer and properly destroy any un-fetched objects that may remain.
-    * Being that we only deal with void pointers at this level, we do not know what type of destructor to invoke.
-    * However, through a user provided function object, the destruction can be elevated to the client level, which should know
-    * what type of base objects are in the cooked queue.
-    *
-    * @pre The implementation's "cooked" ring buffer is expected to be in the "Terminal" state to invoke this operation.
-    * Violations will result in an exception being thrown.
-    *
-    * @param operation This is a functor value of type FlushingFunctionType. It must have a valid target
-    * (i.e., a nonempty function object). It will be invoked once per remaining object in the "cooked" ring buffer.
-    *
-    * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
-    * @throw Throws std::logic_error if the "cooked" ring buffer is not in the terminal state.
-    */
-    inline void flush( MessageQueueBase::FlushingFunctionType & operation )
-    {
-        auto funk = [ operation ]( void * pV ) noexcept { operation( pV ); };
-        cookedRingBuffer.flush( std::ref( funk ) );
-    }
-
-    /**
     * @brief Get the Padded Element Type Allocation Size
     *
     * This operation provides the element type allocation size which is padded to keep elements
@@ -379,17 +356,22 @@ MessageQueueBase::Imple::Imple( std::size_t theRequestedNumElements, std::size_t
   : requestedNumElements{ theRequestedNumElements }
   , elementSize{ getPaddedTypeAllocSize( theElementSize ) }
   , pMutex{ enableDispatchLocking ? new Mutex{} : nullptr }
-  , arena{ new unsigned char [ theElementSize * requestedNumElements ] }
+  , arena{ new unsigned char [ elementSize * requestedNumElements ] }
   , rawRingBuffer{ theRequestedNumElements, true }
   , cookedRingBuffer{ theRequestedNumElements }
 {
     // Prime the raw ring buffer with void pointers into our arena space. We do this with a lambda function.
-    auto funk = [ this, theElementSize ]( size_t i ) noexcept { return reinterpret_cast< void * >( arena + i * theElementSize ); };
-    rawRingBuffer.prime( std::ref( funk ) );
+    auto funk = [ this, theElementSize ]( size_t i )
+            { return reinterpret_cast< void * >( arena + i * elementSize ); };
+    rawRingBuffer.prime( funk );
 }
 
 MessageQueueBase::Imple::~Imple()
 {
+    // Flush anything left in the cooked ring buffer.
+    auto funk = []( void * pV ) { auto * pM = reinterpret_cast< MessageBase * >( pV ); pM->~MessageBase(); };
+    cookedRingBuffer.flush( funk );
+
     // Return our arena memory to the standard heap.
     delete[] arena;
 }
@@ -415,7 +397,7 @@ void * MessageQueueBase::Imple::rawWaitAndGet()
     // Get raw memory from the raw ring buffer.
     void * pRaw = rawRingBuffer.get();
 
-    // Manage running count and high water mark.
+    // Manage running count and high watermark.
     ///@todo Couldn't we leverage the rawRingBuffer for this information?
     InternalRunningStateStats runningStats;
     InternalRunningStateStats runningStatsNew;
@@ -488,11 +470,9 @@ MessageQueueBase::MessageQueueBase( std::size_t requestedNumElements, std::size_
 
 MessageQueueBase::~MessageQueueBase()
 {
+    // Abort and wait a bit for blocked threads to get out of the way.
     abort();
     std::this_thread::sleep_for( std::chrono::milliseconds(100) );
-
-    auto funk = []( void * pV ) noexcept { auto * pM = reinterpret_cast< MessageBase * >( pV ); pM->~MessageBase(); };
-    flush( std::ref( funk ) );
 
     delete pImple;
 }
@@ -544,11 +524,6 @@ void MessageQueueBase::dispatchMessage( MessageBase * pMsg )
 const char * MessageQueueBase::getNameOfLastMessageDispatched()
 {
     return pImple->getNameOfLastMessageDispatched();
-}
-
-void MessageQueueBase::flush( FlushingFunctionType operation )
-{
-    pImple->flush( operation );
 }
 
 bool MessageQueueBase::isAborted() noexcept

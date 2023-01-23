@@ -191,10 +191,9 @@ namespace ReiserRT
             *
             * This function object type (a "functor") provides specification for a callable object that
             * returns a type "T" (our template parameter), and has one argument which represents an index or
-            * counter. A value of this type is required for the prime operation. This operation is not expected to throw
-            * an exception.
+            * counter. A function object of this type is required for the prime operation.
             */
-            using PrimingFunctionType = std::function< T( size_t ) noexcept >;
+            using PrimingFunctionType = std::function< T( size_t ) >;
 
             /**
             * @brief The Prime Operation
@@ -202,15 +201,15 @@ namespace ReiserRT
             * This operation will call the user provided function object, in a loop, until all the initially
             * requested number of elements are all enqueued into the ring buffer.
             *
-            * @param operation This is a functor value of type PrimingFunctionType. It must have a valid target (non-empty function object).
+            * @param operation A reference to non-empty, PrimingFunctionType instance
             *
-            * @pre The ring buffer is expected to be in the "Ready" state to invoke this operation. Violations will result in an exception
-            * being thrown.
+            * @pre The ring buffer is expected to be in the "NeedsPriming" state to invoke this operation.
+            * Violations will result in an exception being thrown.
             *
             * @throw Throws ReiserRT::Core::RingBufferStateError if the RingBufferGuardedBase is not in the "NeedsPriming" state.
             * @throw Throws std::bad_function_call if the operation passed in has no target (i.e., an empty function object).
             */
-            void prime( PrimingFunctionType operation )
+            void prime( const PrimingFunctionType & operation )
             {
                 // We have to be in the "NeedsPriming" state, or we will throw a logic error.
                 if ( state != State::NeedsPriming )
@@ -240,10 +239,9 @@ namespace ReiserRT
             *
             * This function object type (a "functor") provides specification for a callable object that
             * returns void and accepts on argument value of type T (our template parameter).
-            * A value of this type is required for the flush operation. This operation is not expected to throw
-            * an exception.
+            * A function object of this type is required for the flush operation.
             */
-            using FlushingFunctionType = std::function< void( T ) noexcept >;
+            using FlushingFunctionType = std::function< void( T ) >;
 
             /**
             * @brief The Flush Operation
@@ -253,15 +251,15 @@ namespace ReiserRT
             * properly destroyed when the ring buffer instance is going to be destroyed. It need not be utilized for
             * ring buffers of simple intrinsic scalar types, such as char or int.
             *
-            * @param operation This is a functor value of type FlushingFunctionType. It must have a valid target (i.e., an empty function object).
+            * @param operation A reference to non-empty, FlushingFunctionType instance.
             *
-            * @pre The ring buffer is expected to be in the "Terminal" state to invoke this operation. Violations will result in an exception
-            * being thrown.
+            * @pre The ring buffer is expected to be in the "Terminal" state to invoke this operation.
+            * Violations will result in an exception being thrown.
             *
             * @throw Throws ReiserRT::Core::RingBufferStateError if the RingBufferGuardedBase is not in the "Terminal" state.
             * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
             */
-            void flush( FlushingFunctionType operation )
+            void flush( const FlushingFunctionType & operation )
             {
                 // We have to be in the "Terminal" state, or we will throw a logic error.
                 if ( state != State::Terminal )
