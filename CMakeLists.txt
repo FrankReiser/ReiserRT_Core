@@ -6,7 +6,7 @@ project(
         DESCRIPTION "Frank Reiser's C++11 core components for multi-threaded, realtime embedded systems.")
 
 # Set up compiler requirements
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
