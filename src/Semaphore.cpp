@@ -155,7 +155,7 @@ public:
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
     * @throw The user operation may throw exceptions of unspecified type.
     */
-    inline void take(FunctionType & operation ) {
+    inline void take( const FunctionType & operation ) {
         std::unique_lock< Mutex > lock{ mutex };
         _take(lock);
 
@@ -206,7 +206,7 @@ public:
     * @param operation This is a reference to a user provided function object to invoke during the context of the internal lock.
     * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
     */
-    inline void give(FunctionType & operation )
+    inline void give( const FunctionType & operation )
     {
         std::unique_lock< Mutex > lock{mutex };
         _giveWait( lock );
@@ -511,9 +511,9 @@ void Semaphore::take()
     pImple->take();
 }
 
-void Semaphore::take(FunctionType operation )
+void Semaphore::take( const FunctionType & operation )
 {
-    pImple->take(operation);
+    pImple->take( operation );
 }
 
 void Semaphore::give( )
@@ -521,9 +521,9 @@ void Semaphore::give( )
     pImple->give();
 }
 
-void Semaphore::give(FunctionType operation )
+void Semaphore::give( const FunctionType & operation )
 {
-    pImple->give(operation);
+    pImple->give( operation );
 }
 
 void Semaphore::abort()

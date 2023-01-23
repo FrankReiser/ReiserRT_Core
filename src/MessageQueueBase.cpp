@@ -245,10 +245,10 @@ private:
     * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
     * @throw Throws std::logic_error if the "cooked" ring buffer is not in the terminal state.
     */
-    inline void flush( MessageQueueBase::FlushingFunctionType & operation )
+    inline void flush( const MessageQueueBase::FlushingFunctionType & operation )
     {
-        auto funk = [ operation ]( void * pV ) noexcept { operation( pV ); };
-        cookedRingBuffer.flush( std::ref( funk ) );
+        auto funk = [ &operation ]( void * pV ) noexcept { operation( pV ); };
+        cookedRingBuffer.flush( funk );
     }
 
     /**
@@ -379,13 +379,14 @@ MessageQueueBase::Imple::Imple( std::size_t theRequestedNumElements, std::size_t
   : requestedNumElements{ theRequestedNumElements }
   , elementSize{ getPaddedTypeAllocSize( theElementSize ) }
   , pMutex{ enableDispatchLocking ? new Mutex{} : nullptr }
-  , arena{ new unsigned char [ theElementSize * requestedNumElements ] }
+  , arena{ new unsigned char [ elementSize * requestedNumElements ] }
   , rawRingBuffer{ theRequestedNumElements, true }
   , cookedRingBuffer{ theRequestedNumElements }
 {
     // Prime the raw ring buffer with void pointers into our arena space. We do this with a lambda function.
-    auto funk = [ this, theElementSize ]( size_t i ) noexcept { return reinterpret_cast< void * >( arena + i * theElementSize ); };
-    rawRingBuffer.prime( std::ref( funk ) );
+    auto funk = [ this, theElementSize ]( size_t i )
+            { return reinterpret_cast< void * >( arena + i * elementSize ); };
+    rawRingBuffer.prime( funk );
 }
 
 MessageQueueBase::Imple::~Imple()
@@ -415,7 +416,7 @@ void * MessageQueueBase::Imple::rawWaitAndGet()
     // Get raw memory from the raw ring buffer.
     void * pRaw = rawRingBuffer.get();
 
-    // Manage running count and high water mark.
+    // Manage running count and high watermark.
     ///@todo Couldn't we leverage the rawRingBuffer for this information?
     InternalRunningStateStats runningStats;
     InternalRunningStateStats runningStatsNew;
@@ -491,8 +492,8 @@ MessageQueueBase::~MessageQueueBase()
     abort();
     std::this_thread::sleep_for( std::chrono::milliseconds(100) );
 
-    auto funk = []( void * pV ) noexcept { auto * pM = reinterpret_cast< MessageBase * >( pV ); pM->~MessageBase(); };
-    flush( std::ref( funk ) );
+    auto funk = []( void * pV ) { auto * pM = reinterpret_cast< MessageBase * >( pV ); pM->~MessageBase(); };
+    flush( funk );
 
     delete pImple;
 }
@@ -546,7 +547,7 @@ const char * MessageQueueBase::getNameOfLastMessageDispatched()
     return pImple->getNameOfLastMessageDispatched();
 }
 
-void MessageQueueBase::flush( FlushingFunctionType operation )
+void MessageQueueBase::flush( const FlushingFunctionType & operation )
 {
     pImple->flush( operation );
 }

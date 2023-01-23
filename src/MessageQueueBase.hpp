@@ -329,7 +329,7 @@ namespace ReiserRT
             };
 
         protected:
-            using FlushingFunctionType = std::function< void( void * ) noexcept >;
+            using FlushingFunctionType = std::function< void( void * ) >;
 
             /**
             * @brief A Memory Manager for Raw Memory.
@@ -604,7 +604,7 @@ namespace ReiserRT
             * @throw Throws std::bad_function_call if the operation passed in has no target (an empty function object).
             * @throw Throws ReiserRT::Core::RingBufferStateError if the "cooked" ring buffer is not in the terminal state.
             */
-            void flush( FlushingFunctionType operation );
+            void flush( const FlushingFunctionType & operation );
 
             /**
             * @brief The Is Aborted Operation

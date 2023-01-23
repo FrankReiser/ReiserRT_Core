@@ -218,7 +218,7 @@ namespace ReiserRT
             * @param wakeupFunctor A call-able object to be invoked upon message availability.
             * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation has been invoked.
             */
-            void getAndDispatch(WakeupCallFunctionType wakeupFunctor);
+            void getAndDispatch( const WakeupCallFunctionType & wakeupFunctor);
 
             /**
             * @brief The Purge Operation

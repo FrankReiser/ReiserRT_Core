@@ -27,7 +27,7 @@ void MessageQueue::getAndDispatch()
     dispatchMessage( pM );
 }
 
-void MessageQueue::getAndDispatch( WakeupCallFunctionType wakeupFunctor )
+void MessageQueue::getAndDispatch( const WakeupCallFunctionType & wakeupFunctor )
 {
     // CookedMemoryManager ensures memory is returned to the raw pool should wakeupFunctor
     // or dispatch throw.

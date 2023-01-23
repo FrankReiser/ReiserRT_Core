@@ -146,7 +146,7 @@ namespace ReiserRT
             * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread.
             * @throw The user operation may throw an exception of unknown type.
             */
-            void take(FunctionType operation );
+            void take( const FunctionType & operation );
 
             /**
             * @brief The Give Operation
@@ -181,7 +181,7 @@ namespace ReiserRT
             * @throw Throws ReiserRT::Core::SemaphoreAborted if the abort operation is invoked via another thread or if we have been
             * notified more times than we can count (2^32 -1).
             */
-            void give(FunctionType operation );
+            void give( const FunctionType & operation );
 
             /**
             * @brief The Abort Operation
