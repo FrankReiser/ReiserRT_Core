@@ -1,6 +1,15 @@
 # ReiserRT_Core
-Frank Reiser's C++11 core components for multi-threaded, realtime 
-embedded systems.
+Frank Reiser's C++17 core components for multi-threaded, realtime 
+embedded systems. Interface files are usable from C++11 compiles with
+the possible exception of class `BlockPool<T>`. This is dependent on the actual
+compiler used. The test harness for `BlockPool<T>` will not compile with a gcc 4.8.5
+using the c++11 standard. However, the test harness does compile with gcc 8.5.0
+using the c++11 standard. 
+Also, the components here have been tested to be interface-able with C++20 compiles.
+Note that the compiled library code is built using the c++17 standard.
+
+The latest released version from the 2.X branch, which does not include `BlockPool<T>`
+will be maintained for C++11 interfacing for some period going forward.
 
 ---
 Contents:\
@@ -19,7 +28,7 @@ Contents:\
 
 ## Library Functionality
 The library provides the following components (from top to bottom):  
-MessageQueue, ObjectPool, RingBufferGuarded, Semaphore, Mutex and
+MessageQueue, ObjectPool, BlockPool, RingBufferGuarded, Semaphore, Mutex and
 RingBufferSimple. In order to experience the best results, your
 processes should enable a realtime scheduler. Under Linux,
 my "go to" scheduler is `SCHED_FIFO`. Additionally, your process
@@ -91,6 +100,8 @@ When the instance of the `MessageQueue::AutoDispatchLock` is destroyed,
 the dispatch lock releases.
 Note: An  exception will be thrown if dispatch locking was not explicitly
 enabled during construction upon invoking `getAutoDispatchLock`.
+The `MessageQueue::AutoDispatchLock` support the duck type operation of
+a standard mutex if needed.
 
 Note: It is not necessary to obtain a dispatch lock if all you are
 doing is enqueueing a message. The enqueueing of a message is in itself,
@@ -168,7 +179,7 @@ in the previous example:
 BlockPool is similar to ObjectPool but delivers blocks (arrays) of objects.
 Like ObjectPool, it constructs objects on pre-allocated memory.
 The number of blocks and the number of elements per block,
-are specified during construction. 
+are specified during construction.
 
 BlockPool is not as full-featured as ObjectPool. It supports only object types that are
 default constructible. It also does not support instantiation of derived types.
@@ -224,6 +235,12 @@ in the previous example:
    // directly converted.
    MyTypeSharedBlockPtrType sharePtr = std::move(myTypeBlockPtrTypeInstance);
    ```
+
+NOTE: The `std::shared_ptr<const MyType[]>` syntax is where a minimum of a
+C++17 interfacing is needed to handle conversion from unique pointer to
+shared pointer. C++11 does not officially support this and as stated in the opening
+words of this README, will not compile under gcc 4.8.5. However, gcc 8.5.0 allows
+it. Where exactly did this mysterious support appeared, is unknown.
 
 ### RingBufferGuarded
 RingBufferGuarded provides a thread safe buffering mechanism
@@ -338,4 +355,4 @@ Roughly as follows:
    need root permissions to do this):
    ```
    sudo cmake --install .
-   ```
+   ``
