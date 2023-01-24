@@ -1,16 +1,26 @@
 # ReiserRT_Core
-Frank Reiser's C++11 core components for multi-threaded, realtime 
-embedded systems.
+Frank Reiser's C++17 core components for multi-threaded, realtime 
+embedded systems. Interface files are usable from C++11 compiles with
+the possible exception of class `BlockPool<T>`. This is dependent on the actual
+compiler used. The test harness for `BlockPool<T>` will not compile with a gcc 4.8.5
+using the c++11 standard. However, the test harness does compile with gcc 8.5.0
+using the c++11 standard. 
+Also, the components here have been tested to be interface-able with C++20 compiles.
+Note that the compiled library code is built using the c++17 standard.
+
+The latest released version from the 2.X branch, which does not include `BlockPool<T>`
+will be maintained for C++11 interfacing for some period going forward.
 
 ---
 Contents:\
    [1. Library Functionality](#library-functionality)\
    [1a. MessageQueue](#messagequeue)\
    [1b. ObjectPool](#objectpool)\
-   [1c. RingBufferGuarded](#ringbufferguarded)\
-   [1d. Semaphore](#semaphore)\
-   [1e. Mutex](#mutex)\
-   [1f. RingBufferSimple](#ringbuffersimple)\
+   [1c. BlockPool](#blockpool)\
+   [1d. RingBufferGuarded](#ringbufferguarded)\
+   [1e. Semaphore](#semaphore)\
+   [1f. Mutex](#mutex)\
+   [1g. RingBufferSimple](#ringbuffersimple)\
    [2. Supported Platforms](#supported-platforms)\
    [3. Example Usage](#example-usage)\
    [4. Building and Installation](#building-and-installation)
@@ -18,7 +28,7 @@ Contents:\
 
 ## Library Functionality
 The library provides the following components (from top to bottom):  
-MessageQueue, ObjectPool, RingBufferGuarded, Semaphore, Mutex and
+MessageQueue, ObjectPool, BlockPool, RingBufferGuarded, Semaphore, Mutex and
 RingBufferSimple. In order to experience the best results, your
 processes should enable a realtime scheduler. Under Linux,
 my "go to" scheduler is `SCHED_FIFO`. Additionally, your process
@@ -90,6 +100,8 @@ When the instance of the `MessageQueue::AutoDispatchLock` is destroyed,
 the dispatch lock releases.
 Note: An  exception will be thrown if dispatch locking was not explicitly
 enabled during construction upon invoking `getAutoDispatchLock`.
+The `MessageQueue::AutoDispatchLock` support the duck type operation of
+a standard mutex if needed.
 
 Note: It is not necessary to obtain a dispatch lock if all you are
 doing is enqueueing a message. The enqueueing of a message is in itself,
@@ -162,6 +174,73 @@ in the previous example:
    // directly converted.
    MyBaseSharedPtrType sharePtr = std::move(myBaseObjectPtrTypeInstance);
    ```
+
+### BlockPool
+BlockPool is similar to ObjectPool but delivers blocks (arrays) of objects.
+Like ObjectPool, it constructs objects on pre-allocated memory.
+The number of blocks and the number of elements per block,
+are specified during construction.
+
+BlockPool is not as full-featured as ObjectPool. It supports only object types that are
+default constructible. It also does not support instantiation of derived types.
+BlockPool was original conceived to deliver a block of intrinsic scalar types
+with default values of zero. Extending it to support default constructible,
+aggregate types, was relatively straight forward.
+
+The `BlockPool<Type>::getBlock` operation returns a specialized `std::unique_ptr`
+type with a custom deleter associated.
+When the `std::unique_ptr` instance returned by `getBlock` is destroyed,
+the block of memory gets returned to the BlockPool without
+specific intervention. These operations are thread safe
+(create and destroy).
+
+NOTE: Like ObjectPool, BlockPool should be instantiated early and owned
+at a level, high enough within an application's architecture, so that
+it will not go out of scope until all object block created from it are
+returned. Failing to honor this requirement will result in undefined
+behavior.
+
+The `std::unique_ptr` type returned by `getBlock` may be "forward
+declared" as follows:
+   ```
+   #include "BlockPoolFwd.hpp"
+   
+   // Forward, or fully declare your Type and BlockPool's pointer type
+   class MyType;
+   using MyTypeBlockPtrType = ReiserRT::Core::BlockPoolPtrType<MyType>;
+   
+   // Now you can use reference types of MyTypeBlockPtrType just like
+   // any other forward declared type.
+   ```
+You can also specify constant types as such `BlockPoolPtrType<const T>`
+if necessary although, I seldom do so because, it is too restrictive
+right out of the gate as objects may require further muting.
+This `std::unique_ptr` can be converted to a `std::shared_ptr<const T[]>` if needed.
+I find the `const` most useful in these `shared_ptr` cases because,
+unless `T` is thread-safe itself, shared data can cause much pain.
+Below is an example of how to do this with the MyTypeBlockPtrType declared
+in the previous example:
+   ```
+   // Forward declare a shared pointer to constant MyType.
+   // This snippet could potentially be added to the previous example
+   // and made into a separate include file.
+   using MyTypeSharedBlockPtrType = std::shared_ptr<const MyType[]>;
+   ```
+
+   ```
+   // To make an assignment, forward declaration alone will not cut
+   // it. This would happen inside implementation code that is aware
+   // of full details. Note: explicit move may or may not be required.
+   // The value returned from BlockPool<T>::getBlock() can be
+   // directly converted.
+   MyTypeSharedBlockPtrType sharePtr = std::move(myTypeBlockPtrTypeInstance);
+   ```
+
+NOTE: The `std::shared_ptr<const MyType[]>` syntax is where a minimum of a
+C++17 interfacing is needed to handle conversion from unique pointer to
+shared pointer. C++11 does not officially support this and as stated in the opening
+words of this README, will not compile under gcc 4.8.5. However, gcc 8.5.0 allows
+it. Where exactly did this mysterious support appeared, is unknown.
 
 ### RingBufferGuarded
 RingBufferGuarded provides a thread safe buffering mechanism
@@ -276,4 +355,4 @@ Roughly as follows:
    need root permissions to do this):
    ```
    sudo cmake --install .
-   ```
+   ``

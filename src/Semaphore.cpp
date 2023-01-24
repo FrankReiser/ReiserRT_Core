@@ -513,7 +513,7 @@ void Semaphore::take()
 
 void Semaphore::take( const FunctionType & operation )
 {
-    pImple->take(operation);
+    pImple->take( operation );
 }
 
 void Semaphore::give( )
@@ -523,7 +523,7 @@ void Semaphore::give( )
 
 void Semaphore::give( const FunctionType & operation )
 {
-    pImple->give(operation);
+    pImple->give( operation );
 }
 
 void Semaphore::abort()
