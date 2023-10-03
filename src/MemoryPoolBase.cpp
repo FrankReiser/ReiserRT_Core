@@ -67,11 +67,11 @@ private:
         * The "Low Watermark", compared with the ObjectPool size can provide an indication
         * of the maximum exhaustion level ever achieved on an ObjectPool.
         */
-        struct
+        struct Counts
         {
             CounterType runningCount;   //!< The Current Running Count Captured Atomically (snapshot)
             CounterType lowWatermark;   //!< The Current Low Watermark Captured Atomically (snapshot)
-        };
+        } counts;
 
         /**
         * @brief Overall State Variable
@@ -265,7 +265,7 @@ MemoryPoolBase::Imple::Imple( size_t requestedNumElements, size_t theElementSize
 
     // Initialize running state.
     InternalRunningStateStats runningStats;
-    runningStats.lowWatermark = runningStats.runningCount = CounterType( poolSize );
+    runningStats.counts.lowWatermark = runningStats.counts.runningCount = CounterType( poolSize );
     runningState = runningStats.state;
 }
 
@@ -295,8 +295,8 @@ void * MemoryPoolBase::Imple::getRawBlock()
         // Clone atomically captured state,
         // We will be decrementing the running count and may lower the low watermark.
         runningStatsNew.state = runningStats.state;
-        if ( --runningStatsNew.runningCount < runningStats.lowWatermark )
-            runningStatsNew.lowWatermark = runningStatsNew.runningCount;
+        if ( --runningStatsNew.counts.runningCount < runningStats.counts.lowWatermark )
+            runningStatsNew.counts.lowWatermark = runningStatsNew.counts.runningCount;
 
     } while ( !runningState.compare_exchange_weak( runningStats.state, runningStatsNew.state,
                                                    std::memory_order_seq_cst, std::memory_order_seq_cst ) );
@@ -328,7 +328,7 @@ void MemoryPoolBase::Imple::returnRawBlock( void * pRaw ) noexcept
         // Clone atomically captured state,
         // We will be incrementing the running count and not touching the low watermark.
         runningStatsNew.state = runningStats.state;
-        ++runningStatsNew.runningCount;
+        ++runningStatsNew.counts.runningCount;
 
     } while ( !runningState.compare_exchange_weak( runningStats.state, runningStatsNew.state,
                                                    std::memory_order_seq_cst, std::memory_order_seq_cst ) );
@@ -341,8 +341,8 @@ MemoryPoolBase::RunningStateStats MemoryPoolBase::Imple::getRunningStateStatisti
 
     RunningStateStats snapshot;
     snapshot.size = poolSize;
-    snapshot.runningCount = stats.runningCount;
-    snapshot.lowWatermark = stats.lowWatermark;
+    snapshot.runningCount = stats.counts.runningCount;
+    snapshot.lowWatermark = stats.counts.lowWatermark;
 
     return snapshot;
 }

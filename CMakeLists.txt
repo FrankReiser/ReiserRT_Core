@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 
 project(
         ReiserRT_Core
-        VERSION 2.5.1
+        VERSION 2.5.2
         DESCRIPTION "Frank Reiser's C++11 core components for multi-threaded, realtime embedded systems.")
 
 # Set up compiler requirements
