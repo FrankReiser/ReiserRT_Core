@@ -88,11 +88,11 @@ private:
         * The "High Watermark", compared with the ObjectQueue size can provide an indication
         * of the maximum exhaustion level ever achieved on an ObjectPool.
         */
-        struct
+        struct Counts
         {
             CounterType runningCount;    //!< The Current Running Count Captured Atomically (snapshot)
             CounterType highWatermark;   //!< The Current High Watermark Captured Atomically (snapshot)
-        };
+        } counts;
 
         /**
         * @brief Overall State Variable
@@ -361,7 +361,7 @@ MessageQueueBase::Imple::Imple( std::size_t theRequestedNumElements, std::size_t
   , cookedRingBuffer{ theRequestedNumElements }
 {
     // Prime the raw ring buffer with void pointers into our arena space. We do this with a lambda function.
-    auto funk = [ this, theElementSize ]( size_t i )
+    auto funk = [ this ]( size_t i )
             { return reinterpret_cast< void * >( arena + i * elementSize ); };
     rawRingBuffer.prime( funk );
 }
@@ -385,8 +385,8 @@ MessageQueueBase::RunningStateStats MessageQueueBase::Imple::getRunningStateStat
     // Initialize return snapshot value.
     RunningStateStats snapshot;
     snapshot.size = requestedNumElements;
-    snapshot.runningCount = stats.runningCount;
-    snapshot.highWatermark = stats.highWatermark;
+    snapshot.runningCount = stats.counts.runningCount;
+    snapshot.highWatermark = stats.counts.highWatermark;
 
     // Return the snapshot.
     return snapshot;
@@ -407,8 +407,8 @@ void * MessageQueueBase::Imple::rawWaitAndGet()
         // Clone atomically captured state,
         // We will be incrementing the running count, may raise the high water mark.
         runningStatsNew.state = runningStats.state;
-        if ( ++runningStatsNew.runningCount > runningStats.highWatermark )
-            runningStatsNew.highWatermark = runningStatsNew.runningCount;
+        if ( ++runningStatsNew.counts.runningCount > runningStats.counts.highWatermark )
+            runningStatsNew.counts.highWatermark = runningStatsNew.counts.runningCount;
 
     } while ( !runningState.compare_exchange_weak( runningStats.state, runningStatsNew.state,
                                                    std::memory_order_seq_cst, std::memory_order_seq_cst ) );
@@ -434,7 +434,7 @@ void MessageQueueBase::Imple::rawPutAndNotify( void * pRaw )
         // Clone atomically captured state,
         // We will be decrementing the running count and not touching the high watermark.
         runningStatsNew.state = runningStats.state;
-        --runningStatsNew.runningCount;
+        --runningStatsNew.counts.runningCount;
 
     } while ( !runningState.compare_exchange_weak( runningStats.state, runningStatsNew.state,
                                                    std::memory_order_seq_cst, std::memory_order_seq_cst ) );
@@ -513,7 +513,7 @@ MessageQueueBase::AutoDispatchLock MessageQueueBase::getAutoDispatchLock()
         throw MessageQueueDispatchLockingDisabled(
                 "MessageQueueBase::getAutoDispatchLock() - Dispatch Locking not enabled when constructed" );
 
-    return std::move( AutoDispatchLock{ this } );
+    return AutoDispatchLock{ this };
 }
 
 void MessageQueueBase::dispatchMessage( MessageBase * pMsg )
