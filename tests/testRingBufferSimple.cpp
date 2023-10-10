@@ -38,12 +38,12 @@ int main()
         }
 
         // Attempt to overrun ring buffer.  It should throw on the 5th "put" attempt.
-        int i;
+        size_t i;
         for (i = 0; i != 10; ++i)
         {
             try
             {
-                ringBuffer.put(i);
+                ringBuffer.put((int)i);
             }
             catch (RingBufferOverflow&)
             {

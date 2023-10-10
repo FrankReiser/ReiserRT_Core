@@ -7,15 +7,12 @@
 
 #include <random>
 #include <iostream>
-#include <thread>
-#include <chrono>
 
 using namespace std;
 using namespace ReiserRT::Core;
 
-///@todo CLang warnings but I need a continual stream across multiple ThreadTestDataRBG instances by default. How to fix?
 uniform_int_distribution< unsigned int > uniformDistributionRB;
-default_random_engine randEngineRB;
+default_random_engine randEngineRB{ std::random_device{}() };
 
 
 ThreadTestDataRBG::ThreadTestDataRBG() : randNum{uniformDistributionRB(randEngineRB)}, randNumHash{munger(randNum)}
