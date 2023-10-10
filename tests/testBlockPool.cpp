@@ -266,7 +266,7 @@ int testThrowableAggregateType()
 // The MemoryPoolBase has been thoroughly tested with ObjectPool. We will not repeat all of that here.
 int main()
 {
-    int retVal = 0;
+    int retVal;
 
     do {
         // Test with simple scalar types

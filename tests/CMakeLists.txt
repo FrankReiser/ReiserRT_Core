@@ -68,4 +68,8 @@ add_executable( testBlockPool "" )
 target_sources( testBlockPool PRIVATE testBlockPool.cpp )
 target_include_directories( testBlockPool PUBLIC ../src )
 target_link_libraries( testBlockPool ReiserRT_Core )
+target_compile_options( testBlockPool PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
+)
 add_test( NAME runBlockPoolTest COMMAND $<TARGET_FILE:testBlockPool> )
