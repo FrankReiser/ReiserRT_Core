@@ -17,13 +17,13 @@ class SimpleTestMessage : public MessageBase
 public:
     SimpleTestMessage() noexcept { ++instanceCount; }
 
-    virtual ~SimpleTestMessage() noexcept { --instanceCount; }
+    ~SimpleTestMessage() noexcept override { --instanceCount; }
 
     SimpleTestMessage(const SimpleTestMessage& another) noexcept = delete;
 
     SimpleTestMessage& operator = (const SimpleTestMessage& another) noexcept = delete;
 
-    SimpleTestMessage(SimpleTestMessage&& another) noexcept { ++instanceCount; }
+    SimpleTestMessage(SimpleTestMessage&& /*another*/) noexcept { ++instanceCount; }
 
     SimpleTestMessage& operator = (SimpleTestMessage&& another) noexcept
     {
@@ -35,9 +35,9 @@ public:
     }
 
 protected:
-    virtual void dispatch() { ++dispatchCount; }
+    void dispatch() override { ++dispatchCount; }
 
-    virtual const char* name() const { return "SimpleTestMessage"; }
+    const char * name() const override { return "SimpleTestMessage"; }
 
 public:
     static size_t dispatchCount;
@@ -73,9 +73,9 @@ private:
         ImpleMessage& operator = (ImpleMessage&& another) = default;
 
     protected:
-        virtual void dispatch() { pImple->onImpleMessage(randNum, randNumHash); }
+        void dispatch() override { pImple->onImpleMessage(randNum, randNumHash); }
 
-        virtual const char* name() { return "ImpleMessage"; }
+        const char * name() const override { return "ImpleMessage"; }
 
     private:
         MessageQueueUserProcess* pImple;
@@ -97,7 +97,7 @@ public:
 
     void activate()
     {
-        messageHandlerThread = move(ActiveContextType{ [this] { messageHandlerProc(); } });
+        messageHandlerThread = ActiveContextType{ [this] { messageHandlerProc(); } };
     }
 
     void messageHandlerProc()
@@ -135,7 +135,7 @@ public:
     size_t getDispatchCount() const { return numberImpleMessagesDispatched; }
     size_t getValidatedCount() const { return numberOfMessagesValidated; }
 
-    MessageQueueBase::AutoDispatchLock getAutoDispatchLock() { return std::move( msgQueue.getAutoDispatchLock() ); }
+    MessageQueueBase::AutoDispatchLock getAutoDispatchLock() { return msgQueue.getAutoDispatchLock(); }
 
 private:
     uniform_int_distribution< unsigned int > uniformDistributionMQ;
@@ -256,7 +256,7 @@ int activeUserProcessTestSecondary()
         }
 
 //        std::cout << "PASSED activeUserProcessTestSecondary" << std::endl;
-    } while (0);
+    } while (false);
 
     return retVal;
 }
@@ -288,7 +288,7 @@ int main()
             }
 
             // Put first message in message queue
-            msgQueue.put(std::move(SimpleTestMessage{}));
+            msgQueue.put( SimpleTestMessage{} );
 
             // Verify running statistics
             runningStateStats = msgQueue.getRunningStateStatistics();
@@ -376,16 +376,16 @@ int main()
             class MessageThrowOnConstruct : public MessageBase
             {
             public:
-                MessageThrowOnConstruct()  { throw std::exception{}; }
+                MessageThrowOnConstruct() { throw std::exception{}; }
 
-                virtual ~MessageThrowOnConstruct() noexcept = default;
+                ~MessageThrowOnConstruct() noexcept override = default;
 
                 MessageThrowOnConstruct(MessageThrowOnConstruct&& another) noexcept = default;
 
                 MessageThrowOnConstruct& operator = (MessageThrowOnConstruct&& another) noexcept = default;
 
             protected:
-                virtual void dispatch() {}
+                void dispatch() override {}
             };
 
             MessageQueue msgQueue{ 3, sizeof( MessageThrowOnConstruct ) };
@@ -434,7 +434,7 @@ int main()
                 using MessageBase::MessageBase;
 
             protected:
-                virtual void dispatch() { throw std::exception{}; }
+                void dispatch() override { throw std::exception{}; }
             };
 
             MessageQueue msgQueue{ 3, sizeof( MessageThrowOnDispatch ) };
@@ -502,8 +502,8 @@ int main()
             msgQueue.purge();
 
             // Put two messages in message queue
-            msgQueue.put(std::move(SimpleTestMessage{}));
-            msgQueue.put(std::move(SimpleTestMessage{}));
+            msgQueue.put( SimpleTestMessage{} );
+            msgQueue.put( SimpleTestMessage{} );
 
             // Verify SimpleTestMessage instance count;
             if ( 2 != SimpleTestMessage::instanceCount )
