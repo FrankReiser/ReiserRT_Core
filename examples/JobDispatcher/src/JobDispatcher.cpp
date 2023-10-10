@@ -52,10 +52,10 @@ private:
         BaseMessage & operator =( BaseMessage && another ) = default;
 
     protected:
-        virtual ~BaseMessage() = default;
+        ~BaseMessage() override = default;
 
         // We do not do anything here. Override or accept the default.
-        virtual void dispatch() {}
+        void dispatch() override {}
 
         Imple * pImple;	// Need to qualify to disambiguate between MessageQueueBase::Imple
     };
@@ -83,7 +83,7 @@ private:
         JobCompleteMessage(JobCompleteMessage && another ) = default;
         JobCompleteMessage & operator =(JobCompleteMessage && another ) = default;
 
-        virtual void dispatch() { pImple->onJobCompleteMessage(std::move(pJob)) ; }
+        void dispatch() override { pImple->onJobCompleteMessage(std::move(pJob)) ; }
 
         JobDataPtrType pJob;
     };
@@ -162,7 +162,7 @@ private:
         // Instantiate a lambda function capturing "this" and wrapping the messageQueueProc function.
         // Then move that into our thread instance. It starts running immediately.
         // Lambdas are tricky. Do not capture references to locals that go out of scope when we return!
-        msgQueueProcThread = std::move( std::thread{ [this]() { messageQueueProc(); } } );
+        msgQueueProcThread = std::thread{ [this]() { messageQueueProc(); } };
 
         // Activate all my JobTasks.
         for ( auto & iter : jobTasks ) {

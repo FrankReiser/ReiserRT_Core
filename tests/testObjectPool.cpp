@@ -184,7 +184,7 @@ int main()
             {
             public:
                 TestClassForOP2() = default;
-                ~TestClassForOP2() = default;
+                ~TestClassForOP2() override = default;
                 long dummy1{ 0 };    // Just make it bigger than TestClassForOP1
                 long dummy2{ 0 };    // Just make it bigger than TestClassForOP1
                 long dummy3{ 0 };    // Just make it bigger than TestClassForOP1
@@ -260,7 +260,7 @@ int main()
             public:
                 TestClassDerivedForOP1() { throw std::exception{}; }
 
-                virtual int getClassID() { return 1; }
+                int getClassID() override { return 1; }
             };
 
             class TestClassDerivedForOP2 : public TestClassBaseForOP
@@ -268,7 +268,7 @@ int main()
             public:
                 TestClassDerivedForOP2() = default;
 
-                virtual int getClassID() { return 2; }
+                int getClassID() override { return 2; }
             };
 
             using TestPoolType = ObjectPool< TestClassBaseForOP >;
@@ -280,7 +280,7 @@ int main()
             {
                 testPool.createObj< TestClassDerivedForOP1 >();
 
-                // If we find ourself here, then the test failed.
+                // If we find ourselves here, then the test failed.
                 cout << "Create of object TestClassDerivedForOP1 designed to throw on constructor did not throw!" << endl;
                 retVal = 20;
                 break;

@@ -24,7 +24,7 @@ class StartingGun::Imple
         goCond.notify_all();
     }
 
-    inline bool isGoing() { return goShot; }
+    inline bool isGoing() const { return goShot; }
 
     void waitForStartingShot()
     {
@@ -44,7 +44,7 @@ class StartingGun::Imple
     bool goShot{ false };
 };
 
-atomic<bool> abortFlagRB{ false };
+//atomic<bool> abortFlagRB{ false };
 
 
 StartingGun::StartingGun() : pImple{ new Imple }
@@ -73,10 +73,10 @@ void StartingGun::reload()
 
 void StartingGun::abort()
 {
-    abortFlagRB.store( true );
+    pImple->abortFlagRB.store( true );
 }
 
 bool StartingGun::isAborted()
 {
-    return abortFlagRB.load();
+    return pImple->abortFlagRB.load();
 }
