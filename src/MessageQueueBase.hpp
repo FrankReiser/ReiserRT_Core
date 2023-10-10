@@ -96,7 +96,7 @@ namespace ReiserRT
             */
             MessageBase( MessageBase && another ) noexcept = default;
 
-            /**
+            virtual /**
             * @brief The Move Assignment Operator
             *
             * This is the move assignment operator for MessageBase class. It does nothing of significance

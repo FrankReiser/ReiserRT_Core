@@ -42,7 +42,7 @@ public:
     using StateType = std::atomic<State>;
 
     PutTaskRBG() : state{State::constructed} {}
-    ~PutTaskRBG() {}
+    ~PutTaskRBG() = default;
 
     void operator()(StartingGun* startingGun, ReiserRT::Core::RingBufferGuarded< const ThreadTestDataRBG* >* theRing,
             const ThreadTestDataRBG* testData, unsigned int nElements);
@@ -80,7 +80,7 @@ public:
     using StateType = std::atomic<State>;
 
     GetTaskRBG() : state{ State::constructed } {}
-    ~GetTaskRBG() {}
+    ~GetTaskRBG() = default;
 
     void operator()(StartingGun* startingGun, ReiserRT::Core::RingBufferGuarded< const ThreadTestDataRBG* >* theRing,
             unsigned int nElements);

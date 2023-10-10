@@ -17,10 +17,6 @@
 using namespace ReiserRT::Core;
 using namespace std;
 
-// Evidently, this function is too complex for "context-sensitive data flow analysis".
-// Perhaps it is the high multi-threaded nature of it. However, I am not certain about that. I turned it off.
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCDFAInspection"
 int main() {
     auto retVal = 0;
 
@@ -131,7 +127,7 @@ int main() {
             takeThread.reset(new thread{ ref(takeTask), &startingGun, &sem, 1 });
 
             // We have launched a thread. We should not short circuit our joining of it.
-            // This do once structure helps ensure that we do not fail to join the thread should we bail out.
+            // This "do once" structure helps ensure that we do not fail to join the thread should we bail out.
             do {
                 // Wait for it to get to the waitingForGo state.  This should be relatively quick.
                 unsigned int n = 0;
@@ -183,7 +179,7 @@ int main() {
             } while (false);
 
             // Join the thread and clear the go flag.
-            sem.abort();            // Just in case we short circuited abort above.
+            sem.abort();            // Just in case we short-circuited abort above.
             startingGun.abort();
             takeThread->join();
 
@@ -213,7 +209,7 @@ int main() {
             giveThread.reset( new thread{ ref(giveTask ), &startingGun, &sem, 1 } );
 
             // We have launched a thread. We should not short circuit our joining of it.
-            // This do once structure helps ensure that we do not fail to join the thread should we bail out.
+            // This "do once" structure helps ensure that we do not fail to join the thread should we bail out.
             do
             {
                 // Wait for it to get to the waitingForGo state.  This should be relatively quick.
@@ -294,7 +290,7 @@ int main() {
             // Join the thread and clear the go flag.
             ///@note The abort does unblock a give. This was tested in the interim even though it
             ///is not specifically no longer tested. Testing it now requires new test specifically addressing it.
-            sem.abort();            // Just in case we short circuited abort above.
+            sem.abort();            // Just in case we short-circuited abort above.
             startingGun.abort();
             giveThread->join();
 
@@ -344,9 +340,9 @@ int main() {
             }
 
             // We have launched a bunch of threads. We should not short circuit our joining of them.
-            // This do once structure helps ensure that we do not fail to join each thread should we bail out.
+            // This "do once" structure helps ensure that we do not fail to join each thread should we bail out.
             do {
-                // Wait for the take tasks to achieve the waitingForGo state.  This should be be immediate.
+                // Wait for the take tasks to achieve the waitingForGo state.  This should be immediate.
                 unsigned int n = 0;
                 for (; n != 10; ++n)
                 {
@@ -373,7 +369,7 @@ int main() {
                 // Let her rip
                 startingGun.pullTrigger();
 
-                // Wait for the give tasks to achieve the waitingForGo state.  This should be be immediate.
+                // Wait for the give tasks to achieve the waitingForGo state.  This should be immediate.
                 for (n = 0; n != 10; ++n)
                 {
                     unsigned int i = 0;
@@ -403,8 +399,8 @@ int main() {
                 for (n = 0; n != maxLoops; ++n) {
                     this_thread::sleep_for(chrono::milliseconds(1000));
                     unsigned int numCompleted = 0;
-                    for (unsigned int j = 0; j != numCPUs; ++j) {
-                        SemTakeTask::State tState = takeTasks[j].getState();
+                    for (auto & takeTask : takeTasks) {
+                        SemTakeTask::State tState = takeTask.getState();
                         if (SemTakeTask::State::going != tState && SemTakeTask::State::completed != tState) {
                             failed = true;
                             break;
@@ -460,4 +456,3 @@ int main() {
 
     return retVal;
 }
-#pragma clang diagnostic pop
