@@ -105,7 +105,24 @@ private:
     * power of two and clamped within RingBuffer design limits.
     * @param theElementSize The size of each element.
     */
-    explicit Imple( size_t requestedNumElements, size_t theElementSize );
+    explicit Imple( size_t requestedNumElements, size_t theElementSize )
+      : ringBuffer{ requestedNumElements }
+      , mutex{}
+      , elementSize{ theElementSize }
+      , paddedElementSize{ getPaddedTypeAllocSize( elementSize ) }
+      , poolSize{ ringBuffer.getSize() }
+      , runningState{}
+      , arena{ new unsigned char [ theElementSize * poolSize ] }
+    {
+        // Stuff elements taken from the arena memory into the ring buffer.
+        for ( size_t i = 0; i != poolSize; ++i )
+            ringBuffer.put( reinterpret_cast< void* >( arena + i * theElementSize ) );
+
+        // Initialize running state.
+        InternalRunningStateStats runningStats;
+        runningStats.counts.lowWatermark = runningStats.counts.runningCount = CounterType( poolSize );
+        runningState = runningStats.state;
+    }
 
 public:
     /**
@@ -150,7 +167,10 @@ private:
     *
     * The destructor destroys the memory arena.
     */
-    ~Imple();
+    ~Imple()
+    {
+        delete[] arena;
+    }
 
     /**
     * @brief The Get Raw Block Operation
@@ -160,7 +180,38 @@ private:
     * @throw Throws std::underflow error if the memory pool has been exhausted.
     * @returns A pointer to the raw memory block.
     */
-    void * getRawBlock();
+    void * getRawBlock()
+    {
+        // Utilize small block scoping for mutex lock to minimize lock time.
+        void *pRaw;
+        {
+            // Take lock RAII style
+            std::lock_guard<Mutex> lock(mutex);
+
+            // Get raw memory
+            pRaw = ringBuffer.get();
+        }
+
+        // Manage Watermark Logic
+        InternalRunningStateStats runningStats;
+        InternalRunningStateStats runningStatsNew;
+        runningStats.state = runningState.load(std::memory_order_seq_cst);
+        do {
+            // Clone atomically captured state,
+            // We will be decrementing the running count and may lower the low watermark.
+            runningStatsNew.state = runningStats.state;
+            if (--runningStatsNew.counts.runningCount < runningStats.counts.lowWatermark)
+                runningStatsNew.counts.lowWatermark = runningStatsNew.counts.runningCount;
+
+        } while (!runningState.compare_exchange_weak(runningStats.state, runningStatsNew.state,
+                                                     std::memory_order_seq_cst, std::memory_order_seq_cst));
+
+        // Zero out Arena Memory!
+        memset(pRaw, 0, paddedElementSize);
+
+        // Return raw memory
+        return pRaw;
+    }
 
     /**
     * @brief The Return Raw Block Operation
@@ -169,7 +220,31 @@ private:
     *
     * @param pRaw A pointer to the raw block of memory to return to the pool.
     */
-    void returnRawBlock( void * pRaw ) noexcept;
+    void returnRawBlock( void * pRaw ) noexcept
+    {
+        // Utilize small block scoping for mutex lock to minimize lock time.
+        {
+            // Take lock RAII style
+            std::lock_guard< Mutex > lock( mutex );
+
+            // Return raw memory back to the pool.
+            ringBuffer.put( pRaw );
+        }
+
+        // Manage Watermark Logic
+        InternalRunningStateStats runningStats;
+        InternalRunningStateStats runningStatsNew;
+        runningStats.state = runningState.load( std::memory_order_seq_cst );
+        do
+        {
+            // Clone atomically captured state,
+            // We will be incrementing the running count and not touching the low watermark.
+            runningStatsNew.state = runningStats.state;
+            ++runningStatsNew.counts.runningCount;
+
+        } while ( !runningState.compare_exchange_weak( runningStats.state, runningStatsNew.state,
+                                                       std::memory_order_seq_cst, std::memory_order_seq_cst ) );
+    }
 
     /**
     * @brief Get the Running State Statistics
@@ -180,7 +255,18 @@ private:
     *
     * @return Returns a snapshot of internal RunningStateStats.
     */
-    RunningStateStats getRunningStateStatistics() noexcept;
+    [[nodiscard]] RunningStateStats getRunningStateStatistics() const noexcept
+    {
+        InternalRunningStateStats stats;
+        stats.state = runningState;
+
+        RunningStateStats snapshot;
+        snapshot.size = poolSize;
+        snapshot.runningCount = stats.counts.runningCount;
+        snapshot.lowWatermark = stats.counts.lowWatermark;
+
+        return snapshot;
+    }
 
     /**
     * @brief Get the Padded Element Type Allocation Size
@@ -192,7 +278,12 @@ private:
     * @return Returns the padded element type allocation size which may be slightly larger than
     * the requested element size.
     */
-    static size_t getPaddedTypeAllocSize( size_t requestedElementSize );
+    static size_t getPaddedTypeAllocSize( size_t requestedElementSize )
+    {
+        size_t alignmentOverspill = requestedElementSize % sizeof( void * );
+        return  ( alignmentOverspill != 0 ) ? requestedElementSize + sizeof( void * ) - alignmentOverspill :
+                requestedElementSize;
+    }
 
     /**
     * @brief Our RingBuffer
@@ -250,111 +341,6 @@ private:
     alignas( void * ) unsigned char * arena;
 };
 
-MemoryPoolBase::Imple::Imple( size_t requestedNumElements, size_t theElementSize )
-        : ringBuffer{ requestedNumElements }
-        , mutex{}
-        , elementSize{ theElementSize }
-        , paddedElementSize{ getPaddedTypeAllocSize( elementSize ) }
-        , poolSize{ ringBuffer.getSize() }
-        , runningState{}
-        , arena{ new unsigned char [ theElementSize * poolSize ] }
-{
-    // Stuff elements taken from the arena memory into the ring buffer.
-    for ( size_t i = 0; i != poolSize; ++i )
-        ringBuffer.put( reinterpret_cast< void* >( arena + i * theElementSize ) );
-
-    // Initialize running state.
-    InternalRunningStateStats runningStats;
-    runningStats.counts.lowWatermark = runningStats.counts.runningCount = CounterType( poolSize );
-    runningState = runningStats.state;
-}
-
-MemoryPoolBase::Imple::~Imple()
-{
-    delete[] arena;
-}
-
-void * MemoryPoolBase::Imple::getRawBlock()
-{
-    // Utilize small block scoping for mutex lock to minimize lock time.
-    void * pRaw;
-    {
-        // Take lock RAII style
-        std::lock_guard< Mutex > lock( mutex );
-
-        // Get raw memory
-        pRaw = ringBuffer.get();
-    }
-
-    // Manage Watermark Logic
-    InternalRunningStateStats runningStats;
-    InternalRunningStateStats runningStatsNew;
-    runningStats.state = runningState.load( std::memory_order_seq_cst );
-    do
-    {
-        // Clone atomically captured state,
-        // We will be decrementing the running count and may lower the low watermark.
-        runningStatsNew.state = runningStats.state;
-        if ( --runningStatsNew.counts.runningCount < runningStats.counts.lowWatermark )
-            runningStatsNew.counts.lowWatermark = runningStatsNew.counts.runningCount;
-
-    } while ( !runningState.compare_exchange_weak( runningStats.state, runningStatsNew.state,
-                                                   std::memory_order_seq_cst, std::memory_order_seq_cst ) );
-
-    // Zero out Arena Memory!
-    memset(pRaw, 0, paddedElementSize );
-
-    // Return raw memory
-    return pRaw;
-}
-
-void MemoryPoolBase::Imple::returnRawBlock( void * pRaw ) noexcept
-{
-    // Utilize small block scoping for mutex lock to minimize lock time.
-    {
-        // Take lock RAII style
-        std::lock_guard< Mutex > lock( mutex );
-
-        // Return raw memory back to the pool.
-        ringBuffer.put( pRaw );
-    }
-
-    // Manage Watermark Logic
-    InternalRunningStateStats runningStats;
-    InternalRunningStateStats runningStatsNew;
-    runningStats.state = runningState.load( std::memory_order_seq_cst );
-    do
-    {
-        // Clone atomically captured state,
-        // We will be incrementing the running count and not touching the low watermark.
-        runningStatsNew.state = runningStats.state;
-        ++runningStatsNew.counts.runningCount;
-
-    } while ( !runningState.compare_exchange_weak( runningStats.state, runningStatsNew.state,
-                                                   std::memory_order_seq_cst, std::memory_order_seq_cst ) );
-}
-
-MemoryPoolBase::RunningStateStats MemoryPoolBase::Imple::getRunningStateStatistics() noexcept
-{
-    InternalRunningStateStats stats;
-    stats.state = runningState;
-
-    RunningStateStats snapshot;
-    snapshot.size = poolSize;
-    snapshot.runningCount = stats.counts.runningCount;
-    snapshot.lowWatermark = stats.counts.lowWatermark;
-
-    return snapshot;
-}
-
-size_t MemoryPoolBase::Imple::getPaddedTypeAllocSize( size_t requestedElementSize )
-{
-    size_t alignmentOverspill = requestedElementSize % sizeof( void * );
-    return  ( alignmentOverspill != 0 ) ? requestedElementSize + sizeof( void * ) - alignmentOverspill :
-            requestedElementSize;
-}
-
-
 MemoryPoolBase::MemoryPoolBase( size_t requestedNumElements, size_t elementSize )
   : pImple{ new Imple{ requestedNumElements, elementSize } }
 {
@@ -370,27 +356,27 @@ void * MemoryPoolBase::getRawBlock()
     return pImple->getRawBlock();
 }
 
-void MemoryPoolBase::returnRawBlock(void * pRaw ) noexcept
+void MemoryPoolBase::returnRawBlock( void * pRaw ) noexcept
 {
     pImple->returnRawBlock( pRaw );
 }
 
-size_t MemoryPoolBase::getSize() noexcept
+size_t MemoryPoolBase::getSize() const noexcept
 {
     return pImple->poolSize;
 }
 
-size_t MemoryPoolBase::getElementSize() noexcept
+size_t MemoryPoolBase::getElementSize() const noexcept
 {
     return pImple->elementSize;
 }
 
-size_t MemoryPoolBase::getPaddedElementSize() noexcept
+size_t MemoryPoolBase::getPaddedElementSize() const noexcept
 {
     return pImple->paddedElementSize;
 }
 
-MemoryPoolBase::RunningStateStats MemoryPoolBase::getRunningStateStatistics() noexcept
+MemoryPoolBase::RunningStateStats MemoryPoolBase::getRunningStateStatistics() const noexcept
 {
     return pImple->getRunningStateStatistics();
 }

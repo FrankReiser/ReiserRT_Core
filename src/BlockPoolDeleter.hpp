@@ -124,6 +124,8 @@ namespace ReiserRT
             {
                 if ( !pool ) return;
 
+                // If the type T is not a scalar, we will invoke the destructor for each instance
+                // in the block.
                 if ( !std::is_scalar< T >::value )
                 {
                     size_t nElements = getElementSize() / sizeof( T );
@@ -133,6 +135,23 @@ namespace ReiserRT
                 }
 
                 returnRawBlock( pT );
+            }
+
+            /**
+            * @brief Get the Number of Array Elements Managed Within BlockPool Pointer Type.
+            *
+            *  This operation returns the number of array elements managed within a BlockPool pointer type.
+            *  This overcomes a limitation of the array specialization of `std::unique_ptr< T[] >`
+            *  where the number of elements of the array cannot be determined via the std`::unique_ptr< T[] >`
+            *  itself. Being that we associate this custom deleter type, `std::unique_ptr< T[], D >`,
+            *  A reference to D can be obtained through the `get_deleter` operator and from there,
+            *  you can call this operation to determine the number of elements in the array.
+            *
+            * @return Returns the number of array elements managed within a BlockPool pointer type
+            */
+            [[nodiscard]] size_t getNumElements() const noexcept
+            {
+                return ( !pool ? 0 : getElementSize() / sizeof( T ) );
             }
         };
     }

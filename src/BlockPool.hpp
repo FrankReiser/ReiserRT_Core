@@ -138,7 +138,7 @@ namespace ReiserRT
                     rawMemoryManager.release();
                 }
 
-                // Wrap in smart pointer, and return via implicit move.
+                // Wrap cooked data in a smart pointer, and return via implicit move.
                 return BlockPtrType{ pCooked, std::move( createDeleter() ) };
             }
 
