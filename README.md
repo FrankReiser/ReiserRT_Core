@@ -29,7 +29,7 @@ Contents:\
 ## Library Functionality
 The library provides the following components (from top to bottom):  
 MessageQueue, ObjectPool, BlockPool, RingBufferGuarded, Semaphore, Mutex and
-RingBufferSimple. In order to experience the best results, your
+RingBufferSimple. To experience the best results, your
 processes should enable a realtime scheduler. Under Linux,
 my "go to" scheduler is `SCHED_FIFO`. Additionally, your process
 threads should run at a priority level appropriate for your
@@ -45,10 +45,10 @@ inter-thread communication. Primarily, it provides a means
 for which a high-priority task, handling a realtime interface,
 can do its necessary work and then hand off the additional work to a
 lesser priority task. Internally, it uses pre-allocated memory for its
-buffering purposes in order to avoid post initialization system heap
+buffering purposes to avoid post initialization system heap
 usage.
 
-In order to utilize MessageQueue, you will need to derive your own
+To use MessageQueue, you will need to derive your own
 custom messages based off of MessageBase and override the `dispatch`
 function.
 
@@ -63,7 +63,7 @@ more direct and efficient.
 
 MessageQueue instances are serviced with the
 `MessageQueue::getAndDispatch(...)` operation. 
-This operation should be called by an independent, implementation
+This operation should be called by an independent implementation
 thread as it will block when no messages are enqueued.
 This provides a means for asynchronous message processing.
 You are in total control as to what your various `dispatch`
@@ -74,7 +74,7 @@ MessageQueue, also needs to coordinate synchronous processing,
 asynchronous processing can be temporarily blocked. Taking
 advantage of this feature allows reuse of the MessageQueue
 internal dispatch mutex. This allows a client's attribute data to
-be thread safe against both, asynchronous and synchronous
+be thread safe against both asynchronous and synchronous
 processing, operating from different threads. 
 
 In order to take advantage of dispatch locking, you must construct
@@ -98,7 +98,7 @@ With dispatch locking enabled, a dispatch lock can be taken as follows:
    ```
 When the instance of the `MessageQueue::AutoDispatchLock` is destroyed,
 the dispatch lock releases.
-Note: An  exception will be thrown if dispatch locking was not explicitly
+Note: An exception will be thrown if dispatch locking was not explicitly
 enabled during construction upon invoking `getAutoDispatchLock`.
 The `MessageQueue::AutoDispatchLock` support the duck type operation of
 a standard mutex if needed.
