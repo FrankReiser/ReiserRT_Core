@@ -168,7 +168,7 @@ namespace ReiserRT
             *
             * @return Returns the MemoryPoolBase::Imple fixed size determined at the time of construction.
             */
-            size_t getSize() noexcept;
+            [[nodiscard]] size_t getSize() const noexcept;
 
             /**
             * @brief Get the MemoryPoolBase Element Size
@@ -178,7 +178,7 @@ namespace ReiserRT
             *
             * @return Returns the MemoryPoolBase::Imple element size specified at the time of construction.
             */
-            size_t getElementSize() noexcept;
+            [[nodiscard]] size_t getElementSize() const noexcept;
 
             /**
             * @brief Get the MemoryPoolBase Element Size
@@ -189,7 +189,7 @@ namespace ReiserRT
             *
             * @return Returns the MemoryPoolBase::Imple padded element size determined at the time of construction.
             */
-            size_t getPaddedElementSize() noexcept;
+            [[nodiscard]] size_t getPaddedElementSize() const noexcept;
 
             /**
             * @brief Get the Running State Statistics
@@ -200,7 +200,7 @@ namespace ReiserRT
             *
             * @return Returns a snapshot of internal RunningStateStats.
             */
-            RunningStateStats getRunningStateStatistics() noexcept;
+            [[nodiscard]] RunningStateStats getRunningStateStatistics() const noexcept;
 
         protected:
             /**

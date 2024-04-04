@@ -18,7 +18,7 @@ void MemoryPoolDeleterBase::returnRawBlock( void * pV ) noexcept
     pool->returnRawBlock( pV );
 }
 
-size_t MemoryPoolDeleterBase::getElementSize() noexcept
+size_t MemoryPoolDeleterBase::getElementSize() const noexcept
 {
     return pool->getElementSize();
 }

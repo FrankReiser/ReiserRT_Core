@@ -110,7 +110,7 @@ namespace ReiserRT
             *
             * @return Returns the MemoryPoolBase::Imple element size specified when the memory pool was instatiated.
             */
-            size_t getElementSize() noexcept;
+            [[nodiscard]] size_t getElementSize() const noexcept;
 
         protected:
             /**

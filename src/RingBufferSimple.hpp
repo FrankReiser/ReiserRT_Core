@@ -197,7 +197,7 @@ namespace ReiserRT
             *
             * @return The number of bits required for a mask to determine an index into an N element buffer.
             */
-            inline size_t getNumBits() const { return numBits; }
+            [[nodiscard]] inline size_t getNumBits() const noexcept { return numBits; }
 
             /**
             * @brief Get the Size Operation
@@ -208,7 +208,7 @@ namespace ReiserRT
             * @return The number of elements that are available for put into a RingBufferImple from an empty state,
             * or got from a RingBufferImple from a full state.
             */
-            inline size_t getSize() const { return numElements; }
+            [[nodiscard]] inline size_t getSize() const noexcept { return numElements; }
 
             /**
             * @brief Get the Mask Operation
@@ -218,7 +218,7 @@ namespace ReiserRT
             *
             * @return The mask that is used internally to transparently manage roll-over of the RingBufferImple.
             */
-            inline size_t getMask() const { return numElementsMask; }
+            [[nodiscard]] inline size_t getMask() const noexcept { return numElementsMask; }
 
         private:
             /**
@@ -368,7 +368,7 @@ namespace ReiserRT
             *
             * @return Returns the number of bits required by the implementation's numElementsMask attribute.
             */
-            inline size_t getNumBits() const { return imple.getNumBits(); }
+            [[nodiscard]] inline size_t getNumBits() const noexcept { return imple.getNumBits(); }
 
             /**
             * @brief The Get Size Operation.
@@ -379,7 +379,7 @@ namespace ReiserRT
             * @return The number of elements that are available for put into RingBufferSimpleImple from an empty state,
             * or got from a RingBufferSimpleImple from a full state.
             */
-            inline size_t getSize() const { return imple.getSize(); }
+            [[nodiscard]] inline size_t getSize() const noexcept { return imple.getSize(); }
 
             /**
             * @brief The Get Number of Bits Operation
@@ -389,7 +389,7 @@ namespace ReiserRT
             *
             * @return Returns the number of bits required by the implementation's numElementsMask attribute.
             */
-            inline size_t getMask() const { return imple.getMask(); }
+            [[nodiscard]] inline size_t getMask() const noexcept { return imple.getMask(); }
 
         private:
             /**

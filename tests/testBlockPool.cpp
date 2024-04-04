@@ -48,7 +48,7 @@ int testWithScalars()
         return 4;
     }
 
-    // We are going to scope the 'getting' a couple of block, so we can verify
+    // We are going to scope the 'getting' a couple of blocks, so we can verify
     // that the smart pointer returned, delivers memory back to the pool when it
     // goes out of scope.
     {
@@ -101,10 +101,10 @@ int testWithScalars()
             return 9;
         }
 
-        // Allow both smart pointer returned by `getBlock` to go out of scope
+        // Allow both smart pointers returned by `getBlock` to go out of scope
     }
 
-    // The low watermark should remain unchanged and the running count should return to maximum.
+    // The low watermark should remain unchanged, and the running count should return to maximum.
     runningStats = scalarBufferPool.getRunningStateStatistics();
     if ( NUM_BLOCKS-2 != runningStats.lowWatermark )
     {
@@ -143,6 +143,19 @@ int testWithScalars()
         return 13;
     }
 
+    // Verify that we can determine the number of elements within a block
+    // from the smart pointer returned by get block.
+    // We support this only though querying the smart pointer's deleter.
+    auto pBlock = scalarBufferPool.getBlock();
+    auto & deleter = pBlock.get_deleter();
+    auto numElements = deleter.getNumElements();
+    if ( NUM_ELEMENTS != numElements )
+    {
+        std::cout << "Block Pool numElements is " << numElements
+                  << " and should be " << NUM_ELEMENTS << std::endl;
+        return 14;
+    }
+
     return 0;
 }
 
@@ -161,7 +174,7 @@ int NoThrowAggregateType::objCount = 0;
 int testNoThrowAggregateType()
 {
     constexpr size_t nElements = 4;
-    BlockPool< NoThrowAggregateType > aggregateBlockPool{2, nElements };
+    BlockPool< NoThrowAggregateType > aggregateBlockPool{ 2, nElements };
 
     // Get a block and verify constructor invoked N times.
     auto block = aggregateBlockPool.getBlock();
@@ -268,21 +281,17 @@ int main()
 {
     int retVal;
 
-    do {
-        // Test with simple scalar types
-        if ( 1 != ( retVal = testWithScalars() ) )
-            break;
+    // Test with simple scalar types
+    if ( 0 != ( retVal = testWithScalars() ) )
+        return retVal;
 
-        // Test with no-throw, aggregate type
-        if ( 1 != ( retVal = testNoThrowAggregateType() ) )
-            break;
+    // Test with no-throw, aggregate type
+    if ( 0 != ( retVal = testNoThrowAggregateType() ) )
+        return retVal;
 
-        // Test with throwing, aggregate type to prove invariance.
-        if ( 1 != ( retVal = testThrowableAggregateType() ) )
-            break;
+    // Test with throwing, aggregate type to prove invariance.
+    if ( 0 != ( retVal = testThrowableAggregateType() ) )
+        return retVal;
 
-
-    } while (false);
-
-    return retVal;
+    return 0;
 }
