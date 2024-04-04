@@ -179,7 +179,7 @@ namespace ReiserRT
                     throw RingBufferStateError{ "RingBufferGuarded::put invoked while not in the Ready state!" };
                 }
 
-                // Setup a lambda to be invoked in the context of the semaphore's internal lock.
+                // Set up a lambda to be invoked in the context of the semaphore's internal lock.
                 // There is no guarding of overflow here. If it throws, the RingBuffer is not being serviced adequately.
                 // It is up to the client to manage and/or mitigate this possibility.
                 auto putFunk = [ this, val ]() { this->Base::put( val ); };
