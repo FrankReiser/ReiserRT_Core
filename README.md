@@ -277,65 +277,66 @@ Similarly, when a RingBufferGuarded instance becomes empty, invokers
 of the `get` API will block, waiting on a non-empty condition.
 
 Please see the implementation details of MessageQueueBase for
-a use case. MessageQueueBase utilizes RingBufferGuarded to
-accomplish its goals.
+a use case. 
+MessageQueueBase uses RingBufferGuarded to
+achieve its goals.
 
 ### Semaphore
 Semaphore provides for a thread safe, counted resource management 
 tool. This particular implementation supports both an 
 unbounded maximum availability and a bounded maximum availability
-also known as bipolar mode. 
-The choice of which is made at time of construction.
+also known as "bipolar" mode, the choice of which is made at during construction.
 
 The two primary operations of Semaphore are `give` and `take`.
 The `take` operation will block when Semaphore instance's availability
 count has reached zero. The `give` operation will block only 
-in bipolar mode if the availability count has reached a maximum
+in "bipolar" mode if the availability count has reached a maximum
 availability. In unbounded mode, `give` will never block.
 However, it will throw an exception if the available count
-reaches an absolute numeric limit of 2 to the power of 32, less 1 
+reaches an absolute numeric limit of 2 to the power of 32 less 1 
 (roughly 4 billion).
 
 Please see the implementation details of RingBufferGuarded for
-a use case. RingBufferGuarded utilizes Semaphore in bipolar mode
-to accomplish its goals.
+a use case. RingBufferGuarded uses Semaphore in "bipolar" mode
+to achieve its goals.
 
 ### Mutex
 The Mutex class exists to overcome a limitation with C++11 
-`std::mutex`. Specifically, on POSIX system, `std::mutex` does not
+`std::mutex`. Specifically, on POSIX systems, `std::mutex` does not
 initialize with a priority inherit protocol and there is no way
 to overcome this limitation using the `native_handle` operation.
 POSIX PTHREADS mutexes must be explicitly initialized with a mutex
 attribute enabling priority inheritance. On POSIX conformant systems
 with PTHREADS available, Mutex will initialize a native mutex using 
 the priority inherit protocol. On non-POSIX conformant systems,
-`std::mutex` will be used directly. In order to achieve an adequate
-level of determinism. ReiserRT_Core should be utilized on a POSIX
+`std::mutex` will be used directly. To achieve an adequate
+level of determinism, ReiserRT_Core should be used on a POSIX
 conformant system.
 
-Mutex implements the "duck type" operations required in order to
+Mutex implements the "duck type" operations required to
 use it directly with `std::lock_guard` and `std::unique_guard`.
 It also provides the `native_handle` operation. 
-In order to use Mutex with condition variables,
+To use Mutex with condition variables,
 `std::condition_variable_any` must be used. POSIX systems
 with PTHREADS available can avoid this overhead by using
 PTHREADS condition variables directly.
 
 Please see the implementation details of Semaphore for a use case.
-Semaphore utilizes Mutex with condition variables. The PTHREADS
+Semaphore uses Mutex with condition variables.
+The PTHREADS
 code uses PTHREADS condition variables. The non-PTHREADS code
 uses `std::condition_variable_any`.
 
 ### RingBufferSimple
 The RingBufferSimple class is a minimal implementation of ring
 buffer logic. It does not provide any form of thread safety nor
-guards against under and overflow. It primarily exists for the
-purposes of RingBufferGuarded.
+guards against under and overflow. 
+It primarily exists for RingBufferGuarded usage.
 
 ## Supported Platforms
 This is a CMake project and at present, GNU Linux is
-the only supported platform. Code from this project exist
-under Windows but, the CMake work is not quite in place yet.
+the only supported platform.
+Code from this project exists under Windows, but the CMake work is not quite in place yet.
 Note: This project requires CMake v3.16 or higher.
 
 ## Example Usage
@@ -348,15 +349,15 @@ When a "JobTask" completes a job, it communicates back to the
 "JobDispatcher" that a job has completed. 
 If the "JobDispatcher" has more jobs, it will
 dispatch another to this now idle "JobTask". "JobDispatcher"
-utilizes one "ObjectPool" instance, and a number of "MessageQueue"
+uses one "ObjectPool" instance, and a number of "MessageQueue"
 instances in somewhat of an architecture. It runs for a
-few minutes with 8 CPUs available. In the future, we will provide
-an "install" option for "JobDispatcher" in order to provide the
+few minutes with eight CPUs available. In the future, we will provide
+an "install" option for "JobDispatcher" to provide the
 CMake details of how to link up from an external application to
 ReiserRT_Core.
 
 Example usage can also be found in the various
-tests that exist in the "tests" folder although the tests are
+tests that exist in the "tests" folder, although the tests are
 not good examples of putting together an architecture.
 
 ## Building and Installation
@@ -364,7 +365,7 @@ Roughly as follows:
 1) Obtain a copy of the project
 2) Create a build folder within the project root folder.
 3) Switch directory to the build folder and run the following 
-   to configure and build the project for you platform:
+   to configure and build the project for your platform:
    ```
    cmake ..
    cmake --build .
