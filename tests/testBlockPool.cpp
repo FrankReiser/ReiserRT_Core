@@ -147,8 +147,7 @@ int testWithScalars()
     // from the smart pointer returned by get block.
     // We support this only though querying the smart pointer's deleter.
     auto pBlock = scalarBufferPool.getBlock();
-    auto & deleter = pBlock.get_deleter();
-    auto numElements = deleter.getNumElements();
+    auto numElements = pBlock.get_deleter().getNumElements();
     if ( NUM_ELEMENTS != numElements )
     {
         std::cout << "Block Pool numElements is " << numElements

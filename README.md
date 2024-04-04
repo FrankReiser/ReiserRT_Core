@@ -118,11 +118,11 @@ your API affords total control.
 ### ObjectPool
 Calling new and delete in a realtime application can
 significantly impact determinism. ObjectPool provides
-pre-allocated memory, for a fixed number of objects of some
-base type. The quantity of which, is specified during
-construction. Derived objects may also be created from
-ObjectPool as long as you respect appropriate maximum object size.
-The maximum object size, is also specified during construction.
+pre-allocated memory for a fixed number of objects of some
+base type, the quantity of which is specified during
+object construction. Derived objects may also be created from
+ObjectPool as long as you respect the appropriate maximum object size.
+This maximum object size is also specified during construction.
 
 The `ObjectPool<BaseType>::createObj<DerivedType>(constructArgs...)`
 operation returns a specialized `std::unique_ptr` type with a custom
@@ -177,14 +177,14 @@ in the previous example:
 
 ### BlockPool
 BlockPool is similar to ObjectPool but delivers blocks (arrays) of objects.
-Like ObjectPool, it constructs objects on pre-allocated memory.
-The number of blocks and the number of elements per block,
-are specified during construction.
+Like ObjectPool, it constructs objects onto pre-allocated memory.
+The number of blocks and the number of elements per block
+are specified at the time of construction.
 
 BlockPool is not as full-featured as ObjectPool. It supports only object types that are
-default constructible. It also does not support instantiation of derived types.
-BlockPool was original conceived to deliver a block of intrinsic scalar types
-with default values of zero. Extending it to support default constructible,
+default-constructible. It also does not support instantiation of derived types.
+BlockPool was originally conceived to deliver a block of intrinsic scalar types
+with default values of zero. Extending it to support default-constructible,
 aggregate types, was relatively straight forward.
 
 The `BlockPool<Type>::getBlock` operation returns a specialized `std::unique_ptr`
@@ -196,7 +196,7 @@ specific intervention. These operations are thread safe
 
 NOTE: Like ObjectPool, BlockPool should be instantiated early and owned
 at a level, high enough within an application's architecture, so that
-it will not go out of scope until all object block created from it are
+it will not go out of scope until all object blocks created from it are
 returned. Failing to honor this requirement will result in undefined
 behavior.
 
@@ -237,10 +237,32 @@ in the previous example:
    ```
 
 NOTE: The `std::shared_ptr<const MyType[]>` syntax is where a minimum of a
-C++17 interfacing is needed to handle conversion from unique pointer to
-shared pointer. C++11 does not officially support this and as stated in the opening
-words of this README, will not compile under gcc 4.8.5. However, gcc 8.5.0 allows
-it. Where exactly did this mysterious support appeared, is unknown.
+C++17 interfacing is needed to handle conversion from `std::unique_ptr` to
+`std::shared_ptr`. 
+The C++11 standard does not officially support this as stated in the opening
+words of this README. 
+It will not compile under gcc 4.8.5.
+However, gcc 8.5.0 allows it under a C++11 compile.
+Where exactly did this mysterious support appear is unknown.
+
+BlockPool also addresses a weakness of the `std::unique_ptr< T[] >` array syntax specialization.
+The weakness is that the standard provides no way to determine how many elements are contained
+within the array.
+Since we associate a custom deleter with the unique pointer returned by the `getBlock`
+operation, we have provided a hook within this custom deleter. 
+The number of elements managed by the unique pointer many be obtained as follows:
+
+   ```
+   // Declare a simple BlockPool. This one returns blocks of type double
+   constexpr size_t NUM_BLOCKS = 4;
+   constexpr size_t NUM_ELEMENTS = 24;
+   BlockPool< double > scalarBufferPool{ NUM_BLOCKS, NUM_ELEMENTS };
+
+   // Fetch a block which may be passed off to some other component
+   // that knows nothing about the number of elements per block.
+   auto pBlock = scalarBufferPool.getBlock();
+   auto numElements = pBlock.get_deleter().getNumElements();
+   ```
 
 ### RingBufferGuarded
 RingBufferGuarded provides a thread safe buffering mechanism
