@@ -126,7 +126,7 @@ namespace ReiserRT
             *
             * @return Intended to return the name of the message class.
             */
-            [[nodiscard]] virtual const char * name() const;
+            virtual const char * name() const;
         };
 
         /**
