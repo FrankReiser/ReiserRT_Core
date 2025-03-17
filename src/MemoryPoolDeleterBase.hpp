@@ -98,7 +98,7 @@ namespace ReiserRT
             * after  an object's destruction. The pointer to this memory is put back into our RingBuffer
             * for subsequent reuse.
             *
-            * @param p A pointer to raw memory, that originally came from the MemoryPoolBase.
+            * @param pV A pointer to raw memory, that originally came from the MemoryPoolBase.
             */
             void returnRawBlock( void * pV ) noexcept;
 
