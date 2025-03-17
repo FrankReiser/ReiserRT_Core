@@ -5,6 +5,9 @@
 * @date Created on Mar 24, 2021
 */
 
+#ifndef REISERRT_CORE_OBJECTPOOL_HPP
+#define REISERRT_CORE_OBJECTPOOL_HPP
+
 #include "MemoryPoolBase.hpp"
 #include "ObjectPoolFwd.hpp"
 #include "ObjectPoolDeleter.hpp"
@@ -12,9 +15,6 @@
 
 #include <type_traits>
 #include <utility>
-
-#ifndef REISERRT_CORE_OBJECTPOOL_HPP
-#define REISERRT_CORE_OBJECTPOOL_HPP
 
 namespace ReiserRT
 {
@@ -170,7 +170,7 @@ namespace ReiserRT
                 rawMemoryManager.release();
 
                 // Wrap for delivery.
-                return ObjectPtrType{ pCooked, std::move( createDeleter() ) };
+                return ObjectPtrType{ pCooked, createDeleter() };
             }
 
             /**
@@ -195,7 +195,7 @@ namespace ReiserRT
             *
             * @return An instance of a concrete ObjectPoolDeleter object moved off the stack.
             */
-            ObjectPoolDeleter< T > createDeleter() { return std::move( ObjectPoolDeleter< T >{ this } ); }
+            ObjectPoolDeleter< T > createDeleter() { return ObjectPoolDeleter< T >{ this }; }
        };
     }
 }
