@@ -170,7 +170,7 @@ namespace ReiserRT
                 rawMemoryManager.release();
 
                 // Wrap for delivery.
-                return ObjectPtrType{ pCooked, std::move( createDeleter() ) };
+                return ObjectPtrType{ pCooked, createDeleter() };
             }
 
             /**
