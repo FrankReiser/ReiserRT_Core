@@ -1,5 +1,5 @@
 /**
- * @file BlockPool.h
+ * @file BlockPool.hpp
  * @brief The specification file for the Block Pool
  * @authors Frank Reiser
  * @date Initiated Jan 5, 2023
@@ -139,7 +139,7 @@ namespace ReiserRT
                 }
 
                 // Wrap cooked data in a smart pointer, and return via implicit move.
-                return BlockPtrType{ pCooked, std::move( createDeleter() ) };
+                return BlockPtrType{ pCooked, createDeleter() };
             }
 
             /**
@@ -164,7 +164,7 @@ namespace ReiserRT
             *
             * @return An instance of a concrete BlockPoolDeleter object moved off the stack.
             */
-            BlockPoolDeleter< T[] > createDeleter() { return std::move( BlockPoolDeleter< T[] >{ this } ); }
+            BlockPoolDeleter< T[] > createDeleter() { return BlockPoolDeleter< T[] >{ this }; }
 
             /**
             * @brief The Number of Elements Per Block
