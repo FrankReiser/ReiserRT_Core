@@ -26,7 +26,7 @@ using namespace ReiserRT::Core;
 * This class maintains the details and provides the behavior required of MessageQueueBase that is
 * not exposed at the MessageQueueBase API layer.
 */
-class ReiserRT_Core_EXPORT MessageQueueBase::Imple
+class MessageQueueBase::Imple
 {
 private:
     /**
