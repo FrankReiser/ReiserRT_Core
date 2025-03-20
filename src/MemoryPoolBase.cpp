@@ -19,7 +19,7 @@ using namespace ReiserRT::Core;
 
 #include <cstring>     // For memset operation.
 
-class ReiserRT_Core_EXPORT MemoryPoolBase::Imple
+class MemoryPoolBase::Imple
 {
 private:
     /**
