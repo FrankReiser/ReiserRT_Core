@@ -110,9 +110,14 @@ private:
     * This constructor builds the implementation. It instantiates two counted ring buffer objects.
     * One for raw memory and one for newly constructed "cooked" messages.
     *
-    * @param requestedNumElements The number of elements requested for the ObjectQueue. This will be the exact
+    * @param theRequestedNumElements The number of elements requested for the ObjectQueue. This will be the exact
     * maximum amount of messages that can either be enqueued or dequeued before blocking occurs.
     * @param theElementSize The maximum size of an element.
+    * @param enableDispatchLocking Set to true to enable the dispatch locking capability. Dispatch locking
+    * allows execution serialization between synchronous client threads and an asynchronous dispatch loop
+    * thread. By default, this feature is disabled as there is a small performance penalty that a dispatch
+    * loop must pay to support it. If a client must coordinate synchronous and asynchronous activity,
+    * then a client should enable this feature. This cannot be changed after construction.
     *
     * @throw Throws std::bad_alloc if memory requirements for the arena, or ring buffer internals cannot be satisfied.
     */
@@ -464,7 +469,7 @@ size_t MessageQueueBase::Imple::getPaddedTypeAllocSize( size_t requestedElementS
 
 MessageQueueBase::MessageQueueBase( std::size_t requestedNumElements, std::size_t requestedMaxMessageSize,
                                     bool enableDispatchLocking )
-  : pImple{ new Imple{ requestedNumElements, requestedMaxMessageSize, enableDispatchLocking } }
+  : pImple( new Imple{ requestedNumElements, requestedMaxMessageSize, enableDispatchLocking } )
 {
 }
 

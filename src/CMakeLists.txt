@@ -62,6 +62,8 @@ endif()
 # Now, Specify Sources to be built into our library
 target_sources( ${PROJECT_NAME} PRIVATE ${_sourceFiles} )
 
+# TODO I'm pretty sure that not dealing with the install interface is an issue!!!
+# It is potentially causing header declaration of mutex to be instantiated for nothing.
 target_compile_definitions(${PROJECT_NAME}
         PUBLIC
             $<$<BOOL:${_REISER_RT_HAS_PTHREADS}>:REISER_RT_HAS_PTHREADS>

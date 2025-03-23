@@ -472,7 +472,7 @@ namespace ReiserRT
             * There is no default value for this parameter. You must specify your maximum, derived message size.
             * @param enableDispatchLocking Set to true to enable the dispatch locking capability. Dispatch locking
             * allows execution serialization between synchronous client threads and an asynchronous dispatch loop
-            * thread. By default this feature is disabled as there is a small performance penalty that a dispatch
+            * thread. By default, this feature is disabled as there is a small performance penalty that a dispatch
             * loop must pay to support it. If a client must coordinate synchronous and asynchronous activity,
             * then a client should enable this feature. This cannot be changed after construction.
             */
